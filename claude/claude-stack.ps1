@@ -57,6 +57,17 @@ function Write-JsonFile([object]$Data, [string]$Path, [int]$Depth = 20) {
   # is clean 2-space everywhere, and node is always present (Claude Code requires it). So: write
   # compact via PS, then reformat the file in place with node. Fallback to PS pretty if node is gone.
   $enc = New-Object System.Text.UTF8Encoding($false)
+  # Windows gotcha: an existing target carrying the ReadOnly or Hidden attribute makes
+  # [IO.File]::WriteAllText (and node's fs.writeFileSync below) throw "Access to the path ... is
+  # denied" (UnauthorizedAccessException) even when the ACL would allow the write - FileMode.Create
+  # cannot truncate such a file. Clear those bits first so the write lands on the real content.
+  if (Test-Path -LiteralPath $Path -PathType Leaf) {
+    try {
+      $f = Get-Item -LiteralPath $Path -Force
+      $blocked = [System.IO.FileAttributes]::ReadOnly -bor [System.IO.FileAttributes]::Hidden
+      if ($f.Attributes -band $blocked) { $f.Attributes = $f.Attributes -band (-bnot $blocked) }
+    } catch {}
+  }
   [System.IO.File]::WriteAllText($Path, ($Data | ConvertTo-Json -Depth $Depth -Compress), $enc)
   if (Get-Command node -ErrorAction SilentlyContinue) {
     try {
@@ -188,7 +199,7 @@ else {
 # MANIFEST - edit these, then run.
 # ===========================================================================
 
-# (1) Skills "repo|skill" (comment a line to skip). Full inventory - every skill (71).
+# (1) Skills "repo|skill" (comment a line to skip). Full inventory - every skill (74).
 $Skills = @(
   # Personal (envoydev/agents-stack)
   'envoydev/agents-stack|create-ticket'             # ticket generator (bug/story/epic/task) - tracker-agnostic EN Markdown, routes to references/<type>.md
@@ -207,8 +218,10 @@ $Skills = @(
   'envoydev/agents-stack|csharp'           # C# house conventions - style, naming, async, logging, DI
   'envoydev/agents-stack|csharp-design-patterns' # all 23 GoF patterns with modern .NET 8+ forms
   'envoydev/agents-stack|dotnet'           # router mapping .NET work areas to specialist skills
+  'envoydev/agents-stack|dotnet-architecture-tests' # architecture fitness tests: NetArchTest (default)/ArchUnitNET - layer+dependency+naming+isolation rules as build-failing tests
   'envoydev/agents-stack|dotnet-aspire'    # .NET Aspire local orchestration: AppHost, ServiceDefaults, service discovery, dashboard
   'envoydev/agents-stack|dotnet-authentication' # ASP.NET Core authn/authz: JWT/OIDC/Identity, policy-based authz, secrets
+  'envoydev/agents-stack|dotnet-code-quality' # C# quality enforcement: CSharpier formatter ownership, SDK analyzers + AnalysisLevel, .editorconfig severity, TreatWarningsAsErrors (+ legacy batch promotion), Roslynator, CI gate
   'envoydev/agents-stack|dotnet-cryptography' # System.Security.Cryptography: SHA-2, AES-GCM, RSA/ECDSA, PBKDF2/Argon2id, constant-time compare
   'envoydev/agents-stack|dotnet-error-handling' # Result + ProblemDetails (RFC 9457) + IExceptionHandler + FluentValidation
   'envoydev/agents-stack|dotnet-grpc'      # gRPC: .proto/codegen, ASP.NET Core host, 4 streaming modes, JWT/mTLS, interceptors, health
@@ -218,6 +231,7 @@ $Skills = @(
   'envoydev/agents-stack|dotnet-minimal-api' # minimal API endpoint mechanics: MapGroup, TypedResults, endpoint filters, binding
   'envoydev/agents-stack|dotnet-mvc-controllers' # controller-based Web API: [ApiController], attribute routing, ActionResult<T>, auto-400 filter, action filters, binding
   'envoydev/agents-stack|dotnet-openapi'   # OpenAPI doc (Swashbuckle / built-in .NET 9+) + Scalar docs UI
+  'envoydev/agents-stack|dotnet-realtime'  # SignalR real-time: strongly-typed Hub<T>, IHubContext push, groups/presence, reconnection, JWT-over-querystring, Redis/Azure backplane
   'envoydev/agents-stack|dotnet-security'  # OWASP Top 10 (2021) -> .NET 8 mitigations; deprecated-pattern warnings
   'envoydev/agents-stack|dotnet-source-generators' # Roslyn IIncrementalGenerator authoring + built-in generators (GeneratedRegex/LoggerMessage/STJ)
   'envoydev/agents-stack|dotnet-testing'   # .NET test strategy: AAA, per-layer coverage, library routing
@@ -522,8 +536,18 @@ function Set-HookSettings {
   }
   if ($changed) {
     $data.hooks.PreToolUse = $pre
-    Write-JsonFile $data $settings
-    Log '  settings.json: hook block(s) injected'
+    try {
+      Write-JsonFile $data $settings
+      Log '  settings.json: hook block(s) injected'
+    }
+    catch {
+      # Mirror the .sh twin's `|| log "settings.json wiring failed"`: a single unwritable file must
+      # not abort the install (Get-Agents and the serena fix still need to run). ReadOnly/Hidden are
+      # cleared in Write-JsonFile, so reaching here means a real lock or ACL denial.
+      Write-Warning "  settings.json wiring failed: $($_.Exception.Message)"
+      Write-Host '     Likely locked or ACL-restricted. Close Claude Code / editors holding it, or check' -ForegroundColor Yellow
+      Write-Host "     write permission on $settings, then re-run (hooks are wired idempotently)." -ForegroundColor Yellow
+    }
   }
   else {
     Log '  settings.json: hooks already wired - unchanged'

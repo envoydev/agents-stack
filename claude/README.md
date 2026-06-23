@@ -25,11 +25,19 @@ everything below applies to both unless a row is marked otherwise.
 
 | Component | Count | Notes |
 | --------- | ----- | ----- |
-| **Skills**  | 71 | conventions + utilities (ticket writers, C#/.NET, Angular/TS, SQL, Docker, git, WP) - `npx skills add … --agent claude-code` |
+| **Skills**  | 74 | conventions + utilities (ticket writers, C#/.NET, Angular/TS, SQL, Docker, git, WP) - `npx skills add … --agent claude-code` |
 | **Plugins** | 9  | `superpowers`, `claude-md-management`, `csharp-lsp`, `typescript-lsp`, `gopls-lsp`, `security-guidance`, `frontend-design`, `claude-hud`, `ponytail` - `claude plugin install` (needs the `claude` CLI) |
 | **MCP servers** | 7 | `angular-cli`, `serena`, `playwright`, `memory`, `context7`, plus `chrome-devtools` + `appium-mcp` (heavy - now active; comment out where not needed) → `<repo>/.mcp.json` |
 | **Hooks** | 3 | `require-convention-skill` (PreToolUse Edit/Write gate) + `guard-protected-force-push` (blocks force-push to main/master/develop) + `guard-catastrophic-rm` (blocks recursive rm of /, ~, $HOME, or a bare *) → `.claude/hooks/` + wired into `.claude/settings.json` |
 | **Agents** | 4 | .NET (`dotnet-build-error-resolver`, `dotnet-test-failure-resolver`) + Angular (`ng-build-error-resolver`, `angular-test-resolver`) - Claude subagents: implement-phase build/test fix loops, serena-driven, iteration-capped, no reward-hacking → `.claude/agents/` |
+
+### Install cadence - keep always vs install on occasion
+
+Cost differs by artifact, so the keep-or-skip call does too:
+
+- **Skills** - permanent by default: keyword-gated and ~free when idle, so install all and let them self-gate. Whole-domain sets (`wordpress-*`, the Ionic/Capacitor `mobile` group, `dotnet-wpf`) are optional only if you never touch that domain.
+- **MCPs** - real launch cost, so split: baseline `context7` / `serena` / `memory` / `playwright`; domain-gated `angular-cli` (Angular projects only); opt-in `chrome-devtools` and `appium-mcp` (heavy native deps - leave commented out unless needed).
+- **Plugins** - permanent (language-agnostic): `superpowers`, `claude-md-management`, `security-guidance`, `claude-hud`, `ponytail`. Language-gated: the `*-lsp` trio - install the ones matching the project's languages (`typescript-lsp` + `csharp-lsp` for an Angular + .NET shop; `gopls-lsp` only for Go). Task-gated: `frontend-design` - greenfield / visual UI work; skip if you only implement fixed designs or Figma handoffs.
 
 ---
 

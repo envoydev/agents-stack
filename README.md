@@ -61,10 +61,14 @@ npx skills remove      # uninstall skills
   SQL Server/T-SQL, SQLite, and MongoDB: schema, migrations, indexes, query safety.
 - **dotnet** - Router that points to the focused .NET/C# specialist
   skill for the area you are working in.
+- **dotnet-architecture-tests** - Architecture fitness tests: encode layer /
+  dependency / naming / isolation rules as build-failing tests with NetArchTest (default) or ArchUnitNET. .NET 8 floor.
 - **dotnet-aspire** - .NET Aspire local orchestration: AppHost,
   ServiceDefaults, service discovery, dashboard. Orchestration-only; .NET 8 floor.
 - **dotnet-authentication** - ASP.NET Core authentication/authorization:
   JWT/OIDC/Identity, policy-based authorization, secret storage. .NET 8 floor.
+- **dotnet-code-quality** - Mechanically enforce the C# house style: CSharpier
+  formatter ownership, SDK analyzers (AnalysisLevel / .editorconfig severity), TreatWarningsAsErrors + legacy batch promotion, Roslynator, the dotnet build CI gate. .NET 8 floor.
 - **dotnet-cryptography** - System.Security.Cryptography: SHA-2, AES-GCM,
   RSA/ECDSA, PBKDF2/Argon2id, constant-time comparison, deprecated-algorithm matrix. .NET 8 floor.
 - **dotnet-error-handling** - Result pattern + ProblemDetails (RFC 9457) +
@@ -83,6 +87,8 @@ npx skills remove      # uninstall skills
   [ApiController], attribute routing, ActionResult<T>, the automatic-400 filter, action filters, thin controllers. .NET 8 floor.
 - **dotnet-openapi** - OpenAPI document generation (Swashbuckle / built-in
   .NET 9+) and the Scalar docs UI. .NET 8 floor.
+- **dotnet-realtime** - ASP.NET Core SignalR real-time push: strongly-typed
+  Hub<TClient>, IHubContext, groups/presence, reconnection, JWT-over-query-string auth, and Redis / Azure SignalR scale-out. .NET 8 floor.
 - **dotnet-security** - OWASP Top 10 (2021) mapped to .NET 8 mitigations;
   delegates auth and crypto to their dedicated skills. .NET 8 floor.
 - **dotnet-source-generators** - Roslyn IIncrementalGenerator authoring +

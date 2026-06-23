@@ -52,7 +52,9 @@ specifics go under `## Per-project additions`.
 
 Observable gate - the claim words are the trigger. Before you type 'done', 'fixed', 'passing',
 'works', or 'ready' about your own change: STOP, and do not emit the claim until the build +
-relevant tests have run and you have quoted the output (no new warnings, files formatted). Report
+relevant tests have run and you have quoted the output (no new warnings, files formatted). Satisfy
+the gate honestly - fix the cause, never game it: no suppressing or downgrading a warning, disabling
+or weakening a test, or stubbing code to go green. Report
 what changed and what was deliberately not. Cannot run it? Say so, never silently skip. Partial
 work: state complete vs not vs why, then ask continue / redirect / stop.
 

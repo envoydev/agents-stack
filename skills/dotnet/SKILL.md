@@ -28,10 +28,12 @@ The single source-of-truth index mapping a concrete .NET work area - a construct
 |---|---|
 | model a domain type - aggregate, value object, domain event, strongly-typed ID | `ddd` |
 | decide which layer something belongs in, or define a cross-layer port | `clean-architecture` or `vertical-slice-architecture` (which one, and the load-exactly-one rule, is owned by `dotnet-web-backend`) |
+| enforce layer / dependency / naming / isolation boundaries as automated tests (fitness functions) that fail the build | `dotnet-architecture-tests` |
 | register services, build an `Add*` extension, or reason about DI lifetimes | `dependency-injection-patterns` |
 | bind or validate settings - `IOptions`, `IValidateOptions`, startup validation | `microsoft-extensions-configuration` |
 | set up a new project, `.slnx`, `Directory.Build.props`, or `global.json` | `dotnet-project-structure` |
 | add or upgrade a NuGet package, or edit `Directory.Packages.props` | `package-management` |
+| set up or enforce C# formatting and analyzers - CSharpier, SDK analyzers, `.editorconfig` severity, `TreatWarningsAsErrors`, the CI quality gate | `dotnet-code-quality` |
 | run a .NET migration workflow - EF schema, .NET/SDK version upgrade, or NuGet update with preview/rollback/verify | `dotnet-migrate` |
 
 ## ASP.NET Core and web
@@ -45,6 +47,7 @@ The single source-of-truth index mapping a concrete .NET work area - a construct
 | map Result-to-HTTP, return RFC 9457 `ProblemDetails`, add a global `IExceptionHandler`, or validate via a FluentValidation endpoint filter | `dotnet-error-handling` |
 | add authentication / authorization - JWT bearer, cookies, OIDC, ASP.NET Identity, policy-based authz, API keys | `dotnet-authentication` |
 | build a gRPC service or client - `.proto` codegen, streaming modes, interceptors, status mapping, gRPC-Web | `dotnet-grpc` |
+| push real-time updates to connected clients - SignalR hubs, strongly-typed `Hub<T>`, `IHubContext`, groups/presence, reconnection, Redis/Azure backplane scale-out | `dotnet-realtime` |
 
 ## Cross-cutting hardening
 

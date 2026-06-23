@@ -7,7 +7,7 @@ description: "Personal .NET asynchronous messaging conventions - broker-backed, 
 
 This is about durable, broker-backed messages crossing a process or module boundary asynchronously. The defining traits: the sender does not wait for the receiver, the broker persists the message, and delivery is at-least-once. Everything here exists to make that delivery model safe.
 
-Floor is .NET 8 / C# 12. What this skill does NOT cover: in-memory reactive streams (`r3-reactive-extensions`), and synchronous in-process cross-cutting concerns - HTTP, mediation, resilience pipelines - which are `dotnet-web-backend`. If the caller is awaiting a reply right now, it is not messaging. This skill owns the broker and the consumer contract - delivery, idempotency, retries; the generic *host* a consumer runs inside (the `BackgroundService`/worker process, its lifecycle and shutdown) is `dotnet-hosted-services`.
+Floor is .NET 8 / C# 12. What this skill does NOT cover: in-memory reactive streams (`r3-reactive-extensions`), and synchronous in-process cross-cutting concerns - HTTP, mediation, resilience pipelines - which are `dotnet-web-backend`. If the caller is awaiting a reply right now, it is not messaging. This skill owns the broker and the consumer contract - delivery, idempotency, retries; the generic *host* a consumer runs inside (the `BackgroundService`/worker process, its lifecycle and shutdown) is `dotnet-hosted-services`. Pushing a handled message's outcome to connected clients in real time (SignalR) is the server-to-client last hop, not broker delivery - that is `dotnet-realtime`.
 
 ## Pick the library: Wolverine
 
