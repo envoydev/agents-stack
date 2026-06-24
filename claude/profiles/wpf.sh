@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 #
 # CURATED PROFILE - derived from claude/claude-stack.sh (the SOURCE OF TRUTH).
-# Standalone-runnable, trimmed to the dotnet-api domain (.NET backend / Web API): the
+# Standalone-runnable, trimmed to the wpf domain (.NET desktop / WPF strict-MVVM): the
 # irrelevant manifest entries are COMMENTED OUT (a leading # - visible + reversible), and the
 # convention-hook variant args are trimmed. Regenerate this file when the main inventory
 # changes; the parity lint does NOT cover it. Everything else is byte-identical to the source.
 #
 # Usage - run this file directly inside the target project:
-#   bash dotnet-api.sh install   # install for Claude Code
-#   bash dotnet-api.sh update    # update Claude Code (skills + plugins + mcp + hooks)
+#   bash wpf.sh install   # install for Claude Code
+#   bash wpf.sh update    # update Claude Code (skills + plugins + mcp + hooks)
 #
 # Provisions Claude Code: skills --agent claude-code; plugins; MCPs via `claude mcp add`; hooks +
 # settings.json. Requires the `claude` CLI; claude-only steps fail soft if it is absent.
@@ -18,8 +18,8 @@
 #                  shared DB. Both agents share ~/.memory-mcp so Claude Code and Cursor see the same DB.
 #   github-cli  -> install the GitHub CLI (gh) via Homebrew (macOS) if missing; prompts for
 #                  `gh auth login` when unauthenticated. e.g.:
-#                    bash dotnet-api.sh install github-cli
-#                    bash dotnet-api.sh install work github-cli
+#                    bash wpf.sh install github-cli
+#                    bash wpf.sh install work github-cli
 #
 # Scope (default PROJECT - installs the full set INTO this repo; SCOPE=global installs it into the
 # active account instead):
@@ -176,27 +176,27 @@ SKILLS=(
   "envoydev/agents-stack|csharp-design-patterns" # all 23 GoF patterns with modern .NET 8+ forms
   "envoydev/agents-stack|dotnet"           # router mapping .NET work areas to specialist skills
   "envoydev/agents-stack|dotnet-architecture-tests" # architecture fitness tests: NetArchTest (default)/ArchUnitNET - layer+dependency+naming+isolation rules as build-failing tests
-  "envoydev/agents-stack|dotnet-aspire"    # .NET Aspire local orchestration: AppHost, ServiceDefaults, service discovery, dashboard
-  "envoydev/agents-stack|dotnet-authentication" # ASP.NET Core authn/authz: JWT/OIDC/Identity, policy-based authz, secrets
+  # "envoydev/agents-stack|dotnet-aspire"    # .NET Aspire local orchestration: AppHost, ServiceDefaults, service discovery, dashboard
+  # "envoydev/agents-stack|dotnet-authentication" # ASP.NET Core authn/authz: JWT/OIDC/Identity, policy-based authz, secrets
   "envoydev/agents-stack|dotnet-code-quality" # C# quality enforcement: CSharpier formatter ownership, SDK analyzers + AnalysisLevel, .editorconfig severity, TreatWarningsAsErrors (+ legacy batch promotion), Roslynator, CI gate
   "envoydev/agents-stack|dotnet-cryptography" # System.Security.Cryptography: SHA-2, AES-GCM, RSA/ECDSA, PBKDF2/Argon2id, constant-time compare
-  "envoydev/agents-stack|dotnet-error-handling" # Result + ProblemDetails (RFC 9457) + IExceptionHandler + FluentValidation
-  "envoydev/agents-stack|dotnet-grpc"      # gRPC: .proto/codegen, ASP.NET Core host, 4 streaming modes, JWT/mTLS, interceptors, health
-  "envoydev/agents-stack|dotnet-hosted-services" # worker/background-service host: BackgroundService, ExecuteAsync trap, scoped scope, PeriodicTimer, shutdown, Channels
-  "envoydev/agents-stack|dotnet-messaging" # event-driven messaging: Wolverine (MIT)/MassTransit, outbox, sagas, RabbitMQ/Azure SB
+  # "envoydev/agents-stack|dotnet-error-handling" # Result + ProblemDetails (RFC 9457) + IExceptionHandler + FluentValidation (HTTP-shaped; WPF validation is INotifyDataErrorInfo via dotnet-wpf)
+  # "envoydev/agents-stack|dotnet-grpc"      # gRPC: .proto/codegen, ASP.NET Core host, 4 streaming modes, JWT/mTLS, interceptors, health
+  # "envoydev/agents-stack|dotnet-hosted-services" # worker/background-service host: BackgroundService, ExecuteAsync trap, scoped scope, PeriodicTimer, shutdown, Channels (uncomment if the WPF app uses the Generic Host)
+  # "envoydev/agents-stack|dotnet-messaging" # event-driven messaging: Wolverine (MIT)/MassTransit, outbox, sagas, RabbitMQ/Azure SB
   "envoydev/agents-stack|dotnet-migrate"   # safe migration workflow: EF schema, .NET upgrades, NuGet - rollback + verify per step
-  "envoydev/agents-stack|dotnet-minimal-api" # minimal API endpoint mechanics: MapGroup, TypedResults, endpoint filters, binding
-  "envoydev/agents-stack|dotnet-mvc-controllers" # controller-based Web API: [ApiController], attribute routing, ActionResult<T>, auto-400 filter, action filters, binding
-  "envoydev/agents-stack|dotnet-openapi"   # OpenAPI doc (Swashbuckle / built-in .NET 9+) + Scalar docs UI
-  "envoydev/agents-stack|dotnet-realtime"  # SignalR real-time: strongly-typed Hub<T>, IHubContext push, groups/presence, reconnection, JWT-over-querystring, Redis/Azure backplane
-  "envoydev/agents-stack|dotnet-security"  # OWASP Top 10 (2021) -> .NET 8 mitigations; deprecated-pattern warnings
-  "envoydev/agents-stack|dotnet-source-generators" # Roslyn IIncrementalGenerator authoring + built-in generators (GeneratedRegex/LoggerMessage/STJ)
+  # "envoydev/agents-stack|dotnet-minimal-api" # minimal API endpoint mechanics: MapGroup, TypedResults, endpoint filters, binding
+  # "envoydev/agents-stack|dotnet-mvc-controllers" # controller-based Web API: [ApiController], attribute routing, ActionResult<T>, auto-400 filter, action filters, binding
+  # "envoydev/agents-stack|dotnet-openapi"   # OpenAPI doc (Swashbuckle / built-in .NET 9+) + Scalar docs UI
+  # "envoydev/agents-stack|dotnet-realtime"  # SignalR real-time: strongly-typed Hub<T>, IHubContext push, groups/presence, reconnection, JWT-over-querystring, Redis/Azure backplane
+  # "envoydev/agents-stack|dotnet-security"  # OWASP Top 10 (2021) -> .NET 8 mitigations; deprecated-pattern warnings (web threat model; not desktop)
+  # "envoydev/agents-stack|dotnet-source-generators" # Roslyn IIncrementalGenerator authoring + built-in generators (GeneratedRegex/LoggerMessage/STJ); consuming CommunityToolkit.Mvvm generators is dotnet-wpf
   "envoydev/agents-stack|dotnet-testing"   # .NET test strategy: AAA, per-layer coverage, library routing
-  "envoydev/agents-stack|dotnet-web-backend" # ASP.NET Core cross-cutting: HttpClientFactory, OpenAPI, observability
-  # "envoydev/agents-stack|dotnet-wpf"       # WPF strict-MVVM conventions, bindings, virtualization
+  # "envoydev/agents-stack|dotnet-web-backend" # ASP.NET Core cross-cutting: HttpClientFactory, OpenAPI, observability
+  "envoydev/agents-stack|dotnet-wpf"       # WPF strict-MVVM conventions, bindings, virtualization
   # .NET (aaronontheweb/dotnet-skills)
-  "aaronontheweb/dotnet-skills|api-design"    # stable extend-only public APIs, NuGet/wire versioning
-  "aaronontheweb/dotnet-skills|aspire-integration-testing" # .NET Aspire integration tests: DistributedApplicationTestingBuilder, AppHost, endpoint discovery
+  # "aaronontheweb/dotnet-skills|api-design"    # stable extend-only public APIs, NuGet/wire versioning (for published libraries, not an app)
+  # "aaronontheweb/dotnet-skills|aspire-integration-testing" # .NET Aspire integration tests: DistributedApplicationTestingBuilder, AppHost, endpoint discovery
   "aaronontheweb/dotnet-skills|crap-analysis" # CRAP-score risk hotspots (complexity x coverage)
   "aaronontheweb/dotnet-skills|csharp-concurrency-patterns" # async/await, Channels, Akka.NET concurrency guidance
   "aaronontheweb/dotnet-skills|database-performance" # read-path perf: N+1, projections, AsNoTracking, row limits
@@ -207,12 +207,12 @@ SKILLS=(
   "aaronontheweb/dotnet-skills|efcore-patterns" # EF Core query/tracking/migration mechanics
   "aaronontheweb/dotnet-skills|ilspy-decompile" # decompile assemblies to inspect the real API/behavior
   "aaronontheweb/dotnet-skills|microsoft-extensions-configuration" # typed options binding + startup validation
-  "aaronontheweb/dotnet-skills|OpenTelemetry-NET-Instrumentation" # deep manual OTel: custom Activity/spans, metric cardinality, zero-alloc TagList (beyond web-backend wiring)
+  # "aaronontheweb/dotnet-skills|OpenTelemetry-NET-Instrumentation" # deep manual OTel: custom Activity/spans, metric cardinality, zero-alloc TagList (server observability)
   "aaronontheweb/dotnet-skills|package-management" # NuGet central package management via dotnet CLI
-  "aaronontheweb/dotnet-skills|r3-reactive-extensions" # R3 (Cysharp modern Rx): Observable, operators, schedulers for event-driven C#
+  "aaronontheweb/dotnet-skills|r3-reactive-extensions" # R3 (Cysharp modern Rx): Observable, operators, schedulers for event-driven C# (reactive WPF view models)
   "aaronontheweb/dotnet-skills|serialization" # System.Text.Json / Protobuf / MessagePack guidance
   "aaronontheweb/dotnet-skills|snapshot-testing" # Verify snapshot/approval tests: HTTP responses, public API surface, serialized output
-  "aaronontheweb/dotnet-skills|testcontainers-integration-tests" # integration tests against real DBs in Docker
+  # "aaronontheweb/dotnet-skills|testcontainers-integration-tests" # integration tests against real DBs in Docker (server-side; uncomment if the WPF app integration-tests a containerized DB)
   "aaronontheweb/dotnet-skills|type-design-performance" # structs vs classes, sealing, allocation-aware type design
   # .NET diagnostics (dotnet/skills - official Microsoft)
   "dotnet/skills|microbenchmarking"           # BenchmarkDotNet: design/run/compare microbenchmarks (net-new runtime perf)
@@ -225,12 +225,12 @@ SKILLS=(
   "josiahsiegel/claude-plugin-marketplace|docker-platform-guide" # per-OS Docker Desktop setup specifics
   "josiahsiegel/claude-plugin-marketplace|docker-security-guide" # container hardening, capability dropping, CIS
   "josiahsiegel/claude-plugin-marketplace|git-master" # non-trivial git: recovery, history rewrite, submodules
-  "josiahsiegel/claude-plugin-marketplace|index-strategies" # SQL Server index design: clustered/filtered/columnstore/INCLUDE
+  # "josiahsiegel/claude-plugin-marketplace|index-strategies" # SQL Server index design: clustered/filtered/columnstore/INCLUDE
   "josiahsiegel/claude-plugin-marketplace|markdown-style" # two-pass Markdown syntax/style review
-  "josiahsiegel/claude-plugin-marketplace|query-optimization" # T-SQL rewrites, SARGability, execution-plan reading
-  "josiahsiegel/claude-plugin-marketplace|tsql-functions" # T-SQL function catalog (string/date/window/JSON/XML)
+  # "josiahsiegel/claude-plugin-marketplace|query-optimization" # T-SQL rewrites, SARGability, execution-plan reading
+  # "josiahsiegel/claude-plugin-marketplace|tsql-functions" # T-SQL function catalog (string/date/window/JSON/XML)
   # Single-skill repos
-  "supabase/agent-skills|supabase-postgres-best-practices" # Postgres performance + schema best practices
+  # "supabase/agent-skills|supabase-postgres-best-practices" # Postgres performance + schema best practices
   "mryll/skills|vertical-slice-architecture"  # VSA: feature folders, minimal cross-slice coupling
   # WordPress / WooCommerce side project (WordPress/agent-skills - official)
   # "WordPress/agent-skills|wordpress-router"   # routes a WP task to the focused WordPress skill

@@ -4,7 +4,7 @@ Curated, **standalone** installers - one per project type - each a fork of
 [`../claude-stack.sh`](../claude-stack.sh) with the off-domain `SKILLS` / `MCPS` / `PLUGINS` /
 `AGENTS` entries commented out and the convention-hook `args` trimmed to the languages that
 profile actually touches. Run one when you do not want the full stack laid down on a single-
-purpose repo - a .NET API, an Angular web app, or an Ionic/Capacitor mobile app.
+purpose repo - a .NET API, an Angular web app, an Ionic/Capacitor mobile app, or a WPF desktop app.
 
 Each profile is **complete on its own** (the same script body as the main installer, same
 prerequisite check, same actions and extras). It is not a layer applied on top of
@@ -15,6 +15,7 @@ prerequisite check, same actions and extras). It is not a layer applied on top o
 | `dotnet-api.sh`   | ASP.NET Core / .NET backend  | `bash claude/profiles/dotnet-api.sh install` |
 | `web-angular.sh`  | Angular web app              | `bash claude/profiles/web-angular.sh install` |
 | `mobile.sh`       | Ionic / Capacitor + Angular  | `bash claude/profiles/mobile.sh install` |
+| `wpf.sh`          | WPF desktop (.NET / strict-MVVM) | `bash claude/profiles/wpf.sh install` |
 
 > **A repo with BOTH an Angular web app and an Ionic mobile app: use `mobile.sh`.** Ionic mobile
 > is built on the Angular web stack, so the `mobile` profile already contains the complete
@@ -26,7 +27,7 @@ prerequisite check, same actions and extras). It is not a layer applied on top o
 
 ---
 
-## Shared core - identical in all three
+## Shared core - identical in all four
 
 Every profile keeps the stack-neutral baseline untouched:
 
@@ -47,6 +48,7 @@ Every profile keeps the stack-neutral baseline untouched:
 | **dotnet-api**   | `csharp` + all `dotnet-*` skills + the .NET DB/SQL skills; `csharp-lsp`; the two .NET agents (`dotnet-build-error-resolver`, `dotnet-test-failure-resolver`); convention `args` **`cs sql`** | Angular/TS/mobile skills, `typescript-lsp`/`gopls-lsp`, `frontend-design`, the Angular agents, `angular-cli`/`playwright`/`chrome-devtools`/`appium-mcp` |
 | **web-angular**  | `angular-*` + `typescript` + `frontend`/`material-3` skills; `typescript-lsp` + `frontend-design`; the two Angular agents (`ng-build-error-resolver`, `angular-test-resolver`); `angular-cli`/`playwright`/`chrome-devtools` MCPs; convention `args` **`ng ts`** | All `dotnet-*`/`csharp`/SQL skills, `csharp-lsp`/`gopls-lsp`, the .NET agents, `appium-mcp` |
 | **mobile**       | everything web-angular keeps **plus** `ionic`/`mobile`/`capacitor-*` skills and `appium-mcp`; convention `args` **`ng ts`** | All `dotnet-*`/`csharp`/SQL skills, `csharp-lsp`/`gopls-lsp`, the .NET agents |
+| **wpf**          | `csharp` + `dotnet-wpf` + the general .NET architecture / testing / quality / diagnostics skills + general DB (`database-conventions`/`efcore-patterns`/`database-performance`); `csharp-lsp`; the two .NET agents; convention `args` **`cs sql`** | The web/service `dotnet-*` skills (`-web-backend`/`-minimal-api`/`-mvc-controllers`/`-openapi`/`-grpc`/`-realtime`/`-messaging`/`-aspire`/`-authentication`/`-error-handling`/`-security`/`-hosted-services`/`-source-generators`), Angular/TS/mobile skills, `typescript-lsp`/`gopls-lsp`, `frontend-design`, the Angular agents, `angular-cli`/`playwright`/`chrome-devtools`/`appium-mcp`, the T-SQL/Postgres skills |
 
 ---
 
