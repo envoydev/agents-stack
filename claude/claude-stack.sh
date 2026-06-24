@@ -331,7 +331,7 @@ HOOKS=(
   #   browser extension  -> "ts"            (plain TS/JS, no framework/cs/sql)
   #   Node / TS tooling  -> "ts"            (+ "sql" if hand-written SQL)
   # ts gates bare .ts/.tsx/.js/.jsx/.mjs/.cjs on typescript (must be installed where ts is on).
-  "require-convention-skill.js::Edit|Write|mcp__serena__replace_symbol_body|mcp__serena__insert_after_symbol|mcp__serena__insert_before_symbol::cs ng sql ts"
+  "require-convention-skill.js::Edit|Write|mcp__serena__replace_symbol_body|mcp__serena__insert_after_symbol|mcp__serena__insert_before_symbol|mcp__serena__create_text_file|mcp__serena__replace_content|mcp__serena__replace_regex|mcp__serena__rename_symbol|mcp__serena__replace_lines|mcp__serena__delete_lines|mcp__serena__insert_at_line::cs ng sql ts"
   "guard-protected-force-push.js::Bash::"         # block force-push to main/master/develop
   "guard-catastrophic-rm.js::Bash::"              # block recursive rm of /, ~, $HOME, or a bare *
 )

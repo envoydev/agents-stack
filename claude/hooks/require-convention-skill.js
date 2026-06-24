@@ -2,10 +2,12 @@
 // PreToolUse gate: block an edit to a convention-governed file type until EVERY
 // owning convention skill is loaded this session. Reads the tool-call JSON on
 // stdin; exit 2 blocks (stderr fed back to the model), exit 0 allows. Covers the
-// direct Edit/Write tools AND serena's symbol-level editors (replace_symbol_body,
-// insert_after_symbol, insert_before_symbol) - the installer wires all of them as
-// the matcher, and the file is read from tool_input.file_path or .relative_path - so
-// a symbol-edit cannot slip the gate that a plain Edit would hit.
+// direct Edit/Write tools AND every serena file-mutating tool the installer wires into
+// the matcher (the symbol edits replace_symbol_body / insert_after|before_symbol, the
+// line edits replace_lines / delete_lines / insert_at_line, plus create_text_file,
+// replace_content/replace_regex, and rename_symbol). The path is read from
+// tool_input.file_path OR .relative_path (serena uses the latter) - so an edit through
+// ANY of serena's editors cannot slip the gate that a plain Edit would hit.
 //
 // The active table is the MERGE of one or more required variant keys, passed as
 // CLI args (each a key in TABLES). At least one is required - no implicit
@@ -35,6 +37,13 @@
 // a plain 'foo.ts' requires just typescript. A bare '.html' stays
 // ungated (Angular template vs static page is genuinely ambiguous and there's no
 // language-baseline skill for it).
+//
+// Known, deliberate gaps (do NOT silently 'fix'): (1) edits made through Bash (sed -i,
+// cat > foo.cs, > foo.cs) are not gated - matching arbitrary shell writes is brittle and
+// false-positive-prone, so the gate covers the idiomatic editors only (Edit/Write + the
+// serena mutators above); (2) 'loaded' means the Skill was invoked this session, not that
+// its guidance is still in the live context window after a summarization - a PreToolUse
+// hook cannot see the window. Both are accepted limitations, not bugs.
 'use strict';
 const fs = require('fs');
 
@@ -112,24 +121,25 @@ function requiredSkills(table, file)
     return [...skills];
 }
 
-// True if `skill` was invoked as a Skill tool call earlier in this session's
-// transcript text. Structural check: walk each JSONL line for an ASSISTANT-role
-// message whose content[] holds a tool_use named "Skill" with input.skill matching
-// exactly. The role filter matters: only the assistant emits real tool_use blocks,
-// so a user message that merely quotes a tool_use shape - or a plain-text mention of
-// the skill anywhere in chat - can never satisfy the gate.
-function loadedInTranscript(text, skill)
+// Collect every skill invoked via a Skill tool call this session, in ONE pass over the
+// transcript (vs re-scanning per required skill). Structural check: an ASSISTANT-role
+// message whose content[] holds a tool_use named "Skill" with a string input.skill. The
+// role filter matters: only the assistant emits real tool_use blocks, so a user message
+// that merely quotes a tool_use shape - or a plain-text mention of the skill anywhere in
+// chat - can never satisfy the gate. Returns the set of loaded skill names.
+function loadedSkills(text)
 {
-    if (!text.includes(`"${skill}"`))
+    const loaded = new Set();
+    if (!text.includes('"Skill"'))
     {
-        return false; // fast reject: skill name appears nowhere
+        return loaded; // fast reject: no Skill tool call appears anywhere
     }
 
     for (const line of text.split('\n'))
     {
-        if (!line.includes(skill))
+        if (!line.includes('"Skill"'))
         {
-            continue;
+            continue; // only lines naming the Skill tool can carry a load
         }
 
         let obj;
@@ -150,14 +160,14 @@ function loadedInTranscript(text, skill)
 
         for (const block of message.content)
         {
-            if (block?.type === 'tool_use' && block?.name === 'Skill' && block?.input?.skill === skill)
+            if (block?.type === 'tool_use' && block?.name === 'Skill' && typeof block?.input?.skill === 'string')
             {
-                return true;
+                loaded.add(block.input.skill);
             }
         }
     }
 
-    return false;
+    return loaded;
 }
 
 function main()
@@ -199,7 +209,8 @@ function main()
         }
     }
 
-    const missing = skills.filter(skill => !loadedInTranscript(text, skill));
+    const loaded = loadedSkills(text);
+    const missing = skills.filter(skill => !loaded.has(skill));
     if (missing.length === 0)
     {
         process.exit(0);
