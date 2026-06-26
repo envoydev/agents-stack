@@ -155,9 +155,10 @@ typos / one-line / formatting-only diffs.
 | `<framework>-cli` (framework-gated; `angular-cli` in the Angular baseline) | the framework CLI's own docs / commands - shipped active in the Angular stack, commented out where the project isn't that framework. A framework-specific complement to `context7`, which stays the generic-docs route. |
 | Issue-tracker connector (Claude built-in, not stack-wired) | the project's tracker read-write: search, create, update issues - your ticket-authoring skills generate the content, the connector files it (always confirm before filing) |
 
-Two further MCPs ship commented-out as opt-in - `chrome-devtools` (browser / extension
-debug) and `appium-mcp` (native mobile E2E); uncomment per project. Name any other MCP the
-project adds under `## Per-project additions`.
+Two further MCPs ship active in the baseline but are heavy and fail at launch without their
+native deps - `chrome-devtools` (browser / extension debug) and `appium-mcp` (native mobile
+E2E, needs Xcode / Android SDK + Java); comment them out where the project isn't a browser /
+mobile target. Name any other MCP the project adds under `## Per-project additions`.
 
 Adjacent but not an MCP: the **`LSP` tool** is fed by the per-language LSP trio - `csharp-lsp`
 (C#), `typescript-lsp` (TS / JS), `gopls-lsp` (Go) - chosen per project; enable whichever
