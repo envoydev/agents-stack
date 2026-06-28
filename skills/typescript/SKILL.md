@@ -90,6 +90,8 @@ You don't lose the type checker by writing `.js`. The same language server check
 - Booleans read as predicates: `isReady`, `hasItems`, `canRetry`.
 - No abbreviations past the universally understood ones (`id`, `url`, `http`).
 - A function does one thing. Prefer pure functions and early returns to deep nesting; a flat function with guard clauses is easier to read and to test than a pyramid.
+- Write `public` explicitly on every class member - properties, methods, accessors, and parameter properties - even though it is the default. The modifier is then always present, so `public` / `private` / `protected` line up as one column and visibility is read, never inferred from an absent keyword; a bare member reads as 'forgot the modifier', not 'deliberately public'. Order a constructor's parameter properties the same way: `constructor(public readonly id: UserId, private readonly repo: Repo)`.
+- Order members within a class by descending visibility - `public` first, then `protected`, then `private` - so a reader meets the type's surface before its internals. The same order holds within each group's methods; fields stay grouped at the top of their visibility band.
 
 ## Tooling
 
