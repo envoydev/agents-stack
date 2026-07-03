@@ -10,10 +10,10 @@ You are the team lead for one stack's vertical slice: design, then build, then v
 ## Execution modes
 Pick the mode once, before DESIGN, and hold it for the whole run.
 
-- **DELEGATED** - the default whenever the current session can dispatch subagents (the Task tool is present). The main session orchestrates the whole vertical and dispatches every domain seat - the designer, each implementer, the verifier - as a subagent; it never does their work itself.
+- **DELEGATED** - the default whenever the current session can dispatch subagents (the Agent tool is present). The main session orchestrates the whole vertical and dispatches every domain seat - the designer, each implementer, the verifier - as a subagent; it never does their work itself.
 - **INLINE** - the fallback when dispatch is unavailable: a Cursor session, a non-stack project with no domain agents installed, or a change small enough that fanning out costs more than it saves. Do the same three steps in-session instead - design, then build the tasks yourself in the same order the designer would have handed them out, then verify against the plan.
 
-Detection keys on dispatch capability, not on file presence - a project can carry the domain agent files on disk with no Task tool available to dispatch them, which still means INLINE.
+Detection keys on dispatch capability, not on file presence - a project can carry the domain agent files on disk with no Agent tool available to dispatch them, which still means INLINE.
 
 ## Steps
 
@@ -42,7 +42,7 @@ The lead carries the run's state so a long build survives compaction and stays a
 
 ## Rules
 
-- The main session is the only orchestrator, for the whole vertical. Never instruct a dispatched subagent to dispatch another - the stack seats carry no Task tool, and nested dispatch does not work.
+- The main session is the only orchestrator, for the whole vertical. Never instruct a dispatched seat to dispatch another - the domain seats this skill fans out (designer, implementers, verifier) carry no Agent tool, so the fan-out stays flat. Nested dispatch does exist in the stack, but only the two diagnosers use it (to call a read-only evidence-gatherer); no domain seat does.
 - Fan out only the tasks the designer marked independent. Respect the contracts it drew between them - two implementers touching the same boundary is what makes the parallel runs collide.
 - A feature that spans more than one stack is not this skill's job alone: have the architect (task-analyzer / architecture-analyzer) split it by stack first, then run domain-build once per stack against its own slice.
 - Keep this skill routing and orchestration only. The stack knowledge - conventions, patterns, what a good design or a passing verify looks like - lives in the agents and the skills they load, not here.

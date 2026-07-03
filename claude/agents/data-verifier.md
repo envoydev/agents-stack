@@ -4,6 +4,7 @@ description: Use once every data-implementer task has landed - a read-only pass 
 tools: Read, Skill, Bash, Grep, Glob, mcp__serena__find_symbol, mcp__serena__find_referencing_symbols, mcp__serena__get_symbols_overview, mcp__context7__*
 model: opus
 effort: xhigh
+color: purple
 skills:
   - database-conventions
   - dotnet-migrate

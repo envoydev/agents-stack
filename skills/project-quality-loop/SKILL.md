@@ -91,7 +91,7 @@ Read these off the printed open set (SCORE) across passes, not by eye - PLATEAU 
 - Never weaken, skip, or delete a check, test, or assertion to make a bar appear met. If a fix would break a test, that is a finding, not a fix.
 - Make the smallest change that resolves each item. Avoid rewrites that introduce new findings - they make the loop diverge instead of converge.
 - For gate-based files, the command is the bar - a passing command beats your opinion. Self-judgment is only the fallback for things no command can check, like naming or design quality.
-- The main session is the only orchestrator - never instruct a subagent to dispatch another subagent; the stack agents carry no Task tool, and nested dispatch does not work. A stage needing a verdict and a fix is two dispatches from here, not one nested one.
+- The main session is the only orchestrator - never instruct a subagent to dispatch another; the auditors and implementers this loop dispatches (domain verifiers, implementers, resolvers, analyzers) carry no Agent tool. A stage needing a verdict and a fix is two dispatches from here, not one nested one.
 
 ## OUTPUT
 Per pass: the one-line score and open set, plus a short note of what you fixed and decided.

@@ -10,10 +10,10 @@ Use this skill to build a new application or a major new module from scratch, be
 ## Execution modes
 Pick the mode once, before DESIGN, and hold it for the whole run.
 
-- **DELEGATED** - the default whenever the current session can dispatch subagents (the Task tool is available). The main session orchestrates: it dispatches greenfield-solution-designer, then runs the `domain-build` skill per slice; it never does their work itself.
+- **DELEGATED** - the default whenever the current session can dispatch subagents (the Agent tool is available). The main session orchestrates: it dispatches greenfield-solution-designer, then runs the `domain-build` skill per slice; it never does their work itself.
 - **INLINE** - the fallback when dispatch is unavailable: Cursor, a non-stack project, or a scaffold small enough that dispatch overhead outweighs the work. Do it all in-session, using brainstorming and writing-plans plus the architecture skills directly, instead of dispatching a designer.
 
-Detection keys on dispatch capability, not file presence - a project can carry the agent files on disk with no Task tool available, in which case it still runs INLINE.
+Detection keys on dispatch capability, not file presence - a project can carry the agent files on disk with no Agent tool available, in which case it still runs INLINE.
 
 ## Steps
 1. **DESIGN** - DELEGATED: dispatch greenfield-solution-designer to turn the spec into architecture options. INLINE: brainstorming and writing-plans in-session, to the same end. Either way, get the user's approval on the architecture and the stack before scaffolding anything - greenfield tech choices are the user's, never silently picked.
@@ -32,5 +32,5 @@ Detection keys on dispatch capability, not file presence - a project can carry t
 
 ## Rules
 - Greenfield architecture and tech choices are the user's - present options, get approval, never scaffold before the design is approved.
-- The main session is the only orchestrator - never instruct a subagent to dispatch another subagent; the stack agents carry no Task tool.
+- The main session is the only orchestrator - never instruct a subagent to dispatch another; the agents this skill dispatches (greenfield-solution-designer, then the domain seats via the `domain-build` skill) carry no Agent tool.
 - Reuse the architecture skills rather than restating structure here - this skill routes, it does not re-derive.

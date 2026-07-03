@@ -94,7 +94,6 @@
   .legend { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-bottom: 24px; }
   .key { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--muted); }
   .swatch { width: 11px; height: 11px; border-radius: 3px; flex: none; }
-  .key .dashed { width: 22px; height: 15px; border-radius: 4px; border: 1.5px dashed var(--brass); background: rgba(216,168,91,0.08); }
   .key .solid { width: 22px; height: 15px; border-radius: 4px; border: 1px solid var(--line); background: var(--panel-2); }
 
   .matrix-scroll { overflow-x: auto; padding-bottom: 6px; }
@@ -132,8 +131,6 @@
     background: var(--panel-2); color: var(--ink);
   }
   .agent .role { display: block; font-size: 10px; color: var(--faint); margin-top: 2px; font-weight: 600; letter-spacing: 0.03em; }
-  .agent.new { border: 1.5px dashed var(--brass); background: rgba(216,168,91,0.08); }
-  .agent.new .role { color: var(--brass); }
   .agent.arch { border-color: rgba(216,168,91,0.45); }
   .agent.qa .role { color: var(--qa); }
   .agent.repair .role { color: var(--repair); }
@@ -204,10 +201,11 @@
     asked to be good at both Angular and C# — each seat is a single deep role.
   </p>
   <div class="stat-row">
-    <div class="stat"><b>26</b><span>agents, built</span></div>
+    <div class="stat"><b>27</b><span>agents, built</span></div>
     <div class="stat"><b>15</b><span>per-domain seats</span></div>
     <div class="stat"><b>7</b><span>cross-cutting</span></div>
     <div class="stat"><b>4</b><span>build/test resolvers</span></div>
+    <div class="stat"><b>1</b><span>evidence-gatherer</span></div>
     <div class="stat"><b>5</b><span>domains</span></div>
     <div class="stat"><b>37</b><span>skills</span></div>
   </div>
@@ -237,7 +235,7 @@
         <span class="nd">once all parts land: vs plan + code quality</span>
       </div>
     </div>
-    <div class="loopback"><span class="dash">&larr; &middot;&middot;&middot;&middot;&middot;&middot;&middot;&middot;&middot;</span> &nbsp;gaps return to the implementers as a punch-list, and re-verify, until the verifier signs off. The main session runs the fan-out; agents never dispatch agents.</div>
+    <div class="loopback"><span class="dash">&larr; &middot;&middot;&middot;&middot;&middot;&middot;&middot;&middot;&middot;</span> &nbsp;gaps return to the implementers as a punch-list, and re-verify, until the verifier signs off. The main session runs the fan-out - the vertical's seats never dispatch agents; the two diagnosers are the one exception, each dispatching a read-only evidence-gatherer.</div>
   </div>
 
   <!-- ===================== TEAM MATRIX ===================== -->
@@ -246,12 +244,10 @@
     <p class="sec-sub">
       Role down the side, domain across the top. The <b>architect</b> and <b>ops</b>
       rows span every stack; the <b>design</b>, <b>build</b> and <b>verify</b> rows get one seat per
-      domain. Dashed brass seats are <b>new</b>; solid seats <b>exist today</b>.
+      domain.
     </p>
 
     <div class="legend">
-      <span class="key"><span class="dashed"></span> proposed new agent</span>
-      <span class="key"><span class="solid"></span> exists today</span>
       <span class="key"><span class="swatch" style="background:var(--brass)"></span> architect</span>
       <span class="key"><span class="swatch" style="background:var(--design)"></span> solution design</span>
       <span class="key"><span class="swatch" style="background:var(--build)"></span> implementation</span>
@@ -282,8 +278,8 @@
           <div></div>
           <div class="heads">
             <div class="dom">ASP.NET Core<b>Backend · API</b></div>
-            <div class="dom">Angular<b>Web</b></div>
             <div class="dom">WPF<b>Desktop</b></div>
+            <div class="dom">Angular<b>Web</b></div>
             <div class="dom">Ionic<b>Mobile</b></div>
             <div class="dom">SQL<b>Data</b></div>
           </div>
@@ -296,11 +292,11 @@
             <span class="d">best practice · plan · test strategy · splits the work</span>
           </div>
           <div class="cols">
-            <div class="cell"><span class="agent new">aspnet-solution-designer<span class="role">clean-arch · API shape · auth</span></span></div>
-            <div class="cell"><span class="agent new">angular-solution-designer<span class="role">components · state · routing</span></span></div>
-            <div class="cell"><span class="agent new">wpf-solution-designer<span class="role">strict MVVM · view composition</span></span></div>
-            <div class="cell"><span class="agent new">mobile-solution-designer<span class="role">shell · native bridge · release</span></span></div>
-            <div class="cell"><span class="agent new">data-solution-designer<span class="role">schema · model · perf</span></span></div>
+            <div class="cell"><span class="agent">aspnet-solution-designer<span class="role">clean-arch · API shape · auth</span></span></div>
+            <div class="cell"><span class="agent">wpf-solution-designer<span class="role">strict MVVM · view composition</span></span></div>
+            <div class="cell"><span class="agent">angular-solution-designer<span class="role">components · state · routing</span></span></div>
+            <div class="cell"><span class="agent">mobile-solution-designer<span class="role">shell · native bridge · release</span></span></div>
+            <div class="cell"><span class="agent">data-solution-designer<span class="role">schema · model · perf</span></span></div>
           </div>
         </div>
 
@@ -311,11 +307,11 @@
             <span class="d">several in parallel, one task each; code + tests</span>
           </div>
           <div class="cols">
-            <div class="cell"><span class="agent new">aspnet-implementer<span class="role">C# + xUnit / integration</span></span></div>
-            <div class="cell"><span class="agent new">angular-implementer<span class="role">TS + Jest / TestBed</span></span></div>
-            <div class="cell"><span class="agent new">wpf-implementer<span class="role">XAML + VM unit tests</span></span></div>
-            <div class="cell"><span class="agent new">mobile-implementer<span class="role">Ionic + Appium E2E</span></span></div>
-            <div class="cell"><span class="agent new">data-implementer<span class="role">SQL + migration tests</span></span></div>
+            <div class="cell"><span class="agent">aspnet-implementer<span class="role">C# + xUnit / integration</span></span></div>
+            <div class="cell"><span class="agent">wpf-implementer<span class="role">XAML + VM unit tests</span></span></div>
+            <div class="cell"><span class="agent">angular-implementer<span class="role">TS + Jest / TestBed</span></span></div>
+            <div class="cell"><span class="agent">mobile-implementer<span class="role">Ionic + Appium E2E</span></span></div>
+            <div class="cell"><span class="agent">data-implementer<span class="role">SQL + migration tests</span></span></div>
           </div>
         </div>
 
@@ -326,11 +322,11 @@
             <span class="d">once all parts land: vs plan + quality, loops back</span>
           </div>
           <div class="cols">
-            <div class="cell"><span class="agent new">aspnet-verifier<span class="role">vs clean-arch + async</span></span></div>
-            <div class="cell"><span class="agent new">angular-verifier<span class="role">vs signals / OnPush / a11y</span></span></div>
-            <div class="cell"><span class="agent new">wpf-verifier<span class="role">vs MVVM + bindings</span></span></div>
-            <div class="cell"><span class="agent new">mobile-verifier<span class="role">vs native + platform parity</span></span></div>
-            <div class="cell"><span class="agent new">data-verifier<span class="role">vs schema + query safety</span></span></div>
+            <div class="cell"><span class="agent">aspnet-verifier<span class="role">vs clean-arch + async</span></span></div>
+            <div class="cell"><span class="agent">wpf-verifier<span class="role">vs MVVM + bindings</span></span></div>
+            <div class="cell"><span class="agent">angular-verifier<span class="role">vs signals / OnPush / a11y</span></span></div>
+            <div class="cell"><span class="agent">mobile-verifier<span class="role">vs native + platform parity</span></span></div>
+            <div class="cell"><span class="agent">data-verifier<span class="role">vs schema + query safety</span></span></div>
           </div>
         </div>
 
@@ -341,16 +337,14 @@
             <span class="d">bounded fix loops, already per-domain</span>
           </div>
           <div class="cols">
-            <div class="cell">
-              <span class="agent repair">dotnet-build-error-resolver<span class="role">build</span></span>
-              <span class="agent repair">dotnet-test-failure-resolver<span class="role">tests</span></span>
+            <div class="cell" style="grid-column: span 2">
+              <span class="agent repair">dotnet-build-error-resolver<span class="role">build · ASP.NET + WPF (XAML compiles through dotnet)</span></span>
+              <span class="agent repair">dotnet-test-failure-resolver<span class="role">tests · ASP.NET + WPF</span></span>
             </div>
-            <div class="cell">
-              <span class="agent repair">ng-build-error-resolver<span class="role">build</span></span>
-              <span class="agent repair">angular-test-resolver<span class="role">tests</span></span>
+            <div class="cell" style="grid-column: span 2">
+              <span class="agent repair">ng-build-error-resolver<span class="role">build · Angular + Ionic (ionic wraps ng build)</span></span>
+              <span class="agent repair">angular-test-resolver<span class="role">tests · Angular + Ionic</span></span>
             </div>
-            <div class="cell"><span class="agent repair" style="opacity:.6">via .NET resolvers<span class="role">XAML compiles through dotnet</span></span></div>
-            <div class="cell"><span class="agent repair" style="opacity:.6">via ng resolvers<span class="role">ionic wraps ng build</span></span></div>
             <div class="cell"><span class="agent repair" style="opacity:.48">—<span class="role">no compile loop</span></span></div>
           </div>
         </div>
@@ -364,6 +358,7 @@
           <div class="spanning">
             <span class="agent repair">ci-failure-diagnoser<span class="role">reads red pipelines via gh</span></span>
             <span class="agent repair">issue-diagnoser<span class="role">reads logs / errors / screenshots, plans the fix</span></span>
+            <span class="agent repair">evidence-gatherer<span class="role">the diagnosers' cheap hands · repro + log pulls · sonnet</span></span>
           </div>
         </div>
 
@@ -549,7 +544,7 @@
     <div class="note">
       <h3>Settled</h3>
       <ul>
-        <li><b>Per-domain vertical, fanned out.</b> The designer decomposes the work into parallel tasks with contracts; several implementer instances build them at once; the verifier gates the assembled whole and loops a punch-list back. Five stack-agnostic pipeline agents dissolve into it; the fan-out is main-session orchestrated (a domain-build skill), since agents cannot dispatch agents.</li>
+        <li><b>Per-domain vertical, fanned out.</b> The designer decomposes the work into parallel tasks with contracts; several implementer instances build them at once; the verifier gates the assembled whole and loops a punch-list back. Five stack-agnostic pipeline agents dissolve into it; the fan-out is main-session orchestrated (a domain-build skill); the vertical's seats never dispatch agents. The sole nested dispatch in the roster is the two diagnosers calling a cheap read-only <code>evidence-gatherer</code> to keep log volume off the opus seat.</li>
         <li><b>No rank words.</b> Seats are named <span style="font-family:var(--mono)">&lt;domain&gt;-solution-designer</span>, <span style="font-family:var(--mono)">&lt;domain&gt;-implementer</span> and <span style="font-family:var(--mono)">&lt;domain&gt;-verifier</span> — stack + function, no senior / middle.</li>
         <li><b>Pins hold.</b> Designers and verifiers are Opus 4.8 / xhigh (judgment work); implementers Sonnet 5 / high (build work).</li>
         <li><b>Skills rewired.</b> <code>project-scaffold</code> and <code>project-quality-loop</code> were repointed off the retired agents onto the domain seats and <code>domain-build</code>.</li>
@@ -560,14 +555,14 @@
         <li><span class="open">Plus a cross-cutting <code>issue-diagnoser</code></span> — the debugger, and the bug-side counterpart of a solution designer. It reads logs, errors and screenshots, isolates the root cause, and lays out a decomposed fix plan that feeds the same implementers &rarr; verifier loop. It plans; it never writes the fix. Roster is now 24.</li>
         <li><b>Agents hardened, skills enriched.</b> The four resolvers and <code>ci-failure-diagnoser</code> now run the superpowers <code>systematic-debugging</code> method; implementers report a <code>DONE / DONE_WITH_CONCERNS / NEEDS_CONTEXT / BLOCKED</code> status and <code>domain-build</code> gained a compaction-safe progress ledger + per-task diff review (from <code>subagent-driven-development</code>). Seven best-practice field guides were distilled into nine house skills (29 additions, private names scrubbed), and the WPF seats now reach <code>dotnet-hosted-services</code> for a companion Windows Service.</li>
         <li><b>Two cross-cutting seats added — roster 24 &rarr; 26.</b> <code>cross-stack-contract-designer</code> (opus/xhigh, read-only) freezes the shared backend&harr;frontend contract - DTOs, routes, error envelope, auth, pagination, versioning - before the per-stack designers, so a full-stack feature builds to one agreed seam instead of drifting into a runtime bug. <code>framework-upgrade-planner</code> (opus/xhigh, read-only) turns a version/deprecation event - a .NET or Angular major, an EOL - into an ordered, contracted upgrade plan the implementers and resolvers execute. Both fill gaps the adversarial roster audit confirmed no existing seat covered.</li>
-        <li><b>Verified</b> — <code>npm run lint</code> clean, all 26 frontmatters valid, 4-way parity held.</li>
+        <li><b>Verified</b> — <code>npm run lint</code> clean, all 27 frontmatters valid, 4-way parity held.</li>
       </ul>
     </div>
   </section>
 
   <footer>
     <span>envoydev/agents-stack · roster built</span>
-    <span>5 domains · 15 seats · 7 cross-cutting · 4 resolvers · 26 total</span>
+    <span>5 domains · 15 seats · 7 cross-cutting · 4 resolvers · 1 gatherer · 27 total</span>
   </footer>
 
 </div>

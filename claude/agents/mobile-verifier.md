@@ -4,6 +4,7 @@ description: Use once every mobile-implementer task has landed - a read-only pas
 tools: Read, Skill, Bash, Grep, Glob, mcp__serena__find_symbol, mcp__serena__find_referencing_symbols, mcp__serena__get_symbols_overview, mcp__context7__*, mcp__playwright__*, mcp__appium-mcp__*
 model: opus
 effort: xhigh
+color: purple
 skills:
   - ionic
   - angular-conventions

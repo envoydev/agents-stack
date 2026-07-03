@@ -4,6 +4,7 @@ description: Use when a feature spans more than one stack - an ASP.NET Core API 
 tools: Read, Skill, Bash, Grep, Glob, mcp__serena__find_symbol, mcp__serena__find_referencing_symbols, mcp__serena__get_symbols_overview, mcp__context7__*
 model: opus
 effort: xhigh
+color: yellow
 skills:
   - dotnet-web-backend
   - typescript
