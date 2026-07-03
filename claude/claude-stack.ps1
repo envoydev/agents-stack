@@ -384,6 +384,21 @@ $Hooks = @(
   'guard-read-whole-file.js::Read::'              # block whole-file Read of a >100-line source file - locate via serena first
 )
 
+# settings.json permissions.deny (claude-code): hard-block Read of secret-bearing files. Wired into
+# .claude/settings.json alongside the hooks on INSTALL (idempotent, union-merged - a consuming project's
+# own deny entries are preserved). Bare globs match at any depth (gitignore semantics), and Claude Code
+# applies a Read() deny to recognized Bash reads too (cat/head/tail/sed) - not to arbitrary subprocesses.
+# Stack-specific secret/config globs stay a per-project addition (see CLAUDE.template.md's Security note).
+# Claude-only - Cursor has no settings.json deny-list.
+$SecretDeny = @(
+  'Read(.env)'
+  'Read(.env.*)'
+  'Read(*.pem)'
+  'Read(*.pfx)'
+  'Read(*.p12)'
+  'Read(*.key)'
+)
+
 # (5) Subagents (claude-code): specialist agents fetched into .claude/agents/ on BOTH actions
 # (per-agent fail-soft). Claude Code auto-discovers .claude/agents/*.md; no settings.json wiring. Cursor twins
 # exist for the four resolvers only; the model-routed pipeline agents are Claude-only (Cursor agents pin a model but have no effort pin).
@@ -558,7 +573,7 @@ function Get-Rules {
 }
 
 function Set-HookSettings {
-  # INSTALL: ensure every hook's PreToolUse block is in settings.json (idempotent).
+  # INSTALL: ensure the hook PreToolUse blocks + secret-read deny-list + mcp allow-list are in settings.json (idempotent).
   $root = Get-RepoRoot
   if (-not $root) { return }
   $settings = Join-Path $root '.claude/settings.json'
@@ -586,11 +601,27 @@ function Set-HookSettings {
     $have += $cmd
     $changed = $true
   }
+  $data.hooks.PreToolUse = $pre
+  # permissions.deny: union-merge the secret-file Read blocks, preserving any the project already set.
+  if (-not $data.PSObject.Properties['permissions']) { $data | Add-Member -NotePropertyName permissions -NotePropertyValue ([pscustomobject]@{}) }
+  if (-not $data.permissions.PSObject.Properties['deny']) { $data.permissions | Add-Member -NotePropertyName deny -NotePropertyValue @() }
+  $deny = @($data.permissions.deny)
+  foreach ($rule in $SecretDeny) {
+    if ($deny -notcontains $rule) { $deny += $rule; $changed = $true }
+  }
+  $data.permissions.deny = $deny
+  # enabledMcpjsonServers: pre-approve exactly the project .mcp.json servers we register (never enableAllProjectMcpServers).
+  if (-not $data.PSObject.Properties['enabledMcpjsonServers']) { $data | Add-Member -NotePropertyName enabledMcpjsonServers -NotePropertyValue @() }
+  $enabled = @($data.enabledMcpjsonServers)
+  foreach ($mcpEntry in $Mcps) {
+    $mcpName = ($mcpEntry -split '\|', 2)[0]   # server name = the token before the first '|'
+    if ($enabled -notcontains $mcpName) { $enabled += $mcpName; $changed = $true }
+  }
+  $data.enabledMcpjsonServers = $enabled
   if ($changed) {
-    $data.hooks.PreToolUse = $pre
     try {
       Write-JsonFile $data $settings
-      Log '  settings.json: hook block(s) injected'
+      Log '  settings.json: hooks + secret deny-list + mcp allow-list ensured'
     }
     catch {
       # Mirror the .sh twin's `|| log "settings.json wiring failed"`: a single unwritable file must
@@ -602,7 +633,7 @@ function Set-HookSettings {
     }
   }
   else {
-    Log '  settings.json: hooks already wired - unchanged'
+    Log '  settings.json: hooks + secret deny-list + mcp allow-list already present - unchanged'
   }
 }
 

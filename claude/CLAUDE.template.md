@@ -62,12 +62,12 @@ Partial work: state complete vs not vs why, then ask continue / redirect / stop.
 - Crypto / secret / auth / payment / data-access work: run the built-in `/security-review` on the diff before presenting.
 - Never log PII, tokens, passwords, or full payment data.
 - Hardcoded secret found: stop, flag, redact in output (`<redacted>`), recommend rotation + git-history removal. Never propagate the value or send it to any tool (memory, context7, web, external service).
-- `.env`, `*.pem`, `*.pfx`, `*.key`, and whatever config files your stack keeps secrets in (`<stack secret/config globs>`) are sensitive; the `settings.json` permissions deny-list already blocks reads of most.
+- `.env`, `.env.*`, `*.pem`, `*.pfx`, `*.p12`, `*.key` are hard-blocked from the Read tool (and `cat`/`head`/`tail`/`sed`) by the `permissions.deny` the stack installer writes into `settings.json`; add your stack's own secret/config globs (`<stack secret/config globs>`) there. It does not gate arbitrary subprocesses - never read or echo a secret's value regardless.
 
 ### Git and pull requests
 
 - Conventional Commits. Branch `<type>/<short-description>` or `<type>/<ticket-id>`. No AI/assistant attribution in commit messages or branch names (a deliberate override of the platform default).
-- One logical change per PR, under 400 LOC. Body: what / why / how to test. Link the ticket; screenshots if UI.
+- One logical change per PR, under 400 LOC. Body: what / why / how to test - what changed and why, never a change-statistics dump (file count, lines added/removed); that noise is generated, not decision-relevant. Link the ticket; screenshots if UI.
 - Squash or rebase, no merge commits on feature branches. Prefer `--force-with-lease` over `--force`.
 - Non-trivial git beyond add/commit/push - rebase, cherry-pick, history recovery, conflict resolution - load `git-master`.
 - Branch finished and all tests green: `finishing-a-development-branch` walks the close-out - merge / PR / cleanup - so integration is a deliberate choice, not an ad-hoc push.
@@ -146,7 +146,10 @@ typos / one-line / formatting-only diffs.
 Two further MCPs ship active in the baseline but are heavy and fail at launch without their
 native deps - `chrome-devtools` (browser / extension debug) and `appium-mcp` (native mobile
 E2E, needs Xcode / Android SDK + Java); comment them out where the project isn't a browser /
-mobile target. Name any other MCP the project adds under `## Per-project additions`.
+mobile target. Name any other MCP the project adds under `## Per-project additions`. The stack
+installer writes an `enabledMcpjsonServers` allow-list into `settings.json` naming exactly these
+registered servers, so Claude Code pre-approves the project `.mcp.json` with no per-launch trust
+prompt - never a blanket `enableAllProjectMcpServers`.
 
 Adjacent but not an MCP: the **`LSP` tool** is fed by the per-language LSP pair - `csharp-lsp`
 (C#), `typescript-lsp` (TS / JS) - enable whichever match the project's language(s). An LSP gives

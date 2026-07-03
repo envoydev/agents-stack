@@ -330,6 +330,21 @@ HOOKS=(
   "guard-read-whole-file.js::Read::"              # block whole-file Read of a >100-line source file - locate via serena first
 )
 
+# settings.json permissions.deny (claude-code): hard-block Read of secret-bearing files. Wired into
+# .claude/settings.json alongside the hooks on INSTALL (idempotent, union-merged - a consuming project's
+# own deny entries are preserved). Bare globs match at any depth (gitignore semantics), and Claude Code
+# applies a Read() deny to recognized Bash reads too (cat/head/tail/sed) - not to arbitrary subprocesses.
+# Stack-specific secret/config globs stay a per-project addition (see CLAUDE.template.md's Security note).
+# Claude-only - Cursor has no settings.json deny-list.
+SECRET_DENY=(
+  "Read(.env)"
+  "Read(.env.*)"
+  "Read(*.pem)"
+  "Read(*.pfx)"
+  "Read(*.p12)"
+  "Read(*.key)"
+)
+
 # (5) Subagents (claude-code): specialist agents fetched into .claude/agents/ on BOTH actions
 # (per-agent fail-soft - an agent not yet upstream keeps its committed repo copy). Claude Code auto-discovers
 # .claude/agents/*.md; no settings.json wiring needed. Cursor twins exist for the four resolvers only; the
@@ -474,7 +489,7 @@ download_rules() {  # fetch each rule .md into .claude/rules/; per-rule fail-sof
   done
 }
 
-wire_hooks_settings() {  # INSTALL: ensure every hook's PreToolUse block is in settings.json (idempotent)
+wire_hooks_settings() {  # INSTALL: ensure the hook PreToolUse blocks + secret-read deny-list + mcp allow-list are in settings.json (idempotent)
   local root settings; root="$(git rev-parse --show-toplevel 2>/dev/null)" || return 0
   settings="$root/.claude/settings.json"; mkdir -p "$(dirname "$settings")"
   command -v python3 >/dev/null || { log "  !! python3 not found - wire hooks into settings.json by hand"; return 0; }
@@ -483,6 +498,11 @@ wire_hooks_settings() {  # INSTALL: ensure every hook's PreToolUse block is in s
   local prog; prog=$(cat <<'PY'
 import json, sys
 path = sys.argv[1]
+deny_specs, mcp_names, bucket = [], [], None
+for a in sys.argv[2:]:
+    if a == "--DENY": bucket = deny_specs; continue
+    if a == "--MCP": bucket = mcp_names; continue
+    if bucket is not None: bucket.append(a)
 specs = []
 for line in sys.stdin.read().splitlines():
     if not line.strip():
@@ -504,14 +524,26 @@ for matcher, command in specs:
         continue
     cur.append({"matcher": matcher, "hooks": [{"type": "command", "command": command}]})
     have.add(command); changed = True
+# permissions.deny: union-merge the secret-file Read blocks, preserving any the project already set.
+deny = data.setdefault("permissions", {}).setdefault("deny", [])
+for rule in deny_specs:
+    if rule not in deny:
+        deny.append(rule); changed = True
+# enabledMcpjsonServers: pre-approve exactly the project .mcp.json servers we register, so no per-launch
+# trust prompt - never blanket enableAllProjectMcpServers. Union-merged; an unlisted name is a harmless no-op.
+enabled = data.setdefault("enabledMcpjsonServers", [])
+for name in mcp_names:
+    if name not in enabled:
+        enabled.append(name); changed = True
 if changed:
     json.dump(data, open(path, "w"), indent=2); open(path, "a").write("\n")
-    print("  settings.json: hook block(s) injected")
+    print("  settings.json: hooks + secret deny-list + mcp allow-list ensured")
 else:
-    print("  settings.json: hooks already wired - unchanged")
+    print("  settings.json: hooks + secret deny-list + mcp allow-list already present - unchanged")
 PY
 )
-  printf '%s\n' "${HOOKS[@]}" | python3 -c "$prog" "$settings" || log "  !! settings.json wiring failed"
+  local -a mcp_names; mcp_names=("${MCPS[@]%%|*}")   # server name = the token before the first '|'
+  printf '%s\n' "${HOOKS[@]}" | python3 -c "$prog" "$settings" --DENY "${SECRET_DENY[@]}" --MCP "${mcp_names[@]}" || log "  !! settings.json wiring failed"
 }
 
 # ===========================================================================

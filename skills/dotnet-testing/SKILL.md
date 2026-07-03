@@ -17,6 +17,7 @@ The strategy keys off the *role* a unit plays, not a layer name - so it maps ont
 - **Use cases / handlers / orchestration** (the application logic of a slice or layer) - unit tests with all ports and abstractions substituted. Cover success paths, validation failures, exception handling, and orchestration branches. Target 95%+.
 - **Infrastructure / adapters** - test logic-bearing code only (mappers, parsers, serializers, policy classes, retry/backoff, non-trivial query logic). Use in-memory DB or Testcontainers when query logic is non-trivial. Do not write tests that only assert a substitute was configured.
 - **Integration / E2E** - defined per project in project CLAUDE.md.
+- **Negative-security paths** - assert the deny paths, not just the happy path: an expired or tampered token returns 401, N failed logins trip 429, and one user reading another's resource id returns 404. Explicit negative-security tests belong in the integration suite, not just the auth unit tests.
 
 ## Coverage
 

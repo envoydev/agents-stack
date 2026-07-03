@@ -472,7 +472,7 @@ const hooks = [
 ];
 
 function renderHooks(filtered) {
-  let html = `<h2>Stack hooks</h2><div class="group-meta">PreToolUse guards fetched into <code>.claude/hooks/</code> and wired into <code>.claude/settings.json</code> by the installer (Claude-only; not skills). ${filtered.length} entries.</div>`;
+  let html = `<h2>Stack hooks</h2><div class="group-meta">PreToolUse guards fetched into <code>.claude/hooks/</code> and wired into <code>.claude/settings.json</code> by the installer (Claude-only; not skills). ${filtered.length} entries. The installer also writes a <code>permissions.deny</code> secret-read block into <code>settings.json</code> (<code>.env</code>, <code>.env.*</code>, <code>*.pem</code>, <code>*.pfx</code>, <code>*.p12</code>, <code>*.key</code>) - hard-blocking the Read tool and recognized Bash reads (<code>cat</code>/<code>head</code>/<code>tail</code>/<code>sed</code>) at any depth. It also writes an <code>enabledMcpjsonServers</code> allow-list naming the registered MCP servers, so the project <code>.mcp.json</code> is pre-approved without a per-launch trust prompt (never a blanket <code>enableAllProjectMcpServers</code>).</div>`;
   html += `<table><thead><tr><th style="width:20%">Hook</th><th style="width:22%">PreToolUse matcher</th><th>Description</th></tr></thead><tbody>`;
   for (const [name, matcher, desc] of filtered) {
     html += `<tr><td><span class="name">${name}</span></td><td><code>${matcher}</code></td><td class="desc">${desc}</td></tr>`;

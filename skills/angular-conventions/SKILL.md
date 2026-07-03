@@ -61,6 +61,7 @@ Data that lives on the server (a fetched list, a record by id) is a cache of som
 Server-render, then hydrate so the client reuses the server-painted DOM instead of re-rendering it from scratch. The model is three stages: SSR paints the pixels, hydration wires up the event handlers, incremental hydration delays that wiring until a block is actually needed.
 - Enable full hydration with `provideClientHydration(withIncrementalHydration())`. Incremental hydration (stable from v20) auto-enables event replay, so do not also add `withEventReplay()`. Drive it from `@defer` with `hydrate` triggers - `hydrate on idle|viewport|interaction|hover`, `hydrate when`, `hydrate never` - which lets you defer even above-the-fold content a plain `@defer` could not.
 - Do not lean on the HTTP transfer cache for authenticated responses - it skips credentialed (`withCredentials`) requests, so a response you thought was cached re-fetches on the client. Verify SSR behaviour through E2E, not the deprecated `@angular/platform-server/testing`.
+- Never touch `window`, `document`, or `localStorage` in a `constructor`, field initializer, or `ngOnInit` that runs during server render - reach browser-only APIs through `isPlatformBrowser` or `afterNextRender`, and seed shared state server-safe (no browser API in a signal or store initializer).
 
 ## Services and dependency injection
 - App-wide singletons declare `providedIn: 'root'` so they tree-shake when unused and need no module registration.
@@ -107,6 +108,7 @@ Validation is a layer, not a pile of one-off checks: declare it on the model, ke
 - Bake automated accessibility checks into component specs with `axe-core` and `jest-axe`.
 - Vitest is the runner to reach for in new suites - Karma is deprecated and Vitest is the CLI default (via the `@angular/build:unit-test` builder, jsdom or happy-dom, browser mode through Playwright when a real DOM is needed). Existing Karma or Jest suites keep working, so do not force a rewrite.
 - Test signals by reading them directly and flushing effects with `TestBed.tick()`; wire inputs and outputs through `inputBinding()` / `outputBinding()` / `twoWayBinding()` on `createComponent` rather than reaching into the instance. Under zoneless, an error thrown in an event listener surfaces to the error handler instead of being swallowed, so expect some previously-silent tests to start failing honestly.
+- E2E: select by role, label, or test-id, never a CSS class, and never a fixed `waitForTimeout` - lean on auto-waiting web-first assertions and `waitForResponse`. Set trace retain-on-failure, retries only in CI, and keep Page Objects assertion-free with locators as lazy getters.
 
 ## Banned patterns
 - No `setTimeout` poked in to coax change detection into noticing a change. Fix the signal or input flow instead.
