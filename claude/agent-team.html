@@ -223,12 +223,16 @@
 
   <div class="flow">
     <div class="cap">How one domain runs - a feature or a bug fix</div>
-    <div class="flow-row">
+    <div class="flow-row" style="flex-wrap:nowrap; overflow-x:auto; padding-bottom:4px">
       <div class="fan">
         <span class="fan-label">the plan comes from one of two</span>
         <div class="fan-nodes">
           <span class="node design sm"><span class="nn">solution-designer</span><span class="nd">a feature &rarr; tasks + contracts</span></span>
-          <span class="node diagnose sm"><span class="nn">issue-diagnoser</span><span class="nd">a bug &rarr; a decomposed fix plan</span></span>
+          <div style="display:flex; align-items:center; gap:7px; flex-wrap:nowrap">
+            <span class="node diagnose sm"><span class="nn">issue-diagnoser</span><span class="nd">a bug &rarr; a decomposed fix plan</span></span>
+            <span class="arrow" style="font-size:15px" title="issue-diagnoser dispatches a gather-task; evidence-gatherer returns quoted digests">&#8644;</span>
+            <span class="node diagnose sm"><span class="nn">evidence-gatherer &times;N</span></span>
+          </div>
         </div>
       </div>
       <span class="arrow">&rarr;</span>
