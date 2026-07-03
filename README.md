@@ -42,10 +42,10 @@ npx skills remove      # uninstall skills
 - **angular-conventions** - Angular 17+ conventions: signals, standalone
   components, OnPush, reactive forms, accessibility (TS baseline → typescript).
 - **angular-material** - Angular Material + CDK conventions: selective imports,
-  M3 theming, CDK primitives, and component test harnesses (distinct from material-3 / generic MD3).
+  M3 theming, CDK primitives, and component test harnesses (the @angular/material library specifically, not generic MD3).
 - **angular-styling** - Angular CSS/SCSS architecture (Material or not):
   ViewEncapsulation, `:host` / `:host-context`, the discouraged `::ng-deep` and its sanctioned ways out, design tokens as CSS custom properties, mobile-first + container queries, and accessibility-affecting styling (Material token work → angular-material).
-- **frontend** - Web frontend router: indexes Angular, TypeScript, Material 3,
+- **frontend** - Web frontend router: indexes Angular, TypeScript,
   the frontend-design plugin, and Ionic/Capacitor (→ mobile).
 - **mobile** - Ionic / Capacitor router: ionic-angular, capacitor-angular,
   capacitor-plugins over the Angular + TypeScript baselines.
@@ -101,6 +101,12 @@ npx skills remove      # uninstall skills
   threading, list virtualization, localization.
 - **project-quality-loop** - Autonomous review-and-fix loop pipeline: run a `loops/` folder of
   numbered prompts in order, looping each on a target to zero findings, deciding autonomously.
+- **project-scaffold** - Build a new application or major module from scratch: routes greenfield
+  work to the right architecture skill and scaffolding command, then drives design -> scaffold ->
+  slice-by-slice build over the agent pipeline.
+- **domain-build** - Build a feature through a stack specialist team: the domain designer
+  decomposes into parallel tasks, implementers build them at once, the verifier gates and loops
+  back.
 - **typescript** - Framework-agnostic TypeScript/JavaScript baseline:
   strict typing, type modeling, modules, async, error handling, JS with JSDoc.
 
@@ -108,8 +114,8 @@ npx skills remove      # uninstall skills
 
 ```text
 skills/                 # the personal skills - one <skill-name>/SKILL.md per skill (some carry a references/ subfolder)
-claude/                 # Claude Code stack: claude-stack.{sh,ps1,html}, CLAUDE.template.md, hooks/
-cursor/                 # Cursor stack: cursor-stack.{sh,ps1,html}, AGENTS.template.md, hooks/, rules/
+claude/                 # Claude Code stack: claude-stack.{sh,ps1,html}, agent-team.html, CLAUDE.template.md, hooks/, agents/, rules/
+cursor/                 # Cursor stack: cursor-stack.{sh,ps1,html}, AGENTS.template.md, hooks/, rules/, agents/
 scripts/lint-skills.js  # repo lint (keeps skills / manifests / HTML in sync)
 ```
 

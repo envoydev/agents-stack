@@ -156,16 +156,6 @@ function Test-Prerequisites {
     Write-Host '  !! typescript-language-server not found - the typescript-lsp plugin needs it (TS/JS work).' -ForegroundColor Yellow
     Write-Host '     Install: npm i -g typescript-language-server typescript.' -ForegroundColor Yellow
   }
-  # gopls: only relevant for Go work, and the gopls-lsp plugin self-scopes to .go files (inert
-  # otherwise) - so gate the check on a Go toolchain being present. No go -> nothing to warn about.
-  if (Get-Command go -ErrorAction SilentlyContinue) {
-    $gopls = Get-Command gopls -ErrorAction SilentlyContinue
-    if ($gopls) { Write-Host "  gopls: $($gopls.Source)" -ForegroundColor Green }
-    else {
-      Write-Host '  !! gopls not found - the gopls-lsp plugin needs it.' -ForegroundColor Yellow
-      Write-Host '     Install: go install golang.org/x/tools/gopls@latest (needs GOPATH\bin on PATH).' -ForegroundColor Yellow
-    }
-  }
   if (-not $ok) { Write-Host '  Install the missing tools above, then re-run.' -ForegroundColor Yellow }
 }
 
@@ -199,19 +189,21 @@ else {
 # MANIFEST - edit these, then run.
 # ===========================================================================
 
-# (1) Skills "repo|skill" (comment a line to skip). Full inventory - every skill (74).
+# (1) Skills "repo|skill" (comment a line to skip). Full inventory - every skill (72).
 $Skills = @(
   # Personal (envoydev/agents-stack)
   'envoydev/agents-stack|create-ticket'             # ticket generator (bug/story/epic/task) - tracker-agnostic EN Markdown, routes to references/<type>.md
   'envoydev/agents-stack|dev-log-convert'           # UA/EN work notes -> structured English work log; trigger 'dev-log'
   'envoydev/agents-stack|explain-code-tutor'        # senior-mentor explainer for code/bug/concept/trade-off via real-file walkthrough; depth ELI5/intermediate/expert
   'envoydev/agents-stack|project-quality-loop'             # autonomous review-and-fix loop pipeline over a loops/ folder of numbered prompts
+  'envoydev/agents-stack|project-scaffold' # greenfield scaffolding + design->scaffold->slice-by-slice build orchestration over the pipeline
+  'envoydev/agents-stack|domain-build'     # domain-build orchestration - designer decomposes, implementers fan out, verifier gates
   'envoydev/agents-stack|database-conventions' # cross-engine DB conventions + per-engine skill routing
   'envoydev/agents-stack|typescript'       # framework-agnostic TS/JS baseline (strict typing, modules, async, JS+JSDoc)
   'envoydev/agents-stack|angular-conventions' # Angular 17+/TS house conventions (signals, OnPush, a11y)
   'envoydev/agents-stack|angular-material'   # Angular Material + CDK: selective imports, M3 theming, CDK primitives, harnesses
   'envoydev/agents-stack|angular-styling'    # Angular CSS/styling: ViewEncapsulation, :host, ::ng-deep ways-out, design tokens, responsive, a11y styling
-  'envoydev/agents-stack|frontend'         # web frontend router: Angular/TS/material-3/frontend-design + -> mobile
+  'envoydev/agents-stack|frontend'         # web frontend router: Angular/TS/frontend-design + -> mobile
   'envoydev/agents-stack|mobile'           # Ionic/Capacitor router: ionic-angular/capacitor-angular/capacitor-plugins + Angular/TS baseline
   'envoydev/agents-stack|ionic'            # house Ionic/Capacitor conventions: UI, nav, lifecycle, permissions, plugin sourcing + wrapping
   'envoydev/agents-stack|capacitor-release' # Ionic/Capacitor release pipeline: cap sync/build, iOS+Android signing, store submission, OTA, versioning, CI, symbols
@@ -275,16 +267,10 @@ $Skills = @(
   # Single-skill repos
   'supabase/agent-skills|supabase-postgres-best-practices' # Postgres performance + schema best practices
   'mryll/skills|vertical-slice-architecture'  # VSA: feature folders, minimal cross-slice coupling
-  # WordPress / WooCommerce side project (WordPress/agent-skills - official)
-  'WordPress/agent-skills|wordpress-router'   # routes a WP task to the focused WordPress skill
-  'WordPress/agent-skills|wp-project-triage'  # detects WP project type (plugin/theme/block), routes setup
-  'WordPress/agent-skills|wp-plugin-development' # WP plugin dev: hooks/filters, nonces, escaping, security
   # Ionic / Capacitor mobile (capawesome-team/skills - MIT)
   'capawesome-team/skills|ionic-angular'      # Angular-specific Ionic patterns (components, theming, navigation)
   'capawesome-team/skills|capacitor-angular'  # Angular-specific Capacitor app patterns
   'capawesome-team/skills|capacitor-plugins'  # install/configure/use 160+ Capacitor plugins (official/Capawesome/community/CapGo)
-  # Material Design 3 (hamen/material-3-skill) - Jetpack Compose / Flutter primary; web = maintenance-mode @material/web, NOT Angular Material
-  'hamen/material-3-skill|material-3'         # MD3 (Material You): tokens, 30+ components, layout, theming, M3 Expressive, a11y
 )
 
 # (2) Plugins "<plugin>@<marketplace>" (non-default marketplaces added first).
@@ -297,7 +283,6 @@ $Plugins = @(
   'claude-md-management@claude-plugins-official' # audit + revise CLAUDE.md files
   'csharp-lsp@claude-plugins-official'      # inline Roslyn diagnostics on edit (complements serena nav); needs csharp-ls (dotnet tool install -g csharp-ls)
   'typescript-lsp@claude-plugins-official'  # same for Angular/TS work
-  'gopls-lsp@claude-plugins-official'       # gopls diagnostics; self-scopes to .go files (inert in non-Go projects); needs gopls (go install golang.org/x/tools/gopls@latest)
   'security-guidance@claude-plugins-official' # security hooks: pattern warnings + LLM diff review on Stop/commit
   'frontend-design@claude-plugins-official'   # distinctive, production-grade frontend UI; polished code that avoids generic AI aesthetics
   'claude-hud@claude-hud'                       # statusline HUD (global/user scope)
@@ -387,20 +372,55 @@ $Hooks = @(
   #   browser extension  -> "ts"            (plain TS/JS, no framework/cs/sql)
   #   Node / TS tooling  -> "ts"            (+ "sql" if hand-written SQL)
   # ts gates bare .ts/.tsx/.js/.jsx/.mjs/.cjs on typescript (must be installed where ts is on).
-  "require-convention-skill.js::Edit|Write|$SerenaEditors::cs ng sql ts"
+  #   scss -> angular-styling  (.scss/.css - suffix-triggered, inert where the suffix never occurs)
+  #   xaml -> dotnet-wpf       (.xaml - suffix-triggered, inert where the suffix never occurs)
+  "require-convention-skill.js::Edit|Write|$SerenaEditors::cs ng sql ts scss xaml"
   'guard-protected-force-push.js::Bash::'         # block force-push to main/master/develop
   'guard-catastrophic-rm.js::Bash::'              # block recursive rm of /, ~, $HOME, or a bare *
   'guard-read-whole-file.js::Read::'              # block whole-file Read of a >100-line source file - locate via serena first
 )
 
-# (5) Subagents (claude-code): Claude-only specialist agents fetched into .claude/agents/ on BOTH actions
-# (per-agent fail-soft). Claude Code auto-discovers .claude/agents/*.md; no settings.json wiring. Cursor ships none.
+# (5) Subagents (claude-code): specialist agents fetched into .claude/agents/ on BOTH actions
+# (per-agent fail-soft). Claude Code auto-discovers .claude/agents/*.md; no settings.json wiring. Cursor twins
+# exist for the four resolvers only; the model-routed pipeline agents are Claude-only (Cursor agents pin a model but have no effort pin).
 $AgentBaseUrl = 'https://raw.githubusercontent.com/envoydev/agents-stack/main/claude/agents'
 $Agents = @(
-  'dotnet-build-error-resolver.md'   # implement phase: dotnet build -> minimal fix loop (serena/csharp-lsp), capped
-  'dotnet-test-failure-resolver.md'  # implement phase: dotnet test -> red->green repair loop, anti-reward-hacking, capped
-  'ng-build-error-resolver.md'       # implement phase: ng build -> minimal fix loop (serena/LSP), capped
-  'angular-test-resolver.md'         # implement phase: ng test/Jest -> red->green repair loop, anti-reward-hacking, capped
+  'dotnet-build-error-resolver.md'   # implement phase (sonnet/high): dotnet build -> minimal fix loop (serena/csharp-lsp), capped
+  'dotnet-test-failure-resolver.md'  # implement phase (sonnet/high): dotnet test -> red->green repair loop, anti-reward-hacking, capped
+  'ng-build-error-resolver.md'       # implement phase (sonnet/high): ng build -> minimal fix loop (serena/LSP), capped
+  'angular-test-resolver.md'         # implement phase (sonnet/high): ng test/Jest -> red->green repair loop, anti-reward-hacking, capped
+  'architecture-analyzer.md'         # analysis phase (opus/xhigh): read-only system-level structure map + change-fit verdict
+  'task-analyzer.md'                 # analysis phase (opus/xhigh): read-only deep task analysis - impact, coupling, open questions
+  'ci-failure-diagnoser.md'          # analysis phase (opus/xhigh): read-only CI red-run diagnosis via gh - categorize, local repro, route
+  'issue-diagnoser.md'               # analysis phase (opus/xhigh): read-only bug diagnosis from logs/errors/screenshots - root cause + route, no fix
+  'greenfield-solution-designer.md'  # analysis phase (opus/xhigh): read-only greenfield design - architecture/stack/structure options from a spec
+  'cross-stack-contract-designer.md' # analysis phase (opus/xhigh): read-only - freezes the shared backend/frontend contract before the per-stack designers
+  'framework-upgrade-planner.md'     # analysis phase (opus/xhigh): read-only - turns a version/deprecation event into an ordered, contracted upgrade plan
+  # Per-domain specialist team (5 stacks x designer/implementer/verifier) + architect analysis agents above; model/effort pinned in frontmatter
+  'aspnet-solution-designer.md'      # design phase (opus/xhigh): ASP.NET Core architecture + plan + test strategy, decomposes into parallel tasks
+  'aspnet-implementer.md'            # build phase (sonnet/high): builds one ASP.NET task - code + tests
+  'aspnet-verifier.md'               # verify phase (opus/xhigh): gates the ASP.NET build vs plan + quality, punch-list back
+  'angular-solution-designer.md'     # design phase (opus/xhigh): Angular architecture + plan + test strategy, decomposes
+  'angular-implementer.md'           # build phase (sonnet/high): builds one Angular task - code + tests
+  'angular-verifier.md'              # verify phase (opus/xhigh): gates the Angular build vs plan + quality
+  'wpf-solution-designer.md'         # design phase (opus/xhigh): WPF strict-MVVM architecture + plan + test strategy, decomposes
+  'wpf-implementer.md'               # build phase (sonnet/high): builds one WPF task - code + tests
+  'wpf-verifier.md'                  # verify phase (opus/xhigh): gates the WPF build vs plan + quality
+  'mobile-solution-designer.md'      # design phase (opus/xhigh): Ionic/Capacitor architecture + plan + test strategy, decomposes
+  'mobile-implementer.md'            # build phase (sonnet/high): builds one mobile task - code + tests
+  'mobile-verifier.md'               # verify phase (opus/xhigh): gates the mobile build vs plan + quality
+  'data-solution-designer.md'        # design phase (opus/xhigh): schema/data-model architecture + plan + test strategy, decomposes
+  'data-implementer.md'              # build phase (sonnet/high): builds one data task - SQL + migration tests
+  'data-verifier.md'                 # verify phase (opus/xhigh): gates the data build vs plan + quality
+)
+
+# (6) Path-scoped rules (claude-code): fetched into .claude/rules/ on BOTH actions - lazy-load on
+# matching file reads; conventions stay with the convention-gate hook, rules carry only glob-scoped routing.
+$RulesBaseUrl = 'https://raw.githubusercontent.com/envoydev/agents-stack/main/claude/rules'
+$ClaudeRules = @(
+  'markdown-docs.md'          # markdown-style routing, path-scoped **/*.md
+  'dotnet-repair-agents.md'   # .NET repair-loop routing, path-scoped cs/csproj/sln/xaml
+  'angular-repair-agents.md'  # Angular repair-loop routing, path-scoped
 )
 
 function Get-RepoRoot {
@@ -508,6 +528,26 @@ function Get-Agents {
   }
 }
 
+function Get-Rules {
+  # Fetch each rule .md into the repo; per-rule fail-soft (keeps repo copy).
+  $root = Get-RepoRoot
+  if (-not $root) { Log '  !! not in a git repo - skipping rules'; return }
+  foreach ($file in $ClaudeRules) {
+    $dest = Join-Path $root ".claude/rules/$file"
+    $dir = Split-Path -Parent $dest
+    if (-not (Test-Path -LiteralPath $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
+    $tmp = [System.IO.Path]::GetTempFileName()
+    try { Invoke-WebRequest -Uri "$RulesBaseUrl/$file" -OutFile $tmp -UseBasicParsing -ErrorAction Stop }
+    catch { Log "  !! fetch failed (kept repo copy if any): $file"; Remove-Item -LiteralPath $tmp -Force -ErrorAction SilentlyContinue; continue }
+    if ((Test-Path -LiteralPath $dest) -and ((Get-FileHash -LiteralPath $tmp).Hash -eq (Get-FileHash -LiteralPath $dest).Hash)) {
+      Remove-Item -LiteralPath $tmp -Force; Log "  rule current: $file"
+    }
+    else {
+      Move-Item -LiteralPath $tmp -Destination $dest -Force; Log "  rule fetched -> $file"
+    }
+  }
+}
+
 function Set-HookSettings {
   # INSTALL: ensure every hook's PreToolUse block is in settings.json (idempotent).
   $root = Get-RepoRoot
@@ -608,6 +648,7 @@ function Update-Mcps {
 
 function Update-Hooks { Get-Hooks }   # UPDATE: refresh hook files only; settings.json untouched
 function Update-Agents { Get-Agents } # UPDATE: refresh subagent files
+function Update-Rules { Get-Rules }   # UPDATE: refresh rule files
 
 function Remove-AgentsCache {
   # npx skills stages an agent-neutral .agents/ store. With a STRICT per-agent copy (.claude/skills is
@@ -669,11 +710,11 @@ Test-Prerequisites
 Install-GitHubCli
 
 # claude-only steps fail soft (Get-Command claude) if the CLI is not installed.
-if ($Action -eq 'install') { Install-Skills; Install-Plugins; Install-Mcps; Get-Hooks; Set-HookSettings; Get-Agents; Repair-SerenaTsLspWindows }
-else { Update-Skills; Update-Plugins; Update-Mcps; Update-Hooks; Update-Agents; Repair-SerenaTsLspWindows }
+if ($Action -eq 'install') { Install-Skills; Install-Plugins; Install-Mcps; Get-Hooks; Set-HookSettings; Get-Agents; Get-Rules; Repair-SerenaTsLspWindows }
+else { Update-Skills; Update-Plugins; Update-Mcps; Update-Hooks; Update-Agents; Update-Rules; Repair-SerenaTsLspWindows }
 
 Remove-AgentsCache
-Log "done: $Action ($Scope, agent=$Agent). $($Skills.Count) skills, $($Plugins.Count) plugins, MCPs, hooks=$($Hooks.Count), agents=$($Agents.Count)."
+Log "done: $Action ($Scope, agent=$Agent). $($Skills.Count) skills, $($Plugins.Count) plugins, MCPs, hooks=$($Hooks.Count), agents=$($Agents.Count), rules=$($ClaudeRules.Count)."
 
 # Reminder: stack-generated, machine-local artifacts that should NOT be committed.
 Write-Host ''

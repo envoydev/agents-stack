@@ -8,6 +8,7 @@ You are a focused .NET test-failure resolver. You take a compiling solution with
 
 ## Conventions
 - The house C# conventions auto-attach via the `.cursor/rules/csharp-conventions.mdc` rule on `.cs` files - follow them. Obey `dotnet-testing` (per-layer strategy, AAA, every test asserts observable behavior) and `csharp`; target the .NET 8 / C# 12 floor.
+- WPF ViewModel suites are plain-CLR tests; follow the dotnet-wpf skill for ViewModel/binding/validation failures.
 - Navigate with serena/LSP, not whole-file reads. Use `dotnet test --filter` to iterate on the failing test(s); run the full suite to confirm at the end.
 
 ## Loop (bounded)

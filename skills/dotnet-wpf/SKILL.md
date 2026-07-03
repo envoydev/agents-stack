@@ -1,6 +1,6 @@
 ---
 name: dotnet-wpf
-description: "Personal WPF conventions - strict MVVM with a one-way View-knows-ViewModel dependency, paired naming, explicit binding modes and update triggers, CommunityToolkit.Mvvm source generators over hand-rolled INotifyPropertyChanged, INotifyDataErrorInfo validation, async commands carrying a CancellationToken, dependency vs attached properties, commands over routed events, behaviors over code-behind wiring, off-UI-thread work via IProgress, list virtualization, plain-CLR tests, resource dictionaries with the .NET 9 Fluent ThemeMode, and resx localization. Floors at .NET 8 / C# 12. Load before editing any XAML, code-behind, or ViewModel. Do NOT load for WinForms, UWP, WinUI 3, MAUI, Avalonia, or Uno - different frameworks; orchestration routes to csharp-design-patterns, tests to dotnet-testing."
+description: "Personal WPF conventions - strict MVVM with a one-way View-knows-ViewModel dependency, paired naming, explicit binding modes and update triggers, CommunityToolkit.Mvvm source generators over hand-rolled INotifyPropertyChanged, INotifyDataErrorInfo validation, async commands carrying a CancellationToken, dependency vs attached properties, commands over routed events, behaviors over code-behind wiring, generic-host app composition, off-UI-thread work via IProgress, list virtualization, plain-CLR tests, resource dictionaries with the .NET 9 Fluent ThemeMode, and resx localization. Floors at .NET 8 / C# 12. Load before editing any XAML, code-behind, or ViewModel. Do NOT load for WinForms, UWP, WinUI 3, MAUI, Avalonia, or Uno - different frameworks; orchestration routes to csharp-design-patterns, tests to dotnet-testing, a paired Windows-Service worker to dotnet-hosted-services."
 ---
 
 # WPF conventions
@@ -25,6 +25,18 @@ bindable properties and commands; the binding engine does the rest.
 
 Set the binding context by convention (a ViewModel-locator or DI-resolved `DataContext`), not with
 `new SomeViewModel()` in code-behind, so the ViewModel's dependencies stay injectable.
+
+## App composition and startup
+
+Compose the app through the .NET generic host, not hand-rolled service location or `new` in code-behind.
+
+- Build a `Microsoft.Extensions.Hosting` host in `App.xaml.cs`, register windows, ViewModels, and services on it, resolve the main window from the container in `OnStartup`, and drop `StartupUri` - the window's dependencies then inject through its constructor.
+- Turn on `ValidateScopes` and `ValidateOnBuild` so captive-dependency and disposed-scope mistakes fail at startup instead of at runtime.
+- Never call `BuildServiceProvider` inside registration to pull a service early - it stands up a second container and leaks a duplicate set of singletons.
+
+## Pairing with a Windows Service
+
+A WPF desktop is often the front for a Windows Service companion - a tray or dashboard UI over a background daemon. Build the service half as a worker, not WPF code: its host composition, the SCM lifetime, `AppContext.BaseDirectory` path resolution, and least-privilege service account are `dotnet-hosted-services`' domain - load that skill for the service process. The two share only a contract - a named pipe, a local socket, a file or database, an IPC channel - never a UI thread or a `Dispatcher`; a service-pushed update crosses into the app as data and marshals onto the UI thread like any other off-thread work.
 
 ## Naming and pairing
 
@@ -68,6 +80,7 @@ raise, and partial change hooks. Hand-writing `INotifyPropertyChanged` with `Set
   failure through an injected `IDialogService` or an error property - never let the `Task` fault
   unobserved. The throw-vs-return baseline and the async rules (`ConfigureAwait`, no blocking) are
   the `csharp` skill's; they apply unchanged here.
+- `AsyncRelayCommand` has two fault models - pick one deliberately. The default awaits and rethrows on the UI `SynchronizationContext`, so a try/catch inside the command sees the fault; setting `FlowExceptionsToTaskScheduler` instead routes it to `TaskScheduler.UnobservedTaskException`. Prefer the default and catch locally so the failure reaches the user through your dialog or error surface; reach for the flow option only when a deliberate global handler owns it.
 
 ## Routed events vs commands
 
@@ -75,6 +88,11 @@ Commands are the default for intent. Routed events are for the low-level interac
 express - drag-drop, mouse capture, manipulation. When a routed-event handler is unavoidable in
 code-behind, it does one thing: forward to a ViewModel method through a thin private wrapper. No
 branching, no domain logic, no state in the handler.
+
+## Clipboard and drag-drop payloads
+
+- Custom types no longer ride onto the clipboard or a drag payload through `BinaryFormatter` - it was removed in .NET 9, so `Clipboard.SetData`, `SetDataObject`, `DoDragDrop`, and navigation-journal state throw `PlatformNotSupportedException` for any non-intrinsic type.
+- Put a serializable shape across the boundary instead: a string, an intrinsic type, or your object serialized to JSON or a `byte[]` you re-hydrate yourself. The `System.Runtime.Serialization.Formatters` compatibility shim is a migration bridge, not a destination.
 
 ## Bindings: explicit and direct
 
@@ -179,6 +197,58 @@ These solve different problems; do not confuse them.
   (`System`, `Light`, `Dark`) on `Application` or a `Window` for Windows 11 styling with automatic
   system light/dark switching. Reference theme-sensitive brushes with `DynamicResource` so they
   track the active mode.
+- `ThemeMode` is still experimental through .NET 10: setting it from code needs the `WPF0001` diagnostic suppressed, while opting in via the `Fluent.xaml` merged dictionary avoids that. Either way Fluent ships as merged resource dictionaries, not a true theme assembly, so custom implicit styles and triggers can resolve against it in surprising ways - when customizing a Fluent-themed control, override the specific Fluent resource keys or start from a copied Fluent template rather than assuming a clean, overridable theme layer.
+
+## Styling and theming
+
+WPF styling is the same view-only discipline as the MVVM line above, just applied to resources: a
+ViewModel exposes state, and the View decides how that state paints. Keep the visual layer declarative
+and centralized so a theme or a look can change without touching a single code-behind file.
+
+- **`BasedOn` for style inheritance.** Build a variant from a shared base rather than repeating
+  setters: `<Style x:Key="DangerButton" TargetType="Button" BasedOn="{StaticResource PrimaryButton}">`
+  overrides only what differs. A conflicting setter on the derived style wins over the base.
+- **Implicit vs keyed styles.** An implicit style (`TargetType` only, no `x:Key`) applies to every
+  control of that type in scope - reserve it for the one true baseline. A keyed style
+  (`x:Key="PrimaryButton"`, applied with `Style="{StaticResource PrimaryButton}"`) is an opt-in
+  named variant that coexists with the baseline. Do not key the baseline itself - that silently
+  un-styles any control that forgot to opt in.
+- **`ControlTemplate` vs `DataTemplate` - different ownership.** A `ControlTemplate` replaces a
+  control's own visual tree (a `Button`'s chrome and parts) and lives in a `Style`'s `Template`
+  setter - a View-only concern with zero ViewModel awareness. A `DataTemplate` maps a data object
+  (a ViewModel or POCO) to the visuals that render it, and is how `ItemsControl`, `ContentControl`,
+  and `DataTemplateSelector` bridge data to visuals without the data knowing about the View. Reach
+  for a `DataTemplate` to render a shape of data, a `ControlTemplate` to restyle a control's chrome.
+- **ResourceDictionary organization.** One dictionary per control or concern -
+  `Buttons.xaml`, `TextBoxes.xaml`, `Colors.xaml`, `Typography.xaml` - merged once into `App.xaml`
+  via `MergedDictionaries`. Never grow a single monolithic dictionary mixing every control's styles;
+  it turns a one-control change into a full-file diff.
+- **`DynamicResource` vs `StaticResource`.** `StaticResource` resolves once at load time - use it
+  for values that never change at runtime (a fixed corner radius, a font family). `DynamicResource`
+  re-resolves whenever the resource entry changes - use it for anything theme-dependent (brushes,
+  theme-sensitive thicknesses) so a runtime theme swap actually repaints. Defaulting everything to
+  `StaticResource` is the most common reason a theme switch only updates half the UI.
+- **Dark mode via swapped theme dictionaries.** Keep one dictionary per theme (`Themes/Light.xaml`,
+  `Themes/Dark.xaml`) declaring the same keys with different values, and swap the merged dictionary
+  at the application level to switch - replace the entry in `Application.Current.Resources.MergedDictionaries`,
+  or use the built-in `ThemeMode` on .NET 9+ (see Resources and theming above) where it covers the
+  need. Every themed value must be reached through `DynamicResource` or the swap has nothing to repaint.
+- **Design tokens, not literals.** Centralize the palette and spacing scale once - named brushes
+  (`Brush.Primary`, `Brush.Surface`) and named thicknesses (`Thickness.CardPadding`) - and reference
+  the token everywhere instead of a literal `Color` or `Thickness` inline in a template. A hardcoded
+  `#FF3366` three templates deep is a color theming can never reach.
+- **Visual states over triggers where cleaner.** `VisualStateManager` groups mutually exclusive
+  states (`Normal`, `MouseOver`, `Pressed`, `Disabled`) into named `VisualState`s with their own
+  storyboards, which reads more clearly than several independent `Trigger`/`MultiTrigger` setters
+  fighting over the same properties. Reach for a trigger for one independent condition; reach for
+  `VisualStateManager` once two or more states are mutually exclusive or animate.
+
+Don't:
+- Repeat the same inline `Style` block across multiple views - promote it to a resource dictionary
+  the moment a second view needs it.
+- Hardcode a color literal outside the palette dictionary - every color is a token reference.
+- Reference a theme brush with `x:Static` - it resolves at compile/load time and cannot see a
+  runtime theme swap; use `DynamicResource` for anything theme-dependent instead.
 
 ## Localization
 

@@ -5,6 +5,9 @@ every skill, plugin, MCP server, and hook from the curated inventory in `claude-
 Built-in/system CLI skills are excluded (they ship with the CLI). The agent is the script you
 run, so there is **no agent argument**. (Cursor is the peer in [`../cursor/`](../cursor/README.md).)
 
+> The subagent roster - the per-domain specialist team and the cross-cutting agents - is laid out
+> visually in [`agent-team.html`](agent-team.html), a companion to the `claude-stack.html` inventory.
+
 | Script             | System        | Shell                                   |
 | ------------------ | ------------- | --------------------------------------- |
 | `claude-stack.sh`  | macOS / Linux | `bash`                                  |
@@ -25,19 +28,20 @@ everything below applies to both unless a row is marked otherwise.
 
 | Component | Count | Notes |
 | --------- | ----- | ----- |
-| **Skills**  | 74 | conventions + utilities (ticket writers, C#/.NET, Angular/TS, SQL, Docker, git, WP) - `npx skills add … --agent claude-code` |
-| **Plugins** | 9  | `superpowers`, `claude-md-management`, `csharp-lsp`, `typescript-lsp`, `gopls-lsp`, `security-guidance`, `frontend-design`, `claude-hud`, `ponytail` - `claude plugin install` (needs the `claude` CLI) |
+| **Skills**  | 72 | conventions + utilities (ticket writers, C#/.NET, Angular/TS, SQL, Docker, git, `domain-build` per-domain orchestration) - `npx skills add … --agent claude-code` |
+| **Plugins** | 8  | `superpowers`, `claude-md-management`, `csharp-lsp`, `typescript-lsp`, `security-guidance`, `frontend-design`, `claude-hud`, `ponytail` - `claude plugin install` (needs the `claude` CLI) |
 | **MCP servers** | 7 | `angular-cli`, `serena`, `playwright`, `memory`, `context7`, plus `chrome-devtools` + `appium-mcp` (heavy - now active; comment out where not needed) → `<repo>/.mcp.json` |
-| **Hooks** | 4 | `require-convention-skill` (PreToolUse Edit/Write gate) + `guard-protected-force-push` (blocks force-push to main/master/develop) + `guard-catastrophic-rm` (blocks recursive rm of /, ~, $HOME, or a bare *) + `guard-read-whole-file` (PreToolUse Read - blocks a whole-file Read of a >100-line source file, locate via serena first) → `.claude/hooks/` + wired into `.claude/settings.json` |
-| **Agents** | 4 | .NET (`dotnet-build-error-resolver`, `dotnet-test-failure-resolver`) + Angular (`ng-build-error-resolver`, `angular-test-resolver`) - Claude subagents: implement-phase build/test fix loops, serena-driven, iteration-capped, no reward-hacking → `.claude/agents/` |
+| **Hooks** | 4 | `require-convention-skill` (PreToolUse Edit/Write gate - the cs/ng/sql/ts base tables plus the scss and xaml opt-in tables) + `guard-protected-force-push` (blocks force-push to main/master/develop) + `guard-catastrophic-rm` (blocks recursive rm of /, ~, $HOME, or a bare *) + `guard-read-whole-file` (PreToolUse Read - blocks a whole-file Read of a >100-line source file, locate via serena first) → `.claude/hooks/` + wired into `.claude/settings.json` |
+| **Agents** | 26 | 4 resolvers - .NET (`dotnet-build-error-resolver`, `dotnet-test-failure-resolver`) + Angular (`ng-build-error-resolver`, `angular-test-resolver`): implement-phase build/test fix loops, serena-driven, iteration-capped, no reward-hacking, pinned sonnet/high - plus 7 cross-cutting analysis agents (`architecture-analyzer`, `task-analyzer`, `greenfield-solution-designer`, `ci-failure-diagnoser`, `issue-diagnoser`, `cross-stack-contract-designer`, `framework-upgrade-planner`, all read-only, pinned opus/xhigh) - plus 15 per-domain seats, a 3-agent vertical repeated across 5 stacks (ASP.NET, Angular, WPF, mobile, data): `<stack>-solution-designer` (opus/xhigh - decomposes into parallel tasks) → `<stack>-implementer` (sonnet/high - builds one task, code + tests) → `<stack>-verifier` (opus/xhigh - gates the build vs plan + quality, loops back) → `.claude/agents/` |
+| **Rules** | 3 | markdown authoring routing + per-language repair-loop routing, path-scoped → `.claude/rules/` |
 
 ### Install cadence - keep always vs install on occasion
 
 Cost differs by artifact, so the keep-or-skip call does too:
 
-- **Skills** - permanent by default: keyword-gated and ~free when idle, so install all and let them self-gate. Whole-domain sets (`wordpress-*`, the Ionic/Capacitor `mobile` group, `dotnet-wpf`) are optional only if you never touch that domain.
+- **Skills** - permanent by default: keyword-gated and ~free when idle, so install all and let them self-gate. Whole-domain sets (the Ionic/Capacitor `mobile` group, `dotnet-wpf`) are optional only if you never touch that domain.
 - **MCPs** - real launch cost, so split: baseline `context7` / `serena` / `memory` / `playwright`; domain-gated `angular-cli` (Angular projects only); opt-in `chrome-devtools` and `appium-mcp` (heavy native deps - leave commented out unless needed).
-- **Plugins** - permanent (language-agnostic): `superpowers`, `claude-md-management`, `security-guidance`, `claude-hud`, `ponytail`. Language-gated: the `*-lsp` trio - install the ones matching the project's languages (`typescript-lsp` + `csharp-lsp` for an Angular + .NET shop; `gopls-lsp` only for Go). Task-gated: `frontend-design` - greenfield / visual UI work; skip if you only implement fixed designs or Figma handoffs.
+- **Plugins** - permanent (language-agnostic): `superpowers`, `claude-md-management`, `security-guidance`, `claude-hud`, `ponytail`. Language-gated: the `*-lsp` pair - install the ones matching the project's languages (`typescript-lsp` + `csharp-lsp` for an Angular + .NET shop). Task-gated: `frontend-design` - greenfield / visual UI work; skip if you only implement fixed designs or Figma handoffs.
 
 ---
 
@@ -56,7 +60,6 @@ install what you need for the work you actually do, then re-run.
 | **python3** | `security-guidance` plugin hook; settings.json merge (**bash only** - PowerShell merges natively) | for that plugin | `brew install python` | `winget install Python.Python.3.12` (the Windows Store stub does **not** count) |
 | **typescript-language-server** | `typescript-lsp` plugin (TS/JS work) | optional | `npm i -g typescript-language-server typescript` | same |
 | **csharp-ls** | `csharp-lsp` plugin (C# work only) | optional | `dotnet tool install --global csharp-ls` | same (needs `~/.dotnet/tools` on PATH) |
-| **gopls** | `gopls-lsp` plugin (Go work only; check gated on `go` being present) | optional | `go install golang.org/x/tools/gopls@latest` | same (needs `GOPATH/bin` on PATH) |
 | **curl** / `Invoke-WebRequest` | fetching hook files | for hooks | preinstalled | preinstalled |
 | **brew** / **winget** | `github-cli` extra only | optional | Homebrew | winget |
 
@@ -184,7 +187,7 @@ The path is resolved at install time, so the choice is baked into the registrati
 | MCP dies at launch with `-32000` | Node too old (use ≥ 22.12 LTS); or a stale npm cache against a freshly pinned version - the script intentionally avoids `--prefer-offline`. |
 | `serena` / `memory` MCP missing | `uvx` not installed - install uv (see prereqs). `memory` also needs numpy, which the script injects via `--with numpy`. |
 | `security-guidance` hook fails | Python 3 missing (on Windows the Store stub doesn't count - install a real Python). |
-| `csharp-lsp` / `gopls-lsp` won't start | `csharp-ls` / `gopls` not on PATH - install per the prereqs (only needed for C#/Go work). |
+| `csharp-lsp` won't start | `csharp-ls` not on PATH - install per the prereqs (only needed for C# work). |
 | `csharp-ls` install fails: `DotnetToolSettings.xml was not found` | Your .NET SDK is older than the tool's latest (`csharp-ls` 0.24.0 targets .NET 10); that error is dotnet's misleading wording for 'the tool targets a framework you don't have', not a broken package. `dotnet --list-sdks` to check. Cross-platform fix: pin a version matching your SDK - .NET 9 -> `--version 0.20.0`, .NET 8 -> `--version 0.15.0`. Or install the .NET 10 SDK and retry (Windows: `winget install Microsoft.DotNet.SDK.10`; macOS/Linux: package manager or the `dotnet-install` script `--channel 10.0`) - side-by-side, `global.json` keeps projects on their own SDK. |
 | "not in a git repo - skipping…" | Project scope needs a git repo. Run `git init`, or use `SCOPE=global`. |
 | Plugins/MCPs skipped | `claude` CLI not installed - install it (or use the Cursor stack, which never needs it). |

@@ -25,19 +25,19 @@ The `.sh`/`.ps1` twins take the **same arguments** and produce the **same result
 
 | Component | Lands in | Notes |
 | --------- | -------- | ----- |
-| **Skills** (74) | `.cursor/skills/` | real copies; run as Cursor Skills (`agentskills.io`). `npx skills add … --agent cursor` |
+| **Skills** (72) | `.cursor/skills/` | real copies; run as Cursor Skills (`agentskills.io`); includes `domain-build` per-domain orchestration. `npx skills add … --agent cursor` |
 | **MCP servers** (7) | `.cursor/mcp.json` | `angular-cli`, `serena` (`--context ide-assistant`), `playwright`, `memory`, `context7`, plus `chrome-devtools` + `appium-mcp` (heavy - now active; comment out where not needed). Cursor supports MCP natively; shell `${…}` tokens are resolved to concrete paths (Cursor does no shell interpolation) |
 | **Hooks** (2) | `.cursor/hooks/` + `.cursor/hooks.json` | `guard-protected-force-push` + `guard-catastrophic-rm` (`beforeShellExecution`): block force-push to main/master/develop and a recursive rm of /, ~, $HOME, or a bare *. Fetched from the repo's `cursor/hooks/` |
-| **Rules** (5) | `.cursor/rules/` | `csharp` / `typescript` / `sql` / `angular`-conventions.mdc (house conventions, auto-attach by glob) + `ponytail.mdc` (minimal-code, `alwaysApply`; fetched from the ponytail repo, not vendored here) |
+| **Rules** (7) | `.cursor/rules/` | `csharp` / `typescript` / `sql` / `angular`-conventions.mdc (house conventions, auto-attach by glob) + `wpf-conventions.mdc` (`.xaml`, opt-in for WPF repos) + `scss-conventions.mdc` (`.scss`/`.css`, opt-in for Angular workspaces owning their stylesheets) + `ponytail.mdc` (minimal-code, `alwaysApply`; fetched from the ponytail repo, not vendored here) |
 | **Agents** (4) | `.cursor/agents/` | .NET (`dotnet-build-error-resolver`, `dotnet-test-failure-resolver`) + Angular (`ng-build-error-resolver`, `angular-test-resolver`) - the same four resolvers the Claude stack ships, in Cursor's weaker contract: a `readonly` bool (no per-tool allowlist) and no hard convention gate, so the bodies lean on the auto-attaching rules above. Fetched from the repo's `cursor/agents/` |
 
 ### Install cadence - keep always vs install on occasion
 
 Cost differs by artifact, so the keep-or-skip call does too:
 
-- **Skills** - permanent by default: keyword-gated and ~free when idle, so install all and let them self-gate. Whole-domain sets (`wordpress-*`, the Ionic/Capacitor `mobile` group, `dotnet-wpf`) are optional only if you never touch that domain.
+- **Skills** - permanent by default: keyword-gated and ~free when idle, so install all and let them self-gate. Whole-domain sets (the Ionic/Capacitor `mobile` group, `dotnet-wpf`) are optional only if you never touch that domain.
 - **MCPs** - real launch cost, so split: baseline `context7` / `serena` / `memory` / `playwright`; domain-gated `angular-cli` (Angular projects only); opt-in `chrome-devtools` and `appium-mcp` (heavy native deps - leave commented out unless needed).
-- **Rules and agents** - permanent: the convention rules auto-attach by glob (free when no file matches) and `ponytail.mdc` is `alwaysApply`; the four resolver agents run on demand. Cursor has no plugins - the Claude `*-lsp` trio maps to per-language Open-VSX extensions (install those matching the project's languages), and `frontend-design`'s design-taste guidance has no Cursor plugin equivalent (relevant only for greenfield / visual UI work).
+- **Rules and agents** - permanent: the convention rules auto-attach by glob (free when no file matches) and `ponytail.mdc` is `alwaysApply`; the four resolver agents run on demand. Cursor has no plugins - the Claude `*-lsp` pair maps to per-language Open-VSX extensions (install those matching the project's languages), and `frontend-design`'s design-taste guidance has no Cursor plugin equivalent (relevant only for greenfield / visual UI work).
 
 To provision Claude Code too, run [`../claude/claude-stack.*`](../claude/README.md).
 
@@ -50,7 +50,7 @@ Cursor adds capabilities three ways, none a Claude-style plugin marketplace:
 - **MCP servers** (native) - the five above, plus anything else in `.cursor/mcp.json`.
 - **Native features** - Skills, Commands, Rules, Subagents (`.cursor/agents/` - the four resolvers
   this script installs), and **Bugbot** (`/review`) for security review.
-- **Open-VSX VS Code extensions** - e.g. `golang.Go` (gopls) for Go; a Roslyn-based C# extension
+- **Open-VSX VS Code extensions** - e.g. a Roslyn-based C# extension
   (DotRush / `muhammad-sammy.csharp` / ReSharper) since Microsoft's C# Dev Kit is blocked in Cursor.
   TypeScript diagnostics are built in. *(These are not installed by this script.)*
 
@@ -98,7 +98,7 @@ The script runs a **prerequisites check first and warns (never fails)** - instal
 | **curl** / `Invoke-WebRequest` | fetching the hook + rule files | for hooks/rules | preinstalled | preinstalled |
 | **brew** / **winget** | `github-cli` extra only | optional | Homebrew | winget |
 
-The **`claude` CLI is never used**. C#/Go LSP (`csharp-ls` / `gopls`) is only relevant if you add
+The **`claude` CLI is never used**. C# LSP (`csharp-ls`) is only relevant if you add
 the corresponding Open-VSX extension yourself - this script does not install extensions.
 
 ---
@@ -171,4 +171,4 @@ Cursor and Claude Code share **`~/.memory-mcp`** so both see the same DB: defaul
 | `.cursor/mcp.json` or `hooks.json` not written | Python 3 missing (bash path) - on Windows the Store stub doesn't count. |
 | Hook / rule not installed | Fetched from GitHub (`…/main/cursor/hooks` and `…/cursor/rules`); needs `curl`/`Invoke-WebRequest` and the files pushed upstream. Fail-soft keeps any existing copy. |
 | "not in a git repo - skipping…" | Project scope needs a git repo. Run `git init`, or use `SCOPE=global`. |
-| C#/Go diagnostics absent | Cursor doesn't get the Claude LSP plugins - install a Roslyn C# / `golang.Go` extension from Open VSX (see the plugins section). |
+| C# diagnostics absent | Cursor doesn't get the Claude LSP plugins - install a Roslyn C# extension from Open VSX (see the plugins section). |

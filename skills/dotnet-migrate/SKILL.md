@@ -17,7 +17,7 @@ Assess blast radius with `serena` (`find_symbol`, `find_referencing_symbols`) or
 ## Flow A - EF Core schema migration
 
 1. **See where you are.** `dotnet ef migrations list` shows what is applied versus pending. Use `serena` to find the entities you are about to change and everything that references them.
-2. **Generate one named migration.** `dotnet ef migrations add <Name>` - name it Verb-then-subject so the history reads as a log: `AddOrderShippedAt`, `MakeEmailUnique`, `DropLegacyStatus`. One concern per migration; if you are adding a table and reshaping another, that is two.
+2. **Generate one named migration.** `dotnet ef migrations add <Name>` - name it Verb-then-subject so the history reads as a log: `AddOrderShippedAt`, `MakeEmailUnique`, `DropLegacyStatus`. The one-change-per-migration discipline itself is `database-conventions`'s to state; this step is just the EF naming and generation mechanics.
 3. **Preview the SQL.** `dotnet ef migrations script --idempotent` (or `--idempotent <from> <to>` for a range). Read it for the dangerous shapes: dropped or renamed columns, a non-nullable add with no default, a type narrowing that truncates, an index or constraint added to a large table under a lock. The `--idempotent` flag guards each step with an `__EFMigrationsHistory` check so the script is safe to run against a database at any applied state, and re-running it is a no-op. EF cannot see your data - you have to.
 4. **Stage destructive change in two deploys.** Anything that can lose data or that the old code still depends on is expand-then-contract: first add the new column and backfill (the old code keeps working), ship, then in a later migration drop the old column once nothing reads it. Never collapse both halves into one migration against a live database. A wide backfill is a data migration, not a schema one - run it in batches outside the `ALTER`, never as a single `UPDATE` under a table lock.
 5. **Apply and verify.** In dev, `dotnet ef database update`, then build and run the tests. For anything past a local box, do not apply from a developer machine or call `Database.Migrate()` on app start under load (it serializes startup and needs schema-owner rights at runtime). Build a migrations bundle once - `dotnet ef migrations bundle --idempotent -o efbundle` - and run that self-contained executable as a gated deploy step. It is the same idempotent script compiled, so it carries no SDK dependency on the target and is the zero-downtime artifact.
@@ -41,7 +41,7 @@ Assess blast radius with `serena` (`find_symbol`, `find_referencing_symbols`) or
 
 ## Anti-patterns
 
-- Applying a migration without reading its SQL, or folding several unrelated schema changes into one migration.
+- Applying a migration without reading its SQL, or folding several unrelated schema changes into one migration (the one-change-per-migration and reversibility rules `database-conventions` owns).
 - A destructive column change in a single migration against a live database instead of expand-then-contract.
 - A wide backfill folded into the schema migration, taking a table lock for the duration instead of batching it separately.
 - Applying schema from a developer machine, or calling `Database.Migrate()` on app start under load, instead of a gated idempotent bundle.

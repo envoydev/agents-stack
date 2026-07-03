@@ -109,10 +109,7 @@ Per-case braces give each case its own scope (no accidental variable leak); blan
 - Static fields only for true constants or thread-safe caches. Mutable static state is forbidden.
 
 ## Design patterns (GoF awareness)
-- Know the Gang of Four patterns, but reach for the framework-native construct before hand-rolling one: the DI container is your Factory / Abstract Factory / Singleton; `Func<T>` and `Lazy<T>` cover deferred creation; events, `IObservable<T>`, or an in-process event bus are your Observer; `IEnumerable<T>` + `yield` is your Iterator; a switch expression usually beats a State / Strategy class hierarchy.
-- Prefer composition: model Strategy as an injected interface (`IStrategy`), not a base class with `virtual` hooks. Template Method (a sealed algorithm on a base type with `protected abstract` steps) is the rare case where inheritance earns its place - use it only when subclasses fill fixed steps of an invariant flow.
-- Add a pattern only when the variation it absorbs already exists. A method, a `delegate`, or a small `record` beats a five-class Visitor for a simple problem; forcing a catalog pattern to look 'enterprise' is a smell.
-- Don't name a type after its pattern unless the pattern is the point: `OrderFactory` only when it truly manufactures, never `OrderStrategyManager`. Pattern nouns must not crowd out domain vocabulary (see Naming intent).
+- Reach for the framework-native construct before hand-rolling a pattern: the DI container is your Factory / Abstract Factory / Singleton; `Func<T>` and `Lazy<T>` cover deferred creation; events, `IObservable<T>`, or an in-process event bus are your Observer; `IEnumerable<T>` + `yield` is your Iterator; a switch expression usually beats a State / Strategy class hierarchy.
 - This section is the awareness baseline only. To choose, implement, compare, or refactor toward a specific pattern, load `csharp-design-patterns` - full 23-pattern catalog with modern .NET forms, selection table, and anti-pattern checks.
 
 ## Modern C# syntax preferences (11+/12+/13)

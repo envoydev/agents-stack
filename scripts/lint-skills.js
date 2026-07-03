@@ -17,9 +17,9 @@
 //      READMEs drifting from the actual installer/on-disk set sizes (those prose
 //      numbers can no longer lie);
 //   6. a backticked skill name that resolves to nothing - scanned in skill files,
-//      claude/agents/*.md subagents, AND the base templates + cursor rules
-//      (CLAUDE.template.md / AGENTS.template.md / cursor/rules/*.mdc), where a
-//      renamed skill would otherwise rot silently; tokens there resolve against
+//      claude/agents/*.md subagents, AND the base templates + cursor rules + claude rules
+//      (CLAUDE.template.md / AGENTS.template.md / cursor/rules/*.mdc / claude/rules/*.md),
+//      where a renamed skill would otherwise rot silently; tokens there resolve against
 //      skills + plugins + MCPs + agent names + NON_SKILL_TOKENS;
 //   7. a false 'Vendored from' label on a house dotnet-* skill (they are
 //      original work; honest 'Adapted from'/attribution is allowed);
@@ -54,6 +54,7 @@ const CURSOR_AGENTS_DIR = path.join(ROOT, 'cursor', 'agents');
 const CLAUDE_TEMPLATE = path.join(ROOT, 'claude', 'CLAUDE.template.md');
 const CURSOR_TEMPLATE = path.join(ROOT, 'cursor', 'AGENTS.template.md');
 const CURSOR_RULES_DIR = path.join(ROOT, 'cursor', 'rules');
+const CLAUDE_RULES_DIR = path.join(ROOT, 'claude', 'rules');
 const CONVENTION_HOOK = path.join(ROOT, 'claude', 'hooks', 'require-convention-skill.js');
 const PLUGIN_MARKETPLACE_URLS = new Set([
     'https://github.com/anthropics/claude-plugins-official',
@@ -77,15 +78,12 @@ const NON_SKILL_TOKENS = new Set([
     'mat-flat-button',
     'mat-stroked-button',
     // superpowers-plugin workflow skills (ship with the plugin, not house skills)
-    // referenced by name in the base templates' task-shape routing tables.
+    // referenced by name in the base templates.
     'writing-plans',
     'test-driven-development',
-    'systematic-debugging',
-    'dispatching-parallel-agents',
-    'subagent-driven-development',
-    'finishing-a-development-branch',
     'verification-before-completion',
     'using-superpowers',
+    'finishing-a-development-branch',
     // built-in Claude Code agent type named in the base template's navigation
     // guidance (don't delegate single-symbol lookups to it) - not a house skill.
     'general-purpose',
@@ -547,7 +545,7 @@ function main()
         'cursor-stack.ps1': parseFlatBlock(CURSOR_PS1, "'", '$Mcps = @(', '|'),
     };
 
-    // 18. Backticked skill names in the base templates + cursor rules must
+    // 18. Backticked skill names in the base templates + cursor rules + claude rules must
     //     resolve too, or a renamed skill rots silently there (the gap check 6
     //     left open). Unlike a skill file, a template/rule legitimately names
     //     plugins (`csharp-lsp`, `claude-hud`), MCPs (`angular-cli`,
@@ -571,6 +569,11 @@ function main()
     if (fs.existsSync(CURSOR_RULES_DIR))
     {
         templateFiles.push(...fs.readdirSync(CURSOR_RULES_DIR).filter(f => f.endsWith('.mdc')).map(f => path.join(CURSOR_RULES_DIR, f)));
+    }
+
+    if (fs.existsSync(CLAUDE_RULES_DIR))
+    {
+        templateFiles.push(...fs.readdirSync(CLAUDE_RULES_DIR).filter(f => f.endsWith('.md')).map(f => path.join(CLAUDE_RULES_DIR, f)));
     }
 
     for (const file of templateFiles.filter(fs.existsSync))
@@ -745,8 +748,8 @@ function main()
 
     // 11. Reverse allowlist check: every NON_SKILL_TOKENS entry must actually
     //     appear as a backtick in some scanned surface - a skill file (check 6)
-    //     or a base template / cursor rule (check 18), both of which record
-    //     matches. A never-matched entry is dead config (e.g. a `dev-log` left
+    //     or a base template / cursor rule / claude rule (check 18), both of which
+    //     record matches. A never-matched entry is dead config (e.g. a `dev-log` left
     //     behind after the trigger word stopped being backticked) - prune it.
     for (const token of NON_SKILL_TOKENS)
     {
@@ -759,18 +762,20 @@ function main()
     // 12. The active manifest set sizes (and the installer's HOOKS/AGENTS/RULES
     //     arrays) are the single source of truth; the headline counts in the
     //     per-agent READMEs must equal them so the prose cannot silently drift.
-    //     Claude carries Skills/Plugins/MCP/Hooks/Agents (no Rules row); Cursor
-    //     carries Skills/MCP/Hooks/Rules/Agents (no Plugins). Both spell the
-    //     count two ways: a table cell ('| 67 |') and an inline '(67)'. Hook /
-    //     agent / rule counts come from the installer array sizes - the cursor
-    //     Rules count includes the ponytail rule (fetched, not stored on disk),
-    //     so the installer array (not the on-disk .mdc set) is authoritative.
-    //     The cursor Agents count is validated against the CURSOR_AGENTS array.
+    //     Claude carries Skills/Plugins/MCP/Hooks/Agents/Rules; Cursor carries
+    //     Skills/MCP/Hooks/Rules/Agents (no Plugins). Both spell the count two
+    //     ways: a table cell ('| 67 |') and an inline '(67)'. Hook / agent / rule
+    //     counts come from the installer array sizes - the cursor Rules count
+    //     includes the ponytail rule (fetched, not stored on disk), so the
+    //     installer array (not the on-disk .mdc set) is authoritative. The
+    //     claude Rules count is validated against the CLAUDE_RULES array the
+    //     same way. The cursor Agents count is validated against the CURSOR_AGENTS array.
     const skillCount = primary.active.size;
     const pluginCount = pluginsClaudeSh.active.size;
     const mcpCount = mcpsPrimary.active.size;
     const claudeHookCount = parseStringArray(CLAUDE_SH, '"', 'HOOKS=(').length;
     const claudeAgentCount = parseStringArray(CLAUDE_SH, '"', 'AGENTS=(').length;
+    const claudeRuleCount = parseStringArray(CLAUDE_SH, '"', 'CLAUDE_RULES=(').length;
     const cursorHookCount = parseStringArray(CURSOR_SH, '"', 'CURSOR_HOOKS=(').length;
     const cursorRuleCount = parseStringArray(CURSOR_SH, '"', 'CURSOR_RULES=(').length;
     const cursorAgentCount = parseStringArray(CURSOR_SH, '"', 'CURSOR_AGENTS=(').length;
@@ -828,6 +833,7 @@ function main()
             checks.push(['Plugins', pluginCount]);   // Cursor carries no plugins
             checks.push(['Hooks', claudeHookCount]);
             checks.push(['Agents', claudeAgentCount]);
+            checks.push(['Rules', claudeRuleCount]);
         }
         else
         {
@@ -869,6 +875,18 @@ function main()
         ? new Set(fs.readdirSync(CURSOR_AGENTS_DIR).filter(f => f.endsWith('.md')))
         : new Set();
     assertSameSet('cursor agent file', { 'cursor/agents/': cursorAgentDiskSet, 'cursor-stack.sh CURSOR_AGENTS': cursorAgentManifestSh });
+
+    // 12d. Same parity for the CLAUDE rules: the on-disk claude/rules/*.md set must equal the
+    //      CLAUDE_RULES manifest array in BOTH claude shells (both shells agree first, then the
+    //      on-disk set equals them). A drift means a committed rule never installs, or the
+    //      installer fetches a rule that no longer exists in-repo.
+    const ruleManifestSh = new Set(parseStringArray(CLAUDE_SH, '"', 'CLAUDE_RULES=('));
+    const ruleManifestPs1 = new Set(parseStringArray(CLAUDE_PS1, "'", '$ClaudeRules = @('));
+    assertSameSet('rule', { 'claude-stack.sh': ruleManifestSh, 'claude-stack.ps1': ruleManifestPs1 });
+    assertSameSet('rule file', {
+        'claude/rules/': new Set(fs.existsSync(CLAUDE_RULES_DIR) ? fs.readdirSync(CLAUDE_RULES_DIR).filter(f => f.endsWith('.md')) : []),
+        'claude-stack.sh CLAUDE_RULES': ruleManifestSh,
+    });
 
     // 13. The Claude subagents reference house skills by backticked name (e.g.
     //     `csharp`, `dotnet-testing`). Each backticked hyphenated token must

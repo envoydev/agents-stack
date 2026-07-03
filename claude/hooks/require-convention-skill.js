@@ -16,6 +16,12 @@
 //   "…/require-convention-skill.js ts ng"   -> TypeScript (.ts) AND Angular (.component.ts &c.)
 //   "…/require-convention-skill.js cs ng"   -> C# (.cs) AND Angular (.component.ts &c.)
 //
+// Two further variant keys are opt-in only, wired per repo shape rather than by
+// default: 'xaml' (.xaml -> dotnet-wpf, for WPF repos) and 'scss' (.scss/.css ->
+// angular-styling, for Angular workspaces that own their stylesheets). Same
+// CLI-arg selection and union semantics as every other key - e.g. "cs xaml" gates
+// C# AND XAML.
+//
 // A file may match SEVERAL suffixes at once; the gate requires the UNION of
 // their skills. With "ts ng": 'order-list.component.ts' matches '.ts'
 // (-> typescript) and '.component.ts' (-> angular-conventions) - both must
@@ -76,6 +82,13 @@ const TABLES = {
         '.interceptor.ts': ['angular-conventions'],
         '.component.html': ['angular-conventions'],
     },
+    // Opt-in for WPF repos only (not every C# repo has XAML) - wire 'xaml' in
+    // alongside 'cs' where applicable.
+    xaml: { '.xaml': ['dotnet-wpf'] },
+    // Opt-in for Angular workspaces that own their stylesheets - wire 'scss' in
+    // alongside 'ts'/'ng' where applicable. '.css' matches too since Angular
+    // projects mix authored .scss with occasional plain .css.
+    scss: { '.scss': ['angular-styling'], '.css': ['angular-styling'] },
 };
 
 // Merge the tables for every valid variant key; duplicate suffixes concatenate

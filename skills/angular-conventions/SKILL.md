@@ -1,6 +1,6 @@
 ---
 name: angular-conventions
-description: "Personal Angular conventions from v17 up - standalone everything, signals as the default state primitive, OnPush, block control flow (at-if / at-for / at-switch), signal inputs and outputs, deferred loading, RxJS only where streams earn it, HTTP, reactive or signal forms, routing with input binding, accessibility, component-harness testing, and banned patterns. Load before writing or editing any Angular file so the agent commits to current idioms, not recalled ones. Companions: typescript for the language baseline (strict typing, modules, async, errors), angular-material for Material and CDK, frontend for the web index, mobile for Ionic and Capacitor. Do NOT load for React, Vue, Svelte, Solid, plain DOM, or any non-Angular TypeScript."
+description: "Personal Angular conventions from v17 up - standalone everything, signals as the default state primitive, OnPush and zoneless, block control flow (at-if / at-for / at-switch), signal inputs and outputs, deferred loading, RxJS only where streams earn it, HTTP, reactive or signal forms, routing with input binding, SSR and hydration, accessibility, component-harness testing, and banned patterns. Load before writing or editing any Angular file so the agent commits to current idioms, not recalled ones. Companions: typescript for the language baseline (strict typing, modules, async, errors), angular-material for Material and CDK, frontend for the web index, mobile for Ionic and Capacitor. Do NOT load for React, Vue, Svelte, Solid, plain DOM, or any non-Angular TypeScript."
 ---
 
 # Angular conventions
@@ -48,13 +48,19 @@ Data that lives on the server (a fetched list, a record by id) is a cache of som
 - Feed components immutable data through signal inputs - `input()` and `input.required<T>()` - emit with `output()`, and bind two-way state with `model()` (v17.1+). The decorator `@Input` and `@Output` survive only in code predating 17.1; never mix the two styles in one component.
 - Drive the view with signals or observables, not a hand-placed `markForCheck`. If you are reaching for `ChangeDetectorRef`, the state shape is wrong.
 - Finish the move off decorators for queries and host bindings too: `viewChild()` and `contentChild()` (add `.required` when the target is guaranteed present) replace `@ViewChild` and `@ContentChild`, and the `host` metadata object replaces `@HostBinding` and `@HostListener`.
+- OnPush is the stepping stone to zoneless, not the destination. Where the installed version ships stable zoneless change detection (stable from v20.2, the default for new apps from v21), drop `zone.js` from the polyfills and bootstrap with `provideZonelessChangeDetection()` alongside `provideBrowserGlobalErrorListeners()`. Without a zone, `setTimeout`, `setInterval`, and bare promise callbacks no longer trigger a render - every update must flow through a signal or `AsyncPipe`, which an all-OnPush, signal-driven codebase already satisfies. Turn it on in development first to flush out any code that silently leaned on the zone.
 
 ## Templates carry no logic
 - A template holds simple expressions only. Push any real computation into a `computed` signal; never call a method from the template, since it re-runs every change-detection pass.
 - Use block control flow - `@if`, `@for`, `@switch` - in place of the old structural directives. Give every `@for` over an object collection a `track` expression keyed on a stable identity.
 - Defer below-the-fold and non-critical content with `@defer`. Pick the trigger on purpose - `on viewport`, `on idle`, `on interaction` - and always supply a `@placeholder` so nothing reflows when the block resolves.
 - Static images go through `NgOptimizedImage`; mark the above-the-fold hero `priority` so the LCP image preloads and its box is reserved, killing layout shift.
-- Prefer native CSS transitions and animations over the `@angular/animations` DSL; recent Angular versions have been steering away from it (treat its long-term status as in flux and check angular.dev before leaning on the DSL in new code). For route transitions use the View Transitions API through `withViewTransitions()`.
+- The replacement for the `@angular/animations` DSL is now concrete, not just in flux: the package is deprecated and Angular ships native `animate.enter` / `animate.leave` template bindings alongside plain CSS transitions. Prefer those in new code and plan existing DSL animations off it. For route transitions use the View Transitions API through `withViewTransitions()`.
+
+## SSR and hydration
+Server-render, then hydrate so the client reuses the server-painted DOM instead of re-rendering it from scratch. The model is three stages: SSR paints the pixels, hydration wires up the event handlers, incremental hydration delays that wiring until a block is actually needed.
+- Enable full hydration with `provideClientHydration(withIncrementalHydration())`. Incremental hydration (stable from v20) auto-enables event replay, so do not also add `withEventReplay()`. Drive it from `@defer` with `hydrate` triggers - `hydrate on idle|viewport|interaction|hover`, `hydrate when`, `hydrate never` - which lets you defer even above-the-fold content a plain `@defer` could not.
+- Do not lean on the HTTP transfer cache for authenticated responses - it skips credentialed (`withCredentials`) requests, so a response you thought was cached re-fetches on the client. Verify SSR behaviour through E2E, not the deprecated `@angular/platform-server/testing`.
 
 ## Services and dependency injection
 - App-wide singletons declare `providedIn: 'root'` so they tree-shake when unused and need no module registration.
@@ -76,12 +82,13 @@ Validation is a layer, not a pile of one-off checks: declare it on the model, ke
 - **Async validators are debounced and cancel.** For server checks (username taken, code valid) write an `AsyncValidatorFn` that debounces, switches to cancel the stale request, and resolves to `ValidationErrors | null`. Run it on blur or otherwise rate-limit it so it does not fire per keystroke, and drive a pending indicator off the control's `pending` state.
 - **One error-display mechanism.** Do not scatter `@if (control.errors?.required)` across templates. Build one reusable error component or directive that reads a control's state and renders the right message only once the field is `touched` or `dirty` (and, for async, after `pending` clears), mapping each error key to copy from a single dictionary. Every field shows errors the same way, on the same trigger, with messages defined in one place.
 - **Signal Forms (v21+) move the same strategy onto the model.** Where the workspace ships Signal Forms (`form()` from `@angular/forms/signals`), validation is declared in the schema rather than attached to controls: synchronous rules via `validate` (cross-field rules read another field with `valueOf(path)`, so they no longer need a group wrapper), and async rules via `validateAsync` / `validateHttp` with a `pending()` signal per field. The principles are unchanged - reusable rules, group/tree-level cross-field checks, one consistent error surface reading touched/dirty/pending - only the wiring moves from `FormGroup` plumbing to schema declarations. Version-tag any Signal Forms snippet and only use it on v21+.
+- **Signal Forms can validate against a Standard Schema.** Where the workspace ships it, a shared Zod or Valibot schema becomes the form's validation via `validateStandardSchema(schema)` on a field or the form root - one definition drives both the runtime parse and the form errors instead of re-declaring the rules by hand. Reach for it when a DTO already carries a schema; keep hand-written `validate` rules for form-only concerns. Version-tag any snippet - this landed after the v21 Signal Forms baseline.
 
 ## Accessibility
 - Every interactive element is reachable by keyboard and shows a visible focus indicator.
 - Reach for semantic HTML first - `<button>`, `<nav>`, `<main>`, `<header>` - and add ARIA only when no native element expresses the intent.
 - For custom widgets (accordion, listbox, combobox, menu, tabs), build on the headless `@angular/aria` directives (experimental, v20+): they own the keyboard, focus, and ARIA state machine, and you supply only the markup and styles, hanging CSS off the aria-expanded, aria-selected, and aria-current attributes they manage. Do not reimplement that logic.
-- Text contrast meets WCAG AA: at least 4.5:1 normally, 3:1 for large text.
+- Text contrast meets WCAG AA - exact ratios are `angular-styling`'s to state.
 
 ## Feature boundaries
 - Features may depend on `shared/` and `core/` but never on one another. No import from `features/billing` reaches into `features/orders`. (How barrels and deep imports are policed is `typescript`.)
@@ -98,6 +105,8 @@ Validation is a layer, not a pile of one-off checks: declare it on the model, ke
 - Build fixtures with factory or object-mother helpers so the same literal is not copy-pasted across specs.
 - Mock collaborators with the workspace's runner - `jasmine.createSpyObj` under Karma, `jest.fn()` under Jest - and do not mix the two.
 - Bake automated accessibility checks into component specs with `axe-core` and `jest-axe`.
+- Vitest is the runner to reach for in new suites - Karma is deprecated and Vitest is the CLI default (via the `@angular/build:unit-test` builder, jsdom or happy-dom, browser mode through Playwright when a real DOM is needed). Existing Karma or Jest suites keep working, so do not force a rewrite.
+- Test signals by reading them directly and flushing effects with `TestBed.tick()`; wire inputs and outputs through `inputBinding()` / `outputBinding()` / `twoWayBinding()` on `createComponent` rather than reaching into the instance. Under zoneless, an error thrown in an event listener surfaces to the error handler instead of being swallowed, so expect some previously-silent tests to start failing honestly.
 
 ## Banned patterns
 - No `setTimeout` poked in to coax change detection into noticing a change. Fix the signal or input flow instead.

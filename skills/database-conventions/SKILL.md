@@ -1,11 +1,24 @@
 ---
 name: database-conventions
-description: "Personal database conventions across Postgres, SQL Server/T-SQL, SQLite, and MongoDB - the engine-neutral rules for schema, migrations, indexes, foreign keys, transactions, connection management, query safety, N+1 prevention, and secret handling, plus the per-engine pitfalls that bite. This is the convention gate the hook loads before any persistence work; deeper engine tuning and all .NET data access route out to companion skills. Load before designing or modifying a schema, writing SQL raw or through an ORM, modeling a document store, or creating a migration, view, procedure, or index - do not rely on recall. Do NOT load for app-only in-memory data structures or a project with no persistence layer."
+description: "Personal database conventions across Postgres, SQL Server/T-SQL, SQLite, and MongoDB - the engine-neutral rules for schema design (keys, normalization, relationships), migrations, indexes, foreign keys, transactions, connection management, query safety, N+1 prevention, and secret handling, plus the per-engine pitfalls that bite. This is the convention gate the hook loads before any persistence work; deeper engine tuning and all .NET data access route out to companion skills. Load before designing or modifying a schema, writing SQL raw or through an ORM, modeling a document store, or creating a migration, view, procedure, or index - do not rely on recall. Do NOT load for app-only in-memory data structures or a project with no persistence layer."
 ---
 
 # Database conventions
 
 A database is the one part of a system where a careless change is permanent: a dropped column takes its data with it, a missing index turns a query into a table scan under load, an unbounded result set is a memory incident waiting for the row count to grow. These conventions are the engine-neutral defaults that keep that from happening. They are deliberately not deep tuning - this skill is the gate that loads before persistence work, and it routes the deep work out to the companions named below rather than restating it.
+
+## Choosing a store
+
+Relational is the default store; reach for a document, key-value, graph, or time-series engine only when the access pattern genuinely mismatches SQL, and expect to run it alongside the relational database rather than in place of it. A cache (Redis and the like) is a performance layer, never the source of truth - the system must be able to rebuild it from the database, and every cached key carries a TTL so a stale or orphaned entry cannot grow until it runs the instance out of memory.
+
+## Schema design
+
+The schema is the one place integrity is cheap to enforce and expensive to retrofit, so decide these before the first table ships.
+
+- **Default to a surrogate primary key** - a `BIGINT` identity for most tables, a UUID only when you need distributed or non-guessable generation - never a natural key like an email or SKU, which eventually changes or collides and cascades that change through every referencing table. Keep a `UNIQUE` constraint on the natural identifier so you still get its uniqueness without making it the key. When a write-heavy table does need a UUID key, use a time-ordered variant (UUID v7 or ULID), not random v4, whose scattered inserts fragment the index and drag insert throughput down as the table grows.
+- **Normalize operational tables to 3NF by default** - the balance of integrity and practicality most schemas want, and a clean 3NF design is usually already in BCNF. Denormalize only deliberately and only after profiling a proven read bottleneck, as a cached or computed field on that one hot path. Both failure modes bite equally: over-normalizing a simple read into a ten-way join, and under-normalizing multi-valued data into comma-separated strings that turn 'find every row matching X' into string parsing.
+- **Model many-to-many through a junction table** with a composite primary key (or unique constraint) on the two foreign keys so a duplicate pairing cannot be inserted, index both columns so you can traverse from either side, and put any relationship attributes - a role, a quantity, an enrolment date - on the junction row itself. A polymorphic association (one child pointing at several possible parents) trades away database-level referential integrity, so guard it with a `CHECK` that exactly one target column is set and validate the target in the application.
+- **Store every timestamp in UTC** and convert to local only at display in the application; reach for a timezone-aware type (`TIMESTAMPTZ`, `DATETIMEOFFSET`) only when the originating offset itself must be preserved. Put non-nullable `created_at` and `updated_at` on every table - the audit trail you always end up needing. For anything you might have to recover or audit, prefer a soft delete (a nullable `deleted_at`) over a hard `DELETE`, and filter rows whose `deleted_at` is set out of every normal read.
 
 ## Engine-specific routing
 
@@ -23,6 +36,8 @@ Every query is either parameterized or it is a vulnerability. Never build SQL by
 Read with the least authority the work needs. Default reads to read-only intent and `READ COMMITTED` isolation; reach for `SNAPSHOT` or `REPEATABLE READ` only when a specific consistency requirement justifies the extra cost, and say why. Bound every result set that could grow - a `LIMIT` or `TOP` on any open-ended query - and never `SELECT *`, which drags unused columns over the wire and breaks the moment the schema changes.
 
 Injection avoidance and connection-string handling are also OWASP concerns; the application-hardening posture around them is owned by `dotnet-security`, and this skill stops at the query.
+
+For deep pagination, prefer keyset (seek) pagination over `OFFSET`: a `WHERE (created_at, id) < (:last_ts, :last_id) ORDER BY ... LIMIT n` clause with a unique tiebreaker column. `OFFSET 20000` still scans and discards those 20000 rows, so page 1000 keeps getting slower, while a keyset seek jumps straight to the point and holds every page equally fast.
 
 ## N+1 prevention
 
@@ -52,9 +67,13 @@ An index is a write-time cost paid for a read-time gain, so add each one deliber
 
 Integrity belongs in the schema, where it cannot be bypassed, not in application logic that one code path will forget. Enforce foreign keys at the database level - a "soft" relation maintained only in application code is a relation that will drift. Default columns to `NOT NULL` and opt into nullability only where the model genuinely has an absent value. Express invariants the schema can state as `CHECK` constraints - a numeric range, an enum-as-string set. And enforce uniqueness with a `UNIQUE` constraint or a unique index, never an application-side "check then insert", which races two concurrent requests straight into a duplicate.
 
+Declare `ON DELETE` and `ON UPDATE` behaviour explicitly on every foreign key - `RESTRICT`, `CASCADE`, or `SET NULL` per the business rule - because the engine default varies and leaning on it is a silent bug, and index every foreign-key column, since an unindexed FK turns every join and every 'find the children of X' into a full scan at production volume. Never store a derived value that can drift from its inputs (an order `total` kept beside its `subtotal` and `tax`): compute it in the query or a view, or materialise it as a generated column the engine keeps consistent, so the stored copy can never disagree with its source.
+
 ## Transactions
 
 Scope a transaction to exactly one unit of work - one request or use-case - opened at the boundary, committed on success, rolled back on exception. The cardinal mistake is holding a transaction open across external I/O: a transaction that waits on an HTTP call or a message bus holds its locks for the duration of a network round trip. Read what you need first, then open the transaction, do the writes, and close it. Design writes to be idempotent - an `UPSERT` or `MERGE` keyed on a natural or supplied id - so a retry after a timeout re-applies the same write instead of duplicating it.
+
+When two transactions can race to modify the same row - a balance transfer, an inventory decrement, an oversell guard - take a pessimistic row lock (`SELECT ... FOR UPDATE`) on the rows you are about to change rather than reading them optimistically and hoping; the unlocked read-then-write window is exactly where the lost update lives.
 
 ## Connection management
 

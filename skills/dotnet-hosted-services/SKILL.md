@@ -1,6 +1,6 @@
 ---
 name: dotnet-hosted-services
-description: "Personal .NET hosted-service and worker conventions - the long-running background work the generic host runs. Covers the two host shapes (a Host.CreateApplicationBuilder worker binary versus a hosted task in a web app), IHostedService versus BackgroundService versus IHostedLifecycleService, the ExecuteAsync unobserved-exception trap and BackgroundServiceExceptionBehavior, scoped services from the singleton host via IServiceScopeFactory, PeriodicTimer over a Task.Delay loop, graceful shutdown via the stopping token, StopAsync and ShutdownTimeout, and queue-backed work via System.Threading.Channels. Floors at .NET 8 / C# 12; later additions flagged optional. Load when writing a worker service, a BackgroundService or IHostedService, a periodic job, or any in-process background task hung off the host. This skill owns the host a worker runs in. Companions: dotnet-messaging owns the broker and consumer contract, dotnet-web-backend the surrounding HTTP service, csharp the async and Channels mechanics. Do NOT load for broker-driven consumers, HTTP endpoints, or reactive in-memory streams."
+description: "Personal .NET hosted-service and worker conventions - the long-running background work the generic host runs. Covers the host shapes (a worker binary, a hosted task in a web app, or a Windows Service), IHostedService versus BackgroundService versus IHostedLifecycleService, the ExecuteAsync unobserved-exception trap and BackgroundServiceExceptionBehavior, scoped services from the singleton host via IServiceScopeFactory, PeriodicTimer over a Task.Delay loop, graceful shutdown via the stopping token, StopAsync and ShutdownTimeout, and queue-backed work via System.Threading.Channels. Floors at .NET 8 / C# 12; later additions flagged optional. Load when writing a worker service, a BackgroundService or IHostedService, a periodic job, or any in-process background task hung off the host. This skill owns the host a worker runs in. Companions: dotnet-messaging owns the broker and consumer contract, dotnet-web-backend the surrounding HTTP service, csharp the async and Channels mechanics. Do NOT load for broker-driven consumers, HTTP endpoints, or reactive in-memory streams."
 ---
 
 # .NET hosted services - background work on the generic host
@@ -30,6 +30,14 @@ builder.Services.AddHostedService<OutboxFlushWorker>();
 ```
 
 Both register an `IHostedService` in the DI container; the host starts every registered one on startup and stops them on shutdown. Register a worker as a singleton via `AddHostedService` - never resolve and start one yourself.
+
+## Hosting as a Windows Service
+
+A worker that runs under the Windows Service Control Manager (SCM) is the same worker binary plus the `Microsoft.Extensions.Hosting.WindowsServices` package and one call - `builder.Services.AddWindowsService(o => o.ServiceName = "...")`. It is a third way into the one hosting model, not a different model: everything above - base type, the exception trap, scoping, shutdown - applies unchanged. The call is context-aware, installing the `WindowsServiceLifetime` only when the process is actually running under the SCM (`WindowsServiceHelpers.IsWindowsService()`), so the identical binary still runs as a plain console app for local debugging - no separate build. It also points the host content root at `AppContext.BaseDirectory` and wires the Event Log provider. The legacy `ServiceBase`/`OnStart`/`installutil` pattern is obsolete for new work.
+
+- **Resolve every path against `AppContext.BaseDirectory`, never the current directory.** Under the SCM the process working directory is `C:\Windows\System32`, so `Directory.GetCurrentDirectory()` and every relative path silently resolve there - config not found, logs written to System32, `UnauthorizedAccessException`. `AddWindowsService` fixes the *host* content root, but your own file I/O does not inherit it; anchor it on `AppContext.BaseDirectory` (or `IHostEnvironment.ContentRootPath`).
+- **A clean host stop hides a fault from the SCM.** On the .NET 8 floor a fatal worker under `StopHost` shuts the host down cleanly - exit code 0 - so the SCM sees no failure and applies none of its recovery actions; the faulted process just stays stopped, looking healthy. For SCM-driven restart, end the process with a non-zero code (`Environment.Exit(nonZero)`) and configure matching recovery (`sc.exe failure`, typically restart/restart/take-no-action to avoid an infinite loop). The .NET 11+ change under Newer versions makes the host task itself throw - revisit any `Environment.Exit` workaround on upgrade.
+- **Run under a least-privilege account.** Prefer `LocalService` (no network credentials) or `NetworkService` (network under the machine identity) over `LocalSystem`, whose near-full machine privilege should be reserved for work that genuinely needs it. Tightest is a dedicated local account granted only the 'Log on as a service' right.
 
 ## Which base type: IHostedService, BackgroundService, IHostedLifecycleService
 
@@ -121,6 +129,8 @@ Shutdown is cooperative - the host signals, your code must respond. Honour the s
 - **`IHostApplicationLifetime`** when a worker must *itself* request shutdown - a fatal config error, a completed one-shot job. Inject it and call `StopApplication()`; register on `ApplicationStopping` to run last-gasp cleanup. This is how a worker ends the process deliberately rather than by throwing.
 
 The contract is simple: cancel propagates in, the work drains within the timeout, the host exits. Code that does not observe the token is the reason a shutdown hangs.
+
+- **`HostOptions` also bounds and parallelises the lifecycle.** On the .NET 8 floor it exposes `StartupTimeout` - the mirror of `ShutdownTimeout`, bounding total start time - and `ServicesStartConcurrently`/`ServicesStopConcurrently`, which start and stop hosted services in parallel instead of the default sequential registration order. Reach for the concurrent options only when several services each have a slow `StartAsync`/`StopAsync` and the serial sum stalls the host; parallel start drops the ordering guarantee, so leave them off otherwise.
 
 ## Queue-backed work with Channels
 

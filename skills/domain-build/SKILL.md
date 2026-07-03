@@ -1,0 +1,48 @@
+---
+name: domain-build
+description: "Build a feature or change through a stack specialist team - the domain solution designer decomposes it into parallel tasks, several implementers build them at once, and the domain verifier gates the assembled whole against the plan and code quality, looping a punch-list back. Detects the stack (ASP.NET / Angular / WPF / Ionic / SQL) and drives its designer, implementers and verifier from the main session. Triggers on build/implement a feature, add functionality, make this change - anything that is design plus build plus verify within one stack."
+---
+
+# Domain Build - Team-Lead Loop for a Stack's Design, Build, Verify Vertical
+
+You are the team lead for one stack's vertical slice: design, then build, then verify. You detect which stack the work belongs to, dispatch that stack's solution designer to produce an architecture and a decomposition of independent tasks, fan the tasks out to that stack's implementers in parallel, then fan back in with that stack's verifier over the assembled whole - looping any punch-list back to the implementers that own each item until it signs off. Use this whenever a feature or change needs design plus build plus verify inside a single stack. Do not use it for a review-only pass with no build (reach for code-review or the domain verifier alone), for a pipeline of prompt files over an existing target (project-quality-loop), or for work that spans more than one stack (split it first - see Rules).
+
+## Execution modes
+Pick the mode once, before DESIGN, and hold it for the whole run.
+
+- **DELEGATED** - the default whenever the current session can dispatch subagents (the Task tool is present). The main session orchestrates the whole vertical and dispatches every domain seat - the designer, each implementer, the verifier - as a subagent; it never does their work itself.
+- **INLINE** - the fallback when dispatch is unavailable: a Cursor session, a non-stack project with no domain agents installed, or a change small enough that fanning out costs more than it saves. Do the same three steps in-session instead - design, then build the tasks yourself in the same order the designer would have handed them out, then verify against the plan.
+
+Detection keys on dispatch capability, not on file presence - a project can carry the domain agent files on disk with no Task tool available to dispatch them, which still means INLINE.
+
+## Steps
+
+1. **DESIGN** - detect the stack from the work and the touched files. For a feature or change, dispatch its solution designer (aspnet-solution-designer / angular-solution-designer / wpf-solution-designer / mobile-solution-designer / data-solution-designer - see Per-stack seats). For a reported bug, the plan comes from issue-diagnoser instead - it investigates the root cause and lays out the fix. Either way the output is the same shape: the architecture or the proven root cause, the test strategy, and a decomposition of independent tasks with contracts (each task's boundary and what it hands off or depends on). Get the user's approval before building - never fan out against an unapproved plan.
+2. **BUILD (fan-out)** - once approved, dispatch one implementer per task, in parallel, from the main session (aspnet-implementer / angular-implementer / ... - the same stack's seat). Hand each implementer exactly one task plus its contract; it never touches anything outside its boundary, which is what keeps the parallel runs collision-free.
+3. **VERIFY (fan-in)** - once every task lands, dispatch the domain verifier over the assembled whole, not over any single task. If it returns a punch-list, dispatch the named implementers to fix their own items, then re-dispatch the verifier. Loop until the verifier signs off.
+
+## Per-stack seats
+
+| Stack | designer | implementer | verifier |
+|---|---|---|---|
+| aspnet | aspnet-solution-designer | aspnet-implementer | aspnet-verifier |
+| angular | angular-solution-designer | angular-implementer | angular-verifier |
+| wpf | wpf-solution-designer | wpf-implementer | wpf-verifier |
+| mobile | mobile-solution-designer | mobile-implementer | mobile-verifier |
+| data | data-solution-designer | data-implementer | data-verifier |
+
+## Bookkeeping
+
+The lead carries the run's state so a long build survives compaction and stays auditable.
+
+- **Progress ledger.** Keep a durable record of every task and its status across the run - a short file, not just in-context notes - so a mid-run compaction can resume without re-deriving what already landed. Update it as each task and each verify pass reports.
+- **File hand-off.** Give each implementer its task and contract as a written brief and take back a written report; review each task's diff as it lands, not pasted prose. Parallel runs stay auditable and the lead's context stays lean.
+- **Per-task review, not serialized.** Glance at each implementer's diff the moment that task returns - do not wait for the whole fan-out, and do not serialize the implementers to do it. The verifier still runs once over the assembled whole; this early glance only catches a contract breach before it compounds.
+- **Status vocabulary.** Each implementer ends with one status and the lead routes on it: DONE (the verifier will check it), DONE_WITH_CONCERNS (carry the flag forward to the verifier), NEEDS_CONTEXT (a contract gap the designer must close before re-dispatch), BLOCKED (a dependency task must land first - sequence it after the blocker). Status handling lives here, not in the seats.
+
+## Rules
+
+- The main session is the only orchestrator, for the whole vertical. Never instruct a dispatched subagent to dispatch another - the stack seats carry no Task tool, and nested dispatch does not work.
+- Fan out only the tasks the designer marked independent. Respect the contracts it drew between them - two implementers touching the same boundary is what makes the parallel runs collide.
+- A feature that spans more than one stack is not this skill's job alone: have the architect (task-analyzer / architecture-analyzer) split it by stack first, then run domain-build once per stack against its own slice.
+- Keep this skill routing and orchestration only. The stack knowledge - conventions, patterns, what a good design or a passing verify looks like - lives in the agents and the skills they load, not here.

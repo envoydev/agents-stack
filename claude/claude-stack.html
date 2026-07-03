@@ -107,12 +107,12 @@
   <h1>Skills inventory</h1>
 
   <div class="counts">
-    <div><strong id="c-total">123</strong> total</div>
+    <div><strong id="c-total">140</strong> total</div>
     <div><strong id="c-bi">14</strong> built-in</div>
-    <div><strong id="c-personal">35</strong> personal</div>
+    <div><strong id="c-personal">37</strong> personal</div>
     <div><strong id="c-plugins">19</strong> plugins</div>
-    <div><strong id="c-repo">39</strong> repository</div>
-    <div><strong id="c-other">16</strong> tools / MCP</div>
+    <div><strong id="c-repo">35</strong> repository</div>
+    <div><strong id="c-other">35</strong> tools / MCP</div>
     <div><strong id="c-hooks">4</strong> hooks</div>
   </div>
 
@@ -161,9 +161,9 @@ const personal = {
     ["dev-log-convert","Logs / docs","Convert daily Ukrainian/English/mixed raw work logs into structured form. Trigger: literal 'dev-log'."],
     ["explain-code-tutor","Learning / explain","Explain code, a bug, a concept, or an approach/architecture trade-off like a patient senior engineer: one everyday analogy fit to the mechanism, numbered steps with short snippets quoted from the real project files, a marked break-point (bug) / key insight (concept) / trade-off verdict (compare), the real fix or recommendation, and a one-line takeaway. Adjustable depth (ELI5/intermediate/expert); answers in the user's language."],
     ["angular-conventions","Frontend / Angular","Angular 17+: signals, RxJS, OnPush, new control flow templates, a11y, performance, feature-boundary decoupling. TS/JS language baseline -> typescript."],
-    ["angular-material","Frontend / Angular","Angular Material (@angular/material) + CDK: selective component-module imports (tree-shaking), M3 mat.theme() theming + CSS custom properties, CDK primitives (Overlay, virtual scroll, FocusTrap/LiveAnnouncer), Material test harnesses. Distinct from material-3 (generic MD3). Framework baseline -> angular-conventions."],
+    ["angular-material","Frontend / Angular","Angular Material (@angular/material) + CDK: selective component-module imports (tree-shaking), M3 mat.theme() theming + CSS custom properties, CDK primitives (Overlay, virtual scroll, FocusTrap/LiveAnnouncer), Material test harnesses. Framework baseline -> angular-conventions."],
     ["angular-styling","Frontend / Angular","Angular CSS/SCSS architecture (Material or not): ViewEncapsulation choice, :host / :host-context, the discouraged ::ng-deep and its sanctioned ways out, design tokens as CSS custom properties, mobile-first + container queries + fluid type, global vs scoped styles, utility-first vs scoped SCSS, a11y-affecting styling. Material token work -> angular-material; framework -> angular-conventions."],
-    ["frontend","Frontend / router","Web frontend router/index: Angular (-> angular-conventions), TS/JS baseline (-> typescript), distinctive UI (frontend-design plugin), Material 3 (-> material-3), Ionic/Capacitor (-> mobile)."],
+    ["frontend","Frontend / router","Web frontend router/index: Angular (-> angular-conventions), TS/JS baseline (-> typescript), distinctive UI (frontend-design plugin), Ionic/Capacitor (-> mobile)."],
     ["mobile","Mobile / router","Ionic/Capacitor router/index: ionic-angular, capacitor-angular, capacitor-plugins over the Angular (angular-conventions) + TypeScript (typescript) baselines."],
     ["ionic","Mobile / Ionic","House Ionic/Capacitor conventions: standalone+signals Ionic UI, IonRouterOutlet + lazy routes, CSS-variable theming, Capacitor lifecycle + isNativePlatform guards, runtime permissions, Capacitor plugin sourcing (official -> Capawesome -> capacitor-community) + typed-service wrapping. Mechanics -> capacitor-plugins."],
     ["capacitor-release","Mobile / release","House Ionic/Capacitor release pipeline: cap sync + native build (.ipa/.aab), iOS signing (cert + profile, App Store Connect API key, Fastlane match) + Android signing (upload key vs Play app-signing key), store submission (TestFlight + Play tracks), OTA / live updates and the native-binary boundary, marketing-version vs build-number sync, Fastlane / GitHub Actions CI with secrets, dSYM + sourcemap upload. App under release -> ionic; native plugin mechanics -> capacitor-plugins."],
@@ -191,6 +191,8 @@ const personal = {
     ["dotnet-web-backend","Backend / HTTP","HTTP-service cross-cutting: IHttpClientFactory, FluentValidation, Polly, API versioning, OpenAPI, observability (Serilog, OpenTelemetry, correlation IDs, health checks), caching (IMemoryCache, HybridCache, Redis)."],
     ["dotnet-wpf","WPF / Desktop","Strict MVVM, dep/attached props, explicit binding modes, async commands, INotifyDataErrorInfo validation, virtualization, VM testing."],
     ["project-quality-loop","Review / automation","Autonomous review-and-fix loop over a loops/ folder of numbered prompts: runs each in numeric order, loops it on the target until its bar (default zero findings at every severity) is met, then advances - deciding and logging judgment calls, never pausing. Per-module on large codebases."],
+    ["project-scaffold","Greenfield / scaffolding","Build a new application or major module from scratch: routes to the right architecture skill (clean-architecture, ddd, vertical-slice-architecture, dotnet-project-structure) and scaffolding command (dotnet new, ng new via the angular-cli MCP), then in a stack-installed project drives the build from the main session - greenfield-solution-designer designs, and each vertical slice runs the domain-build skill for its stack."],
+    ["domain-build","Build / orchestration","Build a feature through a stack specialist team: the domain solution-designer decomposes it into independent parallel tasks, several implementers build them at once, and the domain verifier gates the assembled result against the plan and quality, looping punch-lists back until it signs off. Dispatches the per-domain agent trio (ASP.NET / Angular / WPF / mobile / data) - pick the skill by the stack under change."],
     ["typescript","TypeScript / JavaScript","Framework-agnostic TS/JS baseline: strict flags, discriminated unions, utility types, ESM modules, async (no floating promises), typed errors + Result, readonly, plain-JS via JSDoc + checkJs, ESLint/Prettier/tsconfig. Companion to angular-conventions; covers Node, browser, build scripts, service workers, extensions."],
   ]
 };
@@ -223,7 +225,6 @@ const repository = [
   ["index-strategies","Database / SQL","https://github.com/josiahsiegel/claude-plugin-marketplace","SQL Server clustered/nonclustered/filtered/columnstore index design."],
   ["ionic-angular","Ionic / Angular","https://github.com/capawesome-team/skills","Angular-specific Ionic Framework development patterns (components, theming, navigation)."],
   ["markdown-style","Docs / Markdown","https://github.com/josiahsiegel/claude-plugin-marketplace","Two-pass syntax/style review of Markdown with line refs."],
-  ["material-3","UI / Material 3","https://github.com/hamen/material-3-skill","Material Design 3 (Material You): design tokens, 30+ components, layout, theming, M3 Expressive, accessibility. Primary: Jetpack Compose + Flutter; web is the maintenance-mode @material/web (NOT Angular Material)."],
   ["microbenchmarking","Performance / .NET","https://github.com/dotnet/skills","BenchmarkDotNet design/run/compare workflow (jobs, presets, dead-code-elimination pitfalls). Official Microsoft .NET skill, cherry-picked; net-new runtime perf measurement."],
   ["microsoft-extensions-configuration","C# / .NET","https://github.com/aaronontheweb/dotnet-skills","IValidateOptions, strongly-typed settings, startup validation."],
   ["OpenTelemetry-NET-Instrumentation","Observability / .NET","https://github.com/aaronontheweb/dotnet-skills","Deep manual OpenTelemetry instrumentation: custom Activity/spans, HasListeners gating, metric cardinality, zero-alloc TagList. Beyond dotnet-web-backend's wiring-level OTel."],
@@ -252,9 +253,6 @@ const repository = [
   ["tsql-functions","Database / SQL","https://github.com/josiahsiegel/claude-plugin-marketplace","T-SQL function catalog (string/date/window/JSON/XML)."],
   ["type-design-performance","C# / .NET","https://github.com/aaronontheweb/dotnet-skills","Seal classes, readonly structs, static pure functions, collection choice."],
   ["vertical-slice-architecture","Architecture / multi-lang","https://github.com/mryll/skills","Enforce VSA: feature-based folders, one entry point per feature, minimize cross-slice coupling, no premature shared layers. Multi-language (Go/.NET/Java/Kotlin/TS/Python)."],
-  ["wordpress-router","WordPress / routing","https://github.com/WordPress/agent-skills","Official WordPress router skill - maps a WP task to the focused skill (blocks, themes, plugins)."],
-  ["wp-plugin-development","WordPress / WooCommerce","https://github.com/WordPress/agent-skills","Official plugin-development guidance: hooks/filters idioms, security (nonces, escaping, sanitization), best practices."],
-  ["wp-project-triage","WordPress","https://github.com/WordPress/agent-skills","Detects WordPress project type (plugin/theme/block) and routes setup and conventions."],
 ];
 
 function renderFixedSource(g, filtered) {
@@ -404,15 +402,35 @@ function render(query) {
 const otherTools = [
   // [name, type, area, install, sourceUrl, description]
   // Order: plugin agent -> plugin commands -> plugin hooks -> MCP server. Alphabetical within each type.
-  // Stack-native Claude subagents (fetched into .claude/agents/; Claude-only - Cursor has no subagents):
-  ["dotnet-build-error-resolver", "subagent", ".NET / build", "fetched into .claude/agents/", "https://github.com/envoydev/agents-stack", "Autonomous dotnet-build fix loop: categorize CS/NU/MSB errors, locate via serena, apply the minimal correct edit, rebuild until clean (5-cycle cap). Refuses to disable tests/warnings or stub code to pass. Implement phase, pairs after /brainstorm -> /plan."],
-  ["dotnet-test-failure-resolver", "subagent", ".NET / test", "fetched into .claude/agents/", "https://github.com/envoydev/agents-stack", "Autonomous dotnet-test red->green loop: fix the real defect (production vs test side), never skip/weaken/game a test or coverage threshold (5-cycle cap). Pairs after the build-error resolver."],
-  ["ng-build-error-resolver", "subagent", "Frontend / build", "fetched into .claude/agents/", "https://github.com/envoydev/agents-stack", "Autonomous ng build fix loop: parse TS/template/bundler errors, locate via serena, apply the minimal correct edit, rebuild until clean (5-cycle cap). Refuses to weaken types (any / @ts-ignore), disable lint, or stub logic. Obeys angular-conventions + typescript."],
-  ["angular-test-resolver", "subagent", "Frontend / test", "fetched into .claude/agents/", "https://github.com/envoydev/agents-stack", "Autonomous ng test / Jest red->green loop: fix the real defect (component vs spec), never xit/skip/weaken a spec or fake timing (5-cycle cap). Pairs after the ng build resolver."],
+  // Stack-native Claude subagents (fetched into .claude/agents/; all model/effort-pinned): four resolvers (sonnet/high, Cursor twins exist) + the pipeline (Claude-only):
+  ["dotnet-build-error-resolver", "subagent", ".NET / build", "fetched into .claude/agents/", "https://github.com/envoydev/agents-stack", "Autonomous dotnet-build fix loop: categorize CS/NU/MSB errors, locate via serena, apply the minimal correct edit, rebuild until clean (5-cycle cap). Refuses to disable tests/warnings or stub code to pass. Implement phase, pairs after /brainstorm -> /plan. Pinned sonnet/high."],
+  ["dotnet-test-failure-resolver", "subagent", ".NET / test", "fetched into .claude/agents/", "https://github.com/envoydev/agents-stack", "Autonomous dotnet-test red->green loop: fix the real defect (production vs test side), never skip/weaken/game a test or coverage threshold (5-cycle cap). Pairs after the build-error resolver. Pinned sonnet/high."],
+  ["ng-build-error-resolver", "subagent", "Frontend / build", "fetched into .claude/agents/", "https://github.com/envoydev/agents-stack", "Autonomous ng build fix loop: parse TS/template/bundler errors, locate via serena, apply the minimal correct edit, rebuild until clean (5-cycle cap). Refuses to weaken types (any / @ts-ignore), disable lint, or stub logic. Obeys angular-conventions + typescript. Pinned sonnet/high."],
+  ["angular-test-resolver", "subagent", "Frontend / test", "fetched into .claude/agents/", "https://github.com/envoydev/agents-stack", "Autonomous ng test / Jest red->green loop: fix the real defect (component vs spec), never xit/skip/weaken a spec or fake timing (5-cycle cap). Pairs after the ng build resolver. Pinned sonnet/high."],
+  ["architecture-analyzer", "subagent", "Analysis / architecture", "fetched into .claude/agents/", "https://github.com/envoydev/agents-stack", "Read-only system-level analysis: maps the layers, boundaries, dependency directions, and patterns of the area a change touches, then verdicts the fit (extend / refactor first / isolate). Best before the domain solution-designer on work that crosses modules. Pinned opus/xhigh."],
+  ["task-analyzer", "subagent", "Analysis / task", "fetched into .claude/agents/", "https://github.com/envoydev/agents-stack", "Read-only deep task analysis: the affected code located by symbol, hidden coupling, edge cases, and the open questions ranked by plan impact. Feeds the domain solution-designer. Pinned opus/xhigh. First delegation on a nontrivial feature/bug."],
+  ["ci-failure-diagnoser", "subagent", "CI / diagnosis", "fetched into .claude/agents/", "https://github.com/envoydev/agents-stack", "Read-only CI red-run diagnosis: pulls the failing run logs via the gh CLI (gh pr checks, gh run view --log-failed), categorizes each failure (build/test/lint/workflow/signing/environment/flake), attempts one local repro where an equivalent exists, and routes to the matching resolver or domain verifier. Pinned opus/xhigh."],
+  ["issue-diagnoser", "subagent", "Diagnosis / bug", "fetched into .claude/agents/", "https://github.com/envoydev/agents-stack", "Read-only bug diagnosis: reads the evidence (a stack trace, a log excerpt, an error message, or a screenshot of a crash / broken UI), reproduces the failure where possible, isolates the root cause to a file and symbol, and routes it to the matching domain implementer or a resolver - never fixes what it finds. Pinned opus/xhigh."],
+  ["greenfield-solution-designer", "subagent", "Greenfield / design", "fetched into .claude/agents/", "https://github.com/envoydev/agents-stack", "Read-only greenfield design pass: turns a spec into concrete architecture options - stack fit, architecture style (clean / vertical-slice / minimal-API / strict-MVVM), project structure, and the first vertical slice to build. Best as the first delegation on a new project; feeds project-scaffold, which then runs domain-build per slice. Pinned opus/xhigh."],
+  // Per-domain specialist team (5 stacks x solution-designer/implementer/verifier), dispatched by the domain-build skill:
+  ["aspnet-solution-designer", "subagent", "ASP.NET / design", "fetched into .claude/agents/", "https://github.com/envoydev/agents-stack", "Read-only ASP.NET Core backend/API design pass: fixes architecture, plan, and test strategy for the C# stack, then decomposes the work into independent parallel tasks with clear contracts so several implementers can build them at once. Feeds the aspnet-implementer fan-out and the aspnet-verifier. Pinned opus/xhigh."],
+  ["aspnet-implementer", "subagent", "ASP.NET / build", "fetched into .claude/agents/", "https://github.com/envoydev/agents-stack", "Builds ONE task from an aspnet-solution-designer decomposition: writes the code AND its tests for its assigned part, inside the task contract. Several run in parallel, one task each. Pinned sonnet/high."],
+  ["aspnet-verifier", "subagent", "ASP.NET / verify", "fetched into .claude/agents/", "https://github.com/envoydev/agents-stack", "Read-only gate once every aspnet-implementer task has landed: verifies the assembled work against the designer plan and C# code quality, reruns the build and tests, hands a punch-list back naming exactly what each implementer must fix. Loops until it signs off. Pinned opus/xhigh."],
+  ["angular-solution-designer", "subagent", "Angular / design", "fetched into .claude/agents/", "https://github.com/envoydev/agents-stack", "Read-only Angular web design pass: fixes architecture, plan, and test strategy for the TypeScript stack, then decomposes the work into independent parallel tasks with clear contracts so several implementers can build them at once. Feeds the angular-implementer fan-out and the angular-verifier. Pinned opus/xhigh."],
+  ["angular-implementer", "subagent", "Angular / build", "fetched into .claude/agents/", "https://github.com/envoydev/agents-stack", "Builds ONE task from an angular-solution-designer decomposition: writes the code AND its tests for its assigned part, inside the task contract. Several run in parallel, one task each. Pinned sonnet/high."],
+  ["angular-verifier", "subagent", "Angular / verify", "fetched into .claude/agents/", "https://github.com/envoydev/agents-stack", "Read-only gate once every angular-implementer task has landed: verifies the assembled work against the designer plan and TypeScript code quality, reruns the build and tests, hands a punch-list back naming exactly what each implementer must fix. Loops until it signs off. Pinned opus/xhigh."],
+  ["wpf-solution-designer", "subagent", "WPF / design", "fetched into .claude/agents/", "https://github.com/envoydev/agents-stack", "Read-only WPF desktop design pass: fixes architecture, plan, and test strategy for the C# stack, then decomposes the work into independent parallel tasks with clear contracts so several implementers can build them at once. Feeds the wpf-implementer fan-out and the wpf-verifier. Pinned opus/xhigh."],
+  ["wpf-implementer", "subagent", "WPF / build", "fetched into .claude/agents/", "https://github.com/envoydev/agents-stack", "Builds ONE task from a wpf-solution-designer decomposition: writes the code AND its tests for its assigned part, inside the task contract. Several run in parallel, one task each. Pinned sonnet/high."],
+  ["wpf-verifier", "subagent", "WPF / verify", "fetched into .claude/agents/", "https://github.com/envoydev/agents-stack", "Read-only gate once every wpf-implementer task has landed: verifies the assembled work against the designer plan and C# code quality, reruns the build and tests, hands a punch-list back naming exactly what each implementer must fix. Loops until it signs off. Pinned opus/xhigh."],
+  ["mobile-solution-designer", "subagent", "Mobile / design", "fetched into .claude/agents/", "https://github.com/envoydev/agents-stack", "Read-only Ionic/Capacitor mobile design pass: fixes architecture, plan, and test strategy for the TypeScript stack, then decomposes the work into independent parallel tasks with clear contracts so several implementers can build them at once. Feeds the mobile-implementer fan-out and the mobile-verifier. Pinned opus/xhigh."],
+  ["mobile-implementer", "subagent", "Mobile / build", "fetched into .claude/agents/", "https://github.com/envoydev/agents-stack", "Builds ONE task from a mobile-solution-designer decomposition: writes the code AND its tests for its assigned part, inside the task contract. Several run in parallel, one task each. Pinned sonnet/high."],
+  ["mobile-verifier", "subagent", "Mobile / verify", "fetched into .claude/agents/", "https://github.com/envoydev/agents-stack", "Read-only gate once every mobile-implementer task has landed: verifies the assembled work against the designer plan and TypeScript code quality, reruns the build and tests, hands a punch-list back naming exactly what each implementer must fix. Loops until it signs off. Pinned opus/xhigh."],
+  ["data-solution-designer", "subagent", "Data / design", "fetched into .claude/agents/", "https://github.com/envoydev/agents-stack", "Read-only data and persistence (SQL) design pass: fixes architecture, plan, and test strategy for the SQL stack, then decomposes the work into independent parallel tasks with clear contracts so several implementers can build them at once. Feeds the data-implementer fan-out and the data-verifier. Pinned opus/xhigh."],
+  ["data-implementer", "subagent", "Data / build", "fetched into .claude/agents/", "https://github.com/envoydev/agents-stack", "Builds ONE task from a data-solution-designer decomposition: writes the code AND its tests for its assigned part, inside the task contract. Several run in parallel, one task each. Pinned sonnet/high."],
+  ["data-verifier", "subagent", "Data / verify", "fetched into .claude/agents/", "https://github.com/envoydev/agents-stack", "Read-only gate once every data-implementer task has landed: verifies the assembled work against the designer plan and SQL code quality, reruns the build and tests, hands a punch-list back naming exactly what each implementer must fix. Loops until it signs off. Pinned opus/xhigh."],
   ["security-guidance", "plugin (hooks)", "Security", "/plugin install security-guidance@claude-plugins-official", "https://github.com/anthropics/claude-plugins-official", "Security review for Claude-generated code: pattern-based warnings on edits, LLM diff review on Stop, and an agentic commit reviewer catching injection, XSS, SSRF, hardcoded secrets, and 25+ vulnerability classes. Hooks-based (no skills/commands); writes warning state under ~/.claude/security/."],
   ["csharp-lsp", "plugin (LSP)", "C# / diagnostics", "/plugin install csharp-lsp@claude-plugins-official", "https://github.com/anthropics/claude-plugins-official", "Roslyn language server: inline diagnostics after each edit without a full dotnet build round-trip. Complements serena (navigation)."],
   ["typescript-lsp", "plugin (LSP)", "TypeScript / diagnostics", "/plugin install typescript-lsp@claude-plugins-official", "https://github.com/anthropics/claude-plugins-official", "TypeScript language server: inline diagnostics on edit for Angular/TS work."],
-  ["gopls-lsp", "plugin (LSP)", "Go / diagnostics", "/plugin install gopls-lsp@claude-plugins-official", "https://github.com/anthropics/claude-plugins-official", "Official gopls Go language server: inline diagnostics, jump-to-definition, find references, vuln checks. Self-scopes to .go files (inert in non-Go projects)."],
   ["frontend-design", "plugin", "Frontend / UI", "/plugin install frontend-design@claude-plugins-official", "https://github.com/anthropics/claude-plugins-official", "Distinctive, production-grade frontend interfaces with high design quality; generates creative, polished UI code that avoids generic AI aesthetics."],
   ["angular-cli", "MCP server", "Angular / workspace", "claude mcp add angular-cli -- npx -y @angular/cli mcp", "https://angular.dev/ai/mcp", "Official Angular CLI MCP (experimental): workspace-aware docs, best practices, migrations, generation. Complements context7's generic docs. Angular workspaces only."],
   ["context7", "MCP server", "Library docs", "claude mcp add --scope project -> <repo>/.mcp.json (npx -y @upstash/context7-mcp)", "https://github.com/upstash/context7", "Fetch current library/framework/SDK docs (React, Next.js, Prisma, etc.). Tools: mcp__context7__resolve-library-id, query-docs."],
@@ -438,7 +456,7 @@ function renderOther(filtered) {
 // kept in sync with the installer HOOKS=() array by scripts/lint-skills.js.
 const hooks = [
   // [name, PreToolUse matcher, description]
-  ["require-convention-skill", "Edit|Write + serena editors", "Blocks an edit to a convention-governed file type until every house-style skill governing it is loaded this session - the union, so a file owned by two skills needs both. Enforced, not advisory; bypass-proof for serena symbol edits too."],
+  ["require-convention-skill", "Edit|Write + serena editors", "Blocks an edit to a convention-governed file type until every house-style skill governing it is loaded this session - the union, so a file owned by two skills needs both. Base cs/ng/sql/ts tables plus the scss and xaml opt-in tables (wired per repo shape, not by default). Enforced, not advisory; bypass-proof for serena symbol edits too."],
   ["guard-protected-force-push", "Bash", "Blocks a force-push to main / master / develop. Deterministic, fires ~never in normal work."],
   ["guard-catastrophic-rm", "Bash", "Blocks a recursive rm of /, ~, $HOME, or a bare *. Deterministic, fires ~never in normal work."],
   ["guard-read-whole-file", "Read", "Blocks a whole-file Read of a >100-line source / template file (.ts/.tsx/.js/.jsx/.mjs/.cjs/.cs/.go/.razor/.cshtml/.xaml/.html) with no offset/limit - locate via serena first, then read the range. Targeted reads, small files, and non-source files pass."],
@@ -449,6 +467,26 @@ function renderHooks(filtered) {
   html += `<table><thead><tr><th style="width:20%">Hook</th><th style="width:22%">PreToolUse matcher</th><th>Description</th></tr></thead><tbody>`;
   for (const [name, matcher, desc] of filtered) {
     html += `<tr><td><span class="name">${name}</span></td><td><code>${matcher}</code></td><td class="desc">${desc}</td></tr>`;
+  }
+  html += `</tbody></table>`;
+  return html;
+}
+
+// Path-scoped Claude rules - fetched into .claude/rules/, auto-attached by the
+// harness on a matching file path. Not skills; kept in sync with the installer
+// CLAUDE_RULES=() array by scripts/lint-skills.js.
+const rules = [
+  // [name, paths glob, description]
+  ["markdown-docs", "**/*.md", "Routes .md authoring/restructuring to the markdown-style skill."],
+  ["dotnet-repair-agents", "**/*.cs,**/*.csproj,**/*.sln,**/*.xaml", "Routes .NET build/test repair to the dotnet build/test resolvers."],
+  ["angular-repair-agents", "**/angular.json,**/*.component.ts,**/*.spec.ts,**/*.scss", "Routes Angular build/test repair to the ng resolvers."],
+];
+
+function renderRules(filtered) {
+  let html = `<h2>Stack rules</h2><div class="group-meta">Path-scoped rules fetched into <code>.claude/rules/</code> (Claude-only; not skills). ${filtered.length} entries.</div>`;
+  html += `<table><thead><tr><th style="width:20%">Rule</th><th style="width:32%">Paths</th><th>Description</th></tr></thead><tbody>`;
+  for (const [name, paths, desc] of filtered) {
+    html += `<tr><td><span class="name">${name}</span></td><td><code>${paths}</code></td><td class="desc">${desc}</td></tr>`;
   }
   html += `</tbody></table>`;
   return html;
@@ -480,6 +518,14 @@ render = function(query) {
     document.getElementById("content").insertAdjacentHTML("beforeend", renderHooks(hooksFiltered));
   }
   document.getElementById("c-hooks").textContent = hooksFiltered.length;
+
+  // Rules are infra, not skills - rendered separately, same as hooks; no counts-block entry.
+  const rulesFiltered = query
+    ? rules.filter(([n, p, d]) => (n + " " + p + " " + d).toLowerCase().includes(query))
+    : rules;
+  if (rulesFiltered.length) {
+    document.getElementById("content").insertAdjacentHTML("beforeend", renderRules(rulesFiltered));
+  }
 };
 
 document.getElementById("q").addEventListener("input", e => {

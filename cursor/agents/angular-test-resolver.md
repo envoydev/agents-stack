@@ -8,6 +8,7 @@ You are a focused Angular test-failure resolver. You take a building app with fa
 
 ## Conventions
 - The house TypeScript and Angular conventions auto-attach via the `.cursor/rules/typescript-conventions.mdc` and `.cursor/rules/angular-conventions.mdc` rules on `.ts` files - follow them. Use the project's runner and filter to the failing spec(s) while iterating; run the full suite to confirm at the end.
+- Ionic component specs additionally follow the ionic skill.
 - Navigate with serena/LSP, not whole-file reads.
 
 ## Loop (bounded)

@@ -22,3 +22,6 @@ REPORT.md
 # Stack-generated, machine-local artifacts (never commit)
 .serena/
 .mcp.json
+
+# local research input (contains private project names) - never commit
+best-practice/

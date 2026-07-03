@@ -18,6 +18,7 @@ The most common real-world failure: the user is authenticated, but the app never
 - **Check on the server, every time.** A hidden field, a disabled button, or a missing menu item is UX, not a control. The authorization decision lives on the server and runs on every request, including the ones a browser would never send.
 - **Lock down CORS.** Name the exact allowed origins; never pair `AllowAnyOrigin` with `AllowCredentials` - the framework will reject the combination at runtime precisely because it defeats the same-origin protection.
 - **Scope what a token can do.** Least privilege applies to tokens too: an API key or JWT scoped to read should not be accepted on a write. The policy plumbing for this is `dotnet-authentication`; the obligation to actually scope it is here.
+- **Antiforgery tokens are the CSRF control for cookie auth, not `SameSite`.** A `SameSite` cookie is a blunt backstop; the real defence for a cookie-authenticated `POST`/`PUT`/`PATCH`/`DELETE` is an antiforgery token - Razor's form tag helper injects it as a hidden field automatically, and AJAX callers read it and send it in the configured request header. Disabling it (`DisableAntiforgery()`) is safe only for endpoints that authenticate by a non-ambient credential - a bearer token, not a cookie - and never for a cookie-auth state change.
 
 ## A02 - Cryptographic failures
 
@@ -27,6 +28,7 @@ The category formerly called sensitive-data exposure - the failure is usually th
 - **Encrypt in transit, no exceptions.** HTTPS everywhere, HSTS on in production via `app.UseHsts()`, and `UseHttpsRedirection()` so a plaintext request is bounced rather than served.
 - **Classify before you store.** Know which fields are secret (passwords, tokens, keys) and which are merely sensitive (PII), and protect each accordingly - hashed-and-salted for credentials, encrypted-at-rest for the rest. Do not log either (see A09).
 - **Keys and connection strings are not source.** Nothing secret ships in the repo or in `appsettings.json`. Use user-secrets in development and a managed vault or platform-injected environment variables in production. Secret handling for the data tier is also called out in `database-conventions`.
+- **HSTS protects browsers, not machine callers.** `UseHsts()` emits a directive a browser caches and enforces; it does nothing for an API-to-API or other non-browser consumer, so treat it as a defence-in-depth layer for browser clients, never as the transport control itself - TLS on the connection is that. Behind a reverse proxy or load balancer, order the forwarded-headers middleware before `UseHttpsRedirection()` so the app sees the client's original scheme; without it, HTTPS detection reads the proxy's plaintext hop and the redirect and secure-cookie logic misfire.
 
 ## A03 - Injection (SQL, command, LDAP) and XSS
 

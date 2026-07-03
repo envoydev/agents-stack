@@ -93,6 +93,8 @@ That covers the wiring this skill owns - registering the providers, the auto-ins
 
 If the service runs under Aspire, ServiceDefaults is the composition point that registers exactly this OpenTelemetry, health-check, and resilience setup in one call - this skill decides *what* goes in, `dotnet-aspire` owns *where* it is assembled.
 
+- **Mask secrets before they reach a sink:** log `apiKey[..4] + "***"`, a user id rather than an email, and never a raw token, password, connection string, or key. A structured sink is queryable and long-retained, so a secret logged once is leaked for as long as the logs live.
+
 ## Caching
 
 Match the cache to the topology, and always set an expiry.
@@ -114,6 +116,7 @@ On .NET 8, `HybridCache` is not available - use `IDistributedCache` (the Redis i
 
 - Redis (StackExchange.Redis) is the distributed store behind either path. Always set an expiry; never cache forever.
 - Put a version or schema marker in the cache key so a deploy invalidates stale entries automatically, and never cache user-specific data without partitioning the key by user identifier.
+- For whole-response caching, use output caching (`AddOutputCache`), not response caching - response caching is header-driven and browsers routinely defeat it. Output caching caches only `200` responses to unauthenticated `GET`/`HEAD` requests by default. Do not back it with `IDistributedCache` (no atomic operations for tag eviction); to scale out across instances use the built-in Redis output-cache provider (`AddStackExchangeRedisOutputCache`, on the .NET 8 floor) and evict grouped entries by tag via `IOutputCacheStore.EvictByTagAsync`.
 
 ## Tooling
 
@@ -123,6 +126,8 @@ On .NET 8, `HybridCache` is not available - use `IDistributedCache` (the Redis i
 ## Deep specialists
 
 This skill is the cross-cutting baseline; load the focused companion for the *how*:
+
+Default a new HTTP surface to minimal APIs - a lighter per-request pipeline than the MVC model-binding and filter stack, and the only AOT-friendly option. Stay on controllers when you need a custom `IModelBinder`, heavy `IFormFile` uploads, OData, or JSON Patch, or when converting a large existing MVC surface would not pay for itself. The two coexist in one app, so this is a per-surface choice, not a per-repo one.
 
 - Endpoint mechanics (MapGroup, TypedResults, filters, binding, uploads) -> `dotnet-minimal-api`
 - Controller-based Web API ([ApiController], attribute routing, action filters) -> `dotnet-mvc-controllers`

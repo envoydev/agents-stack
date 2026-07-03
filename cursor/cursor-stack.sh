@@ -94,16 +94,6 @@ prerequisites_check() {
     echo "  !! csharp-ls not found - the csharp-lsp plugin needs it (C# work only)." >&2
     echo "     Install: dotnet tool install --global csharp-ls (needs the .NET SDK + ~/.dotnet/tools on PATH)." >&2
   fi
-  # gopls: only relevant for Go work, and the gopls-lsp plugin self-scopes to .go files (inert
-  # otherwise) - so gate the check on a Go toolchain being present. No go -> nothing to warn about.
-  if command -v go >/dev/null 2>&1; then
-    if command -v gopls >/dev/null 2>&1; then
-      printf '  gopls: %s\n' "$(command -v gopls)"
-    else
-      echo "  !! gopls not found - the gopls-lsp plugin needs it." >&2
-      echo "     Install: go install golang.org/x/tools/gopls@latest (needs GOPATH/bin on PATH)." >&2
-    fi
-  fi
   $ok || echo "  Install the missing tools above, then re-run." >&2
 }
 
@@ -150,12 +140,14 @@ SKILLS=(
   "envoydev/agents-stack|dev-log-convert"           # UA/EN work notes -> structured English work log; trigger 'dev-log'
   "envoydev/agents-stack|explain-code-tutor"        # senior-mentor explainer for code/bug/concept/trade-off via real-file walkthrough; depth ELI5/intermediate/expert
   "envoydev/agents-stack|project-quality-loop"             # autonomous review-and-fix loop pipeline over a loops/ folder of numbered prompts
+  "envoydev/agents-stack|project-scaffold" # greenfield scaffolding + design->scaffold->slice-by-slice build orchestration over the pipeline
+  "envoydev/agents-stack|domain-build"     # domain-build orchestration - designer decomposes, implementers fan out, verifier gates
   "envoydev/agents-stack|database-conventions" # cross-engine DB conventions + per-engine skill routing
   "envoydev/agents-stack|typescript"       # framework-agnostic TS/JS baseline (strict typing, modules, async, JS+JSDoc)
   "envoydev/agents-stack|angular-conventions" # Angular 17+/TS house conventions (signals, OnPush, a11y)
   "envoydev/agents-stack|angular-material"   # Angular Material + CDK: selective imports, M3 theming, CDK primitives, harnesses
   "envoydev/agents-stack|angular-styling"    # Angular CSS/styling: ViewEncapsulation, :host, ::ng-deep ways-out, design tokens, responsive, a11y styling
-  "envoydev/agents-stack|frontend"         # web frontend router: Angular/TS/material-3/frontend-design + -> mobile
+  "envoydev/agents-stack|frontend"         # web frontend router: Angular/TS/frontend-design + -> mobile
   "envoydev/agents-stack|mobile"           # Ionic/Capacitor router: ionic-angular/capacitor-angular/capacitor-plugins + Angular/TS baseline
   "envoydev/agents-stack|ionic"            # house Ionic/Capacitor conventions: UI, nav, lifecycle, permissions, plugin sourcing + wrapping
   "envoydev/agents-stack|capacitor-release" # Ionic/Capacitor release pipeline: cap sync/build, iOS+Android signing, store submission, OTA, versioning, CI, symbols
@@ -219,16 +211,10 @@ SKILLS=(
   # Single-skill repos
   "supabase/agent-skills|supabase-postgres-best-practices" # Postgres performance + schema best practices
   "mryll/skills|vertical-slice-architecture"  # VSA: feature folders, minimal cross-slice coupling
-  # WordPress / WooCommerce side project (WordPress/agent-skills - official)
-  "WordPress/agent-skills|wordpress-router"   # routes a WP task to the focused WordPress skill
-  "WordPress/agent-skills|wp-project-triage"  # detects WP project type (plugin/theme/block), routes setup
-  "WordPress/agent-skills|wp-plugin-development" # WP plugin dev: hooks/filters, nonces, escaping, security
   # Ionic / Capacitor mobile (capawesome-team/skills - MIT)
   "capawesome-team/skills|ionic-angular"      # Angular-specific Ionic patterns (components, theming, navigation)
   "capawesome-team/skills|capacitor-angular"  # Angular-specific Capacitor app patterns
   "capawesome-team/skills|capacitor-plugins"  # install/configure/use 160+ Capacitor plugins (official/Capawesome/community/CapGo)
-  # Material Design 3 (hamen/material-3-skill) - Jetpack Compose / Flutter primary; web = maintenance-mode @material/web, NOT Angular Material
-  "hamen/material-3-skill|material-3"         # MD3 (Material You): tokens, 30+ components, layout, theming, M3 Expressive, a11y
 )
 
 # (3) MCP servers as "name|args"; scope follows SCOPE.
@@ -312,14 +298,17 @@ CURSOR_RULES=(
   "typescript-conventions.mdc"                # ts  -> typescript (.ts/.tsx/.js/.jsx/.mjs/.cjs)
   "sql-conventions.mdc"                       # sql -> database-conventions (**/*.sql)
   "angular-conventions.mdc"                   # ng  -> angular-conventions (*.component.ts &c.)
+  "wpf-conventions.mdc"                       # xaml -> dotnet-wpf
+  "scss-conventions.mdc"                      # scss/css -> angular-styling
   "ponytail.mdc|https://raw.githubusercontent.com/DietrichGebert/ponytail/main/.cursor/rules/ponytail.mdc" # ponytail 'lazy senior dev' minimal-code rule (alwaysApply) - fetched from its repo, not vendored
 )
 
 # (6) Subagents (cursor): Cursor-native specialist agents fetched into .cursor/agents/ on BOTH actions
 # (per-agent fail-soft - an agent not yet upstream keeps any existing local copy). Cursor auto-discovers
-# .cursor/agents/*.md; no settings wiring needed. These mirror the Claude subagents but in Cursor's
-# weaker contract: prompt-only guardrails, no per-tool allowlist (only a `readonly` bool), no hard
-# convention gate - so the agent bodies lean on the auto-attaching .cursor/rules instead of a Skill gate.
+# .cursor/agents/*.md; no settings wiring needed. These mirror the four Claude resolver subagents (the
+# pipeline agents and all model/effort pins are Claude-only) in Cursor's weaker contract: prompt-only guardrails, no
+# per-tool allowlist (only a `readonly` bool), no hard convention gate - so the agent bodies lean on the
+# auto-attaching .cursor/rules instead of a Skill gate.
 CURSOR_AGENT_BASE_URL="https://raw.githubusercontent.com/envoydev/agents-stack/main/cursor/agents"
 CURSOR_AGENTS=(
   "dotnet-build-error-resolver.md"   # implement phase: dotnet build -> categorize errors -> minimal fix loop (serena/LSP), capped

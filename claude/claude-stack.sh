@@ -101,16 +101,6 @@ prerequisites_check() {
     echo "  !! typescript-language-server not found - the typescript-lsp plugin needs it (TS/JS work)." >&2
     echo "     Install: npm i -g typescript-language-server typescript (nvm scopes globals per node version; add both to ~/.nvm/default-packages to cover future versions)." >&2
   fi
-  # gopls: only relevant for Go work, and the gopls-lsp plugin self-scopes to .go files (inert
-  # otherwise) - so gate the check on a Go toolchain being present. No go -> nothing to warn about.
-  if command -v go >/dev/null 2>&1; then
-    if command -v gopls >/dev/null 2>&1; then
-      printf '  gopls: %s\n' "$(command -v gopls)"
-    else
-      echo "  !! gopls not found - the gopls-lsp plugin needs it." >&2
-      echo "     Install: go install golang.org/x/tools/gopls@latest (needs GOPATH/bin on PATH)." >&2
-    fi
-  fi
   $ok || echo "  Install the missing tools above, then re-run." >&2
 }
 
@@ -162,12 +152,14 @@ SKILLS=(
   "envoydev/agents-stack|dev-log-convert"           # UA/EN work notes -> structured English work log; trigger 'dev-log'
   "envoydev/agents-stack|explain-code-tutor"        # senior-mentor explainer for code/bug/concept/trade-off via real-file walkthrough; depth ELI5/intermediate/expert
   "envoydev/agents-stack|project-quality-loop"             # autonomous review-and-fix loop pipeline over a loops/ folder of numbered prompts
+  "envoydev/agents-stack|project-scaffold" # greenfield scaffolding + design->scaffold->slice-by-slice build orchestration over the pipeline
+  "envoydev/agents-stack|domain-build"     # domain-build orchestration - designer decomposes, implementers fan out, verifier gates
   "envoydev/agents-stack|database-conventions" # cross-engine DB conventions + per-engine skill routing
   "envoydev/agents-stack|typescript"       # framework-agnostic TS/JS baseline (strict typing, modules, async, JS+JSDoc)
   "envoydev/agents-stack|angular-conventions" # Angular 17+/TS house conventions (signals, OnPush, a11y)
   "envoydev/agents-stack|angular-material"   # Angular Material + CDK: selective imports, M3 theming, CDK primitives, harnesses
   "envoydev/agents-stack|angular-styling"    # Angular CSS/styling: ViewEncapsulation, :host, ::ng-deep ways-out, design tokens, responsive, a11y styling
-  "envoydev/agents-stack|frontend"         # web frontend router: Angular/TS/material-3/frontend-design + -> mobile
+  "envoydev/agents-stack|frontend"         # web frontend router: Angular/TS/frontend-design + -> mobile
   "envoydev/agents-stack|mobile"           # Ionic/Capacitor router: ionic-angular/capacitor-angular/capacitor-plugins + Angular/TS baseline
   "envoydev/agents-stack|ionic"            # house Ionic/Capacitor conventions: UI, nav, lifecycle, permissions, plugin sourcing + wrapping
   "envoydev/agents-stack|capacitor-release" # Ionic/Capacitor release pipeline: cap sync/build, iOS+Android signing, store submission, OTA, versioning, CI, symbols
@@ -231,16 +223,10 @@ SKILLS=(
   # Single-skill repos
   "supabase/agent-skills|supabase-postgres-best-practices" # Postgres performance + schema best practices
   "mryll/skills|vertical-slice-architecture"  # VSA: feature folders, minimal cross-slice coupling
-  # WordPress / WooCommerce side project (WordPress/agent-skills - official)
-  "WordPress/agent-skills|wordpress-router"   # routes a WP task to the focused WordPress skill
-  "WordPress/agent-skills|wp-project-triage"  # detects WP project type (plugin/theme/block), routes setup
-  "WordPress/agent-skills|wp-plugin-development" # WP plugin dev: hooks/filters, nonces, escaping, security
   # Ionic / Capacitor mobile (capawesome-team/skills - MIT)
   "capawesome-team/skills|ionic-angular"      # Angular-specific Ionic patterns (components, theming, navigation)
   "capawesome-team/skills|capacitor-angular"  # Angular-specific Capacitor app patterns
   "capawesome-team/skills|capacitor-plugins"  # install/configure/use 160+ Capacitor plugins (official/Capawesome/community/CapGo)
-  # Material Design 3 (hamen/material-3-skill) - Jetpack Compose / Flutter primary; web = maintenance-mode @material/web, NOT Angular Material
-  "hamen/material-3-skill|material-3"         # MD3 (Material You): tokens, 30+ components, layout, theming, M3 Expressive, a11y
 )
 
 # (2) Plugins "<plugin>@<marketplace>" (non-default marketplaces added first).
@@ -253,7 +239,6 @@ PLUGINS=(
   "claude-md-management@claude-plugins-official" # audit + revise CLAUDE.md files
   "csharp-lsp@claude-plugins-official"      # inline Roslyn diagnostics on edit (complements serena nav); needs csharp-ls (dotnet tool install -g csharp-ls)
   "typescript-lsp@claude-plugins-official"  # same for Angular/TS work
-  "gopls-lsp@claude-plugins-official"       # gopls diagnostics; self-scopes to .go files (inert in non-Go projects); needs gopls (go install golang.org/x/tools/gopls@latest)
   "security-guidance@claude-plugins-official" # security hooks: pattern warnings + LLM diff review on Stop/commit
   "frontend-design@claude-plugins-official"   # distinctive, production-grade frontend UI; polished code that avoids generic AI aesthetics
   "claude-hud@claude-hud"                       # statusline HUD (global/user scope)
@@ -333,21 +318,56 @@ HOOKS=(
   #   browser extension  -> "ts"            (plain TS/JS, no framework/cs/sql)
   #   Node / TS tooling  -> "ts"            (+ "sql" if hand-written SQL)
   # ts gates bare .ts/.tsx/.js/.jsx/.mjs/.cjs on typescript (must be installed where ts is on).
-  "require-convention-skill.js::Edit|Write|${SERENA_EDITORS}::cs ng sql ts"
+  #   scss -> angular-styling  (.scss/.css - suffix-triggered, inert where the suffix never occurs)
+  #   xaml -> dotnet-wpf       (.xaml - suffix-triggered, inert where the suffix never occurs)
+  "require-convention-skill.js::Edit|Write|${SERENA_EDITORS}::cs ng sql ts scss xaml"
   "guard-protected-force-push.js::Bash::"         # block force-push to main/master/develop
   "guard-catastrophic-rm.js::Bash::"              # block recursive rm of /, ~, $HOME, or a bare *
   "guard-read-whole-file.js::Read::"              # block whole-file Read of a >100-line source file - locate via serena first
 )
 
-# (5) Subagents (claude-code): Claude-only specialist agents fetched into .claude/agents/ on BOTH actions
+# (5) Subagents (claude-code): specialist agents fetched into .claude/agents/ on BOTH actions
 # (per-agent fail-soft - an agent not yet upstream keeps its committed repo copy). Claude Code auto-discovers
-# .claude/agents/*.md; no settings.json wiring needed. Cursor has no subagents, so the cursor stack ships none.
+# .claude/agents/*.md; no settings.json wiring needed. Cursor twins exist for the four resolvers only; the
+# model-routed pipeline agents are Claude-only (Cursor agents pin a model but have no effort pin).
 AGENT_BASE_URL="https://raw.githubusercontent.com/envoydev/agents-stack/main/claude/agents"
 AGENTS=(
-  "dotnet-build-error-resolver.md"   # implement phase: dotnet build -> categorize errors -> minimal fix loop (serena/csharp-lsp), capped
-  "dotnet-test-failure-resolver.md"  # implement phase: dotnet test -> red->green repair loop, anti-reward-hacking guard, capped
-  "ng-build-error-resolver.md"       # implement phase: ng build -> minimal fix loop (serena/LSP), capped
-  "angular-test-resolver.md"         # implement phase: ng test/Jest -> red->green repair loop, anti-reward-hacking, capped
+  "dotnet-build-error-resolver.md"   # implement phase (sonnet/high): dotnet build -> categorize errors -> minimal fix loop (serena/csharp-lsp), capped
+  "dotnet-test-failure-resolver.md"  # implement phase (sonnet/high): dotnet test -> red->green repair loop, anti-reward-hacking guard, capped
+  "ng-build-error-resolver.md"       # implement phase (sonnet/high): ng build -> minimal fix loop (serena/LSP), capped
+  "angular-test-resolver.md"         # implement phase (sonnet/high): ng test/Jest -> red->green repair loop, anti-reward-hacking, capped
+  "architecture-analyzer.md"         # analysis phase (opus/xhigh): read-only system-level structure map + change-fit verdict
+  "task-analyzer.md"                 # analysis phase (opus/xhigh): read-only deep task analysis - impact, coupling, open questions
+  "ci-failure-diagnoser.md"          # analysis phase (opus/xhigh): read-only CI red-run diagnosis via gh - categorize, local repro, route
+  "issue-diagnoser.md"               # analysis phase (opus/xhigh): read-only bug diagnosis from logs/errors/screenshots - root cause + route, no fix
+  "greenfield-solution-designer.md"  # analysis phase (opus/xhigh): read-only greenfield design - architecture/stack/structure options from a spec
+  "cross-stack-contract-designer.md" # analysis phase (opus/xhigh): read-only - freezes the shared backend/frontend contract before the per-stack designers
+  "framework-upgrade-planner.md"     # analysis phase (opus/xhigh): read-only - turns a version/deprecation event into an ordered, contracted upgrade plan
+  # Per-domain specialist team (5 stacks x designer/implementer/verifier) + architect analysis agents above; model/effort pinned in frontmatter
+  "aspnet-solution-designer.md"      # design phase (opus/xhigh): ASP.NET Core architecture + plan + test strategy, decomposes into parallel tasks
+  "aspnet-implementer.md"            # build phase (sonnet/high): builds one ASP.NET task - code + tests
+  "aspnet-verifier.md"               # verify phase (opus/xhigh): gates the ASP.NET build vs plan + quality, punch-list back
+  "angular-solution-designer.md"     # design phase (opus/xhigh): Angular architecture + plan + test strategy, decomposes
+  "angular-implementer.md"           # build phase (sonnet/high): builds one Angular task - code + tests
+  "angular-verifier.md"              # verify phase (opus/xhigh): gates the Angular build vs plan + quality
+  "wpf-solution-designer.md"         # design phase (opus/xhigh): WPF strict-MVVM architecture + plan + test strategy, decomposes
+  "wpf-implementer.md"               # build phase (sonnet/high): builds one WPF task - code + tests
+  "wpf-verifier.md"                  # verify phase (opus/xhigh): gates the WPF build vs plan + quality
+  "mobile-solution-designer.md"      # design phase (opus/xhigh): Ionic/Capacitor architecture + plan + test strategy, decomposes
+  "mobile-implementer.md"            # build phase (sonnet/high): builds one mobile task - code + tests
+  "mobile-verifier.md"               # verify phase (opus/xhigh): gates the mobile build vs plan + quality
+  "data-solution-designer.md"        # design phase (opus/xhigh): schema/data-model architecture + plan + test strategy, decomposes
+  "data-implementer.md"              # build phase (sonnet/high): builds one data task - SQL + migration tests
+  "data-verifier.md"                 # verify phase (opus/xhigh): gates the data build vs plan + quality
+)
+
+# (6) Path-scoped rules (claude-code): fetched into .claude/rules/ on BOTH actions - lazy-load on
+# matching file reads; conventions stay with the convention-gate hook, rules carry only glob-scoped routing.
+RULES_BASE_URL="https://raw.githubusercontent.com/envoydev/agents-stack/main/claude/rules"
+CLAUDE_RULES=(
+  "markdown-docs.md"          # markdown-style routing, path-scoped **/*.md
+  "dotnet-repair-agents.md"   # .NET repair-loop routing, path-scoped cs/csproj/sln/xaml
+  "angular-repair-agents.md"  # Angular repair-loop routing, path-scoped
 )
 
 # ===========================================================================
@@ -429,6 +449,19 @@ download_agents() {  # fetch each subagent .md into .claude/agents/; per-agent f
     if ! curl -fsSL "$AGENT_BASE_URL/$file" -o "$tmp"; then log "  !! fetch failed (kept repo copy if any): $file"; rm -f "$tmp"; continue; fi
     if [ -f "$dest" ] && cmp -s "$tmp" "$dest"; then rm -f "$tmp"; log "  agent current: $file"
     else mv "$tmp" "$dest"; log "  agent fetched -> $file"; fi
+  done
+}
+
+download_rules() {  # fetch each rule .md into .claude/rules/; per-rule fail-soft (keeps repo copy)
+  command -v curl >/dev/null || { log "  !! curl not found - skipping rule fetch"; return 0; }
+  local root file dest tmp
+  root="$(git rev-parse --show-toplevel 2>/dev/null)" || { log "  !! not in a git repo - skipping rules"; return 0; }
+  for file in "${CLAUDE_RULES[@]}"; do
+    dest="$root/.claude/rules/$file"; mkdir -p "$(dirname "$dest")"
+    tmp="$(mktemp)"
+    if ! curl -fsSL "$RULES_BASE_URL/$file" -o "$tmp"; then log "  !! fetch failed (kept repo copy if any): $file"; rm -f "$tmp"; continue; fi
+    if [ -f "$dest" ] && cmp -s "$tmp" "$dest"; then rm -f "$tmp"; log "  rule current: $file"
+    else mv "$tmp" "$dest"; log "  rule fetched -> $file"; fi
   done
 }
 
@@ -521,6 +554,7 @@ update_mcps() {
 
 update_hooks() { download_hooks; }   # UPDATE: refresh hook files only; settings.json untouched
 update_agents() { download_agents; } # UPDATE: refresh subagent files
+update_rules() { download_rules; }   # UPDATE: refresh rule files
 
 prune_agents_cache() {
   # npx skills stages an agent-neutral .agents/ store. With a STRICT per-agent copy (.claude/skills is
@@ -548,13 +582,13 @@ install_github_cli
 
 # claude-only steps fail soft (command -v claude) if the CLI is not installed.
 if [ "$ACTION" = "install" ]; then
-  install_skills; install_plugins; install_mcps; download_hooks; wire_hooks_settings; download_agents
+  install_skills; install_plugins; install_mcps; download_hooks; wire_hooks_settings; download_agents; download_rules
 else
-  update_skills; update_plugins; update_mcps; update_hooks; update_agents
+  update_skills; update_plugins; update_mcps; update_hooks; update_agents; update_rules
 fi
 
 prune_agents_cache
-log "done: $ACTION ($SCOPE, agent=$AGENT). ${#SKILLS[@]} skills, ${#PLUGINS[@]} plugins, MCPs, hooks=${#HOOKS[@]}, agents=${#AGENTS[@]}."
+log "done: $ACTION ($SCOPE, agent=$AGENT). ${#SKILLS[@]} skills, ${#PLUGINS[@]} plugins, MCPs, hooks=${#HOOKS[@]}, agents=${#AGENTS[@]}, rules=${#CLAUDE_RULES[@]}."
 
 # Reminder: stack-generated, machine-local artifacts that should NOT be committed.
 cat <<'GITIGNORE'

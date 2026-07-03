@@ -155,7 +155,7 @@ A project's `AGENTS.md` is this base plus a project-specific top. Add, in roughl
 each section lean (the skill and rule descriptions carry the rest):
 
 1. **What this project is** - one paragraph: domain, shape (binary / service / library), persistence, surfaces.
-2. **Stack** - languages, frameworks, key libraries, test stack + coverage gate, plus the per-language LSP extension (built-in TS; `golang.Go`; a Roslyn C# extension) for compiler-exact navigation + diagnostics.
+2. **Stack** - languages, frameworks, key libraries, test stack + coverage gate, plus the per-language LSP extension (built-in TS; a Roslyn C# extension) for compiler-exact navigation + diagnostics.
 3. **Commands** - copy-pasteable build / test / run / migrate / publish, with any environment quirks.
 4. **Architecture** - layers / modules, dependency rules, folder organization.
 5. **Key patterns** - the non-obvious in-house patterns a newcomer would trip on.

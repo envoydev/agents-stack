@@ -1,6 +1,6 @@
 ---
 name: ionic
-description: "Personal Ionic / Capacitor mobile + hybrid app conventions - house rules for Ionic Angular UI (standalone + signals, IonRouterOutlet, lazy routes, CSS-variable theming), Capacitor lifecycle + platform guards, runtime permissions, and Capacitor plugin sourcing (official -> Capawesome -> capacitor-community) + typed-service wrapping. Targets Angular 17+ / Capacitor 6+ (7 current). Load before building or editing an Ionic/Capacitor app. Companions: angular-conventions (the Angular framework), typescript (the language); plugin install/use mechanics route to capacitor-plugins. Do NOT load for plain web Angular with no native shell."
+description: "Personal Ionic / Capacitor mobile + hybrid app conventions - house rules for Ionic Angular UI (standalone + signals, IonRouterOutlet, lazy routes, page-caching view lifecycle, CSS-variable theming), Capacitor lifecycle + platform guards, runtime permissions, and Capacitor plugin sourcing (official -> Capawesome -> capacitor-community) + typed-service wrapping. Targets Angular 17+ / Capacitor 6+ (7 current). Load before building or editing an Ionic/Capacitor app. Companions: angular-conventions (the Angular framework), typescript (the language); plugin install/use mechanics route to capacitor-plugins. Do NOT load for plain web Angular with no native shell."
 ---
 
 # Ionic / Capacitor Conventions
@@ -11,10 +11,22 @@ An Ionic app is an Angular app in a native (Capacitor) shell: the framework rule
 - Standalone components + signals, OnPush, new control flow - same as `angular-conventions`. Ionic components (`IonContent`, `IonList`, ...) are standalone imports, not a shared module.
 - Theme through Ionic CSS variables and `color` / `mode`, not hardcoded colors; keep design tokens in one place. Respect the system light/dark setting.
 - Keep page components thin: data + state in services/stores, presentation in the page.
+- Import Ionic UI components from `@ionic/angular/standalone` and bootstrap with `provideIonicAngular()`, never the `@ionic/angular` barrel - the barrel path pulls in lazy-loaded code that defeats tree-shaking.
+
+## Change detection and zoneless
+- OnPush everywhere except the shell: never put OnPush on a component that hosts `IonRouterOutlet` or `IonNav`. It stops lifecycle hooks such as `ngOnInit` from firing and breaks async rendering (Ionic's own docs). Keep those shell components on the default strategy; apply OnPush only to leaf pages and presentational components.
+- Do not go zoneless. Ionic keeps Zone.js as a peer dependency and is not officially zoneless-compatible, so stripping it out risks Ionic's own web components and buys no bundle saving while Zone.js stays required. Signals are fine in your Angular layer and leaf components - they just don't make Ionic's components zoneless. Treat zoneless as unsupported until Ionic ships official support.
 
 ## Navigation
 - Route with the Angular router inside an `IonRouterOutlet`; lazy-load every feature route via `loadComponent` / `loadChildren`. Tabs use `IonTabs` with their own outlet.
 - Don't mix Ionic's imperative nav controllers with the Angular router in one app - pick the router and stay with it.
+
+## Ionic page lifecycle
+- Ionic caches pages in the DOM, so `ngOnInit` / `ngOnDestroy` fire only when a page is created or popped, not on every revisit - a tab switch re-shows a cached page without re-running `ngOnInit`. Use `ionViewWillEnter` for data that must refresh on each entry and `ionViewDidEnter` for heavy work you want deferred until the page-transition animation finishes. These hooks fire only on router-mapped page components, not their children.
+- Control navigation with Angular route guards (`CanActivate` / `CanDeactivate`) - they replaced the old `ionViewCanEnter` / `ionViewCanLeave`.
+
+## Large lists
+- Ionic's own virtual-scroll component was removed in v7 - for long lists use Angular CDK virtual scroll (`CdkVirtualScrollViewport` with `*cdkVirtualFor`) inside `IonContent`: set `[scrollY]="false"` on the `IonContent` and add the ion-content-scroll-host class to the viewport so Ionic's pull-to-refresh and infinite scroll keep working. CDK handles fixed-height rows well; variable-height rows can jank.
 
 ## Platform detection - pick the right check for the question
 Three different questions, three different calls - don't conflate them:

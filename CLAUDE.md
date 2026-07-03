@@ -20,12 +20,23 @@ made only inside a consuming project is throwaway (see Invariants).
   - `CLAUDE.template.md` - the stack-neutral base (with `<placeholders>`) that each consuming
     project's `CLAUDE.md` is filled in from. Content shipped to projects, not this repo's own file.
   - `hooks/` - `require-convention-skill.js` (PreToolUse `Edit|Write` convention gate) +
-    `guard-protected-force-push.js` + `guard-catastrophic-rm.js` (PreToolUse `Bash`). Fetched into a
-    project's `.claude/hooks/`.
-  - `agents/` - the Claude-contract specialist subagents: .NET (`dotnet-build-error-resolver`,
-    `dotnet-test-failure-resolver`) + Angular (`ng-build-error-resolver`, `angular-test-resolver`).
-    Fetched into a project's `.claude/agents/`. Cursor ships the same four (its own `cursor/agents/`
-    twins, weaker contract - see the divergence table).
+    `guard-protected-force-push.js` + `guard-catastrophic-rm.js` (PreToolUse `Bash`) +
+    `guard-read-whole-file.js` (PreToolUse `Read`). Fetched into a project's `.claude/hooks/`.
+  - `agents/` - the Claude-contract subagents, 26 total: the four build/test resolvers - .NET
+    (`dotnet-build-error-resolver`, `dotnet-test-failure-resolver`) + Angular (`ng-build-error-resolver`,
+    `angular-test-resolver`) - plus seven cross-cutting analysis agents (`architecture-analyzer`,
+    `task-analyzer`, `ci-failure-diagnoser`, `issue-diagnoser`, `greenfield-solution-designer`,
+    `cross-stack-contract-designer`, `framework-upgrade-planner`) - plus
+    15 per-domain seats, the same 3-agent vertical repeated across 5 stacks (ASP.NET, Angular, WPF,
+    mobile, data): `<stack>-solution-designer` (decomposes into parallel tasks) → `<stack>-implementer`
+    (builds one task, code + tests) → `<stack>-verifier` (gates the assembled build vs plan + quality,
+    punch-list loop). The `domain-build` skill orchestrates one stack's vertical per run. All 26 carry
+    frontmatter model/effort pins (see the divergence table). Fetched into a project's
+    `.claude/agents/`. Cursor ships twins of the four resolvers only (its own `cursor/agents/`, weaker
+    contract - see the divergence table); the cross-cutting and per-domain agents are Claude-only.
+  - `rules/` - `markdown-docs.md` / `dotnet-repair-agents.md` / `angular-repair-agents.md`: three
+    path-scoped routing files, lazy-loaded on matching file reads. Fetched into a project's
+    `.claude/rules/`.
   - `README.md`.
 - `cursor/` - the **Cursor** stack (peer of `claude/`):
   - `cursor-stack.{sh,ps1}` installer + `cursor-stack.html` inventory.
@@ -35,9 +46,10 @@ made only inside a consuming project is throwaway (see Invariants).
     `beforeShellExecution` contract.
   - `rules/` - `csharp` / `typescript` / `sql` / `angular`-conventions.mdc: the convention gate
     re-expressed as soft, glob-auto-attaching `.cursor/rules` (Cursor has no skill-load gate).
-  - `agents/` - the Cursor-contract twins of the four Claude subagents (.NET build/test + Angular
-    build/test resolvers), fetched into a project's `.cursor/agents/`. No `tools:` allowlist (only a
-    `readonly` bool) and no hard convention gate, so the bodies lean on `.cursor/rules`.
+  - `agents/` - the Cursor-contract twins of the four Claude resolver subagents (.NET build/test +
+    Angular build/test; the nine pipeline agents have no Cursor twins), fetched into a project's
+    `.cursor/agents/`. No `tools:` allowlist (only a `readonly` bool) and no hard convention gate, so
+    the bodies lean on `.cursor/rules`.
   - `README.md`.
 - `scripts/lint-skills.js` - the 4-way parity lint (below). `README.md` - repo overview.
 
@@ -50,13 +62,13 @@ because the platforms differ:
 |---|---|---|
 | Skills | `npx skills add … --agent claude-code` → `.claude/skills` | `… --agent cursor` → `.cursor/skills` (Cursor Skills) |
 | MCP | `claude mcp add` → `<repo>/.mcp.json` | written into `.cursor/mcp.json` (tokens pre-resolved) |
-| Plugins | 9 via `claude plugin install` (superpowers, claude-md-management, the `*-lsp`, security-guidance, frontend-design, claude-hud, ponytail) | **none** - Cursor has no Claude-style `/plugin install` (its own format installs via `/add-plugin`); equivalents are MCP / native (Skills, Subagents, Bugbot `/review`, Rules) / Open-VSX extensions. ponytail additionally ships a Cursor rule that `cursor-stack` fetches (see `cursor-stack.html`'s mapping) |
-| Hooks | `.claude/hooks/` wired into `.claude/settings.json` (3 hooks) | `.cursor/hooks.json` (force-push + catastrophic-rm - Cursor's contract differs) |
-| Agents | `.claude/agents/` - 4 Claude subagents (.NET build/test + Angular build/test resolvers), fetched like hooks; per-tool `tools:` allowlist + `Skill`-tool gate | `.cursor/agents/` - the SAME 4 resolver subagents, fetched like hooks. Cursor's contract is weaker: no per-tool allowlist (only a `readonly` bool), and no hard convention gate - so the bodies lean on the auto-attaching `.cursor/rules` instead of a Skill-load gate |
-| Convention gate | `require-convention-skill` hook (hard block until the skill is loaded) | `.cursor/rules/*.mdc` (soft, auto-attach by glob - no session skill-load state) |
+| Plugins | 8 via `claude plugin install` (superpowers, claude-md-management, the `*-lsp` pair, security-guidance, frontend-design, claude-hud, ponytail) | **none** - Cursor has no Claude-style `/plugin install` (its own format installs via `/add-plugin`); equivalents are MCP / native (Skills, Subagents, Bugbot `/review`, Rules) / Open-VSX extensions. ponytail additionally ships a Cursor rule that `cursor-stack` fetches (see `cursor-stack.html`'s mapping) |
+| Hooks | `.claude/hooks/` wired into `.claude/settings.json` (4 hooks) | `.cursor/hooks.json` (force-push + catastrophic-rm - Cursor's contract differs) |
+| Agents | `.claude/agents/` - 26 Claude subagents, all model/effort-pinned: the 4 build/test resolvers (`model: sonnet` + `effort: high`) + 7 cross-cutting analysis agents (`architecture-analyzer`, `task-analyzer`, `ci-failure-diagnoser`, `issue-diagnoser`, `greenfield-solution-designer`, `cross-stack-contract-designer`, `framework-upgrade-planner`, all `model: opus` + `effort: xhigh`) + 15 per-domain seats - a 3-agent vertical repeated across 5 stacks (ASP.NET, Angular, WPF, mobile, data): `<stack>-solution-designer` and `<stack>-verifier` pinned `opus`/`xhigh`, `<stack>-implementer` pinned `sonnet`/`high`; the `domain-build` skill dispatches one stack's vertical per run. Fetched like hooks; per-tool `tools:` allowlist + `Skill`-tool gate | `.cursor/agents/` - twins of the 4 RESOLVERS only, fetched like hooks; the cross-cutting and per-domain agents are Claude-only and no pin carries over (Cursor agents take a `model` field but have no `effort` pin - the twins inherit Cursor's session model). Cursor's contract is weaker: no per-tool allowlist (only a `readonly` bool), and no hard convention gate - so the bodies lean on the auto-attaching `.cursor/rules` instead of a Skill-load gate |
+| Convention gate | `require-convention-skill` hook (hard block until the skill is loaded; base cs/ng/sql/ts tables plus scss/xaml opt-in tables wired per repo shape) | `.cursor/rules/*.mdc` (soft, auto-attach by glob - no session skill-load state) |
 | Security review | `/security-review` + `security-guidance` hooks | Cursor **Bugbot** (`/review`) |
 | Project instructions | `CLAUDE.md` | `AGENTS.md` |
-| LSP | `csharp-lsp` / `typescript-lsp` / `gopls-lsp` plugins | built-in TypeScript + Open-VSX extensions (`golang.Go`; a Roslyn C# extension - MS's C# Dev Kit is blocked in Cursor) |
+| LSP | `csharp-lsp` / `typescript-lsp` plugins | built-in TypeScript + Open-VSX extensions (a Roslyn C# extension - MS's C# Dev Kit is blocked in Cursor) |
 
 ## The model these templates encode
 
@@ -65,8 +77,7 @@ because the platforms differ:
   recall), plus `angular-cli` (framework-specific - comment out where not applicable),
   `chrome-devtools` (browser/extension debug) and `appium-mcp` (native mobile E2E -
   Capacitor/Ionic, needs Xcode/Android SDK + Java). The last two are heavy and fail at launch
-  without their native deps - comment them out where not applicable, or use a curated profile
-  installer (`claude/profiles/`) that trims the stack per domain.
+  without their native deps - comment them out where not applicable.
 - **serena self-activates via `--project-from-cwd`**, not a hook: it finds `.serena/project.yml`
   in its cwd (the project root) and binds on process start, zero model involvement. Two approaches
   that look right but FAIL - do not retry: (1) an `mcp_tool` `SessionStart` hook calling
@@ -114,3 +125,6 @@ because the platforms differ:
 - Hooks and Cursor rules are **fetched from GitHub** at install (`…/main/claude/hooks`,
   `…/main/cursor/hooks`, `…/main/cursor/rules`), so a change ships only once committed + pushed;
   until then the per-hook / per-rule fail-soft keeps any existing copy.
+- Authoring or editing a house skill in skills/? The superpowers writing-skills method is a useful
+  reference - subordinate it to the 4-way parity lint, the HTML + skill-count sync, and the house
+  voice; take its skill-testing discipline, not its own formatting or its push-to-fork deploy step.

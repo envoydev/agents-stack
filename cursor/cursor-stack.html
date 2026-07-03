@@ -133,13 +133,13 @@
   </div>
 
   <div class="counts">
-    <div><strong id="c-total">0</strong> total</div>
-    <div><strong id="c-personal">15</strong> personal skills</div>
-    <div><strong id="c-repo">32</strong> repository skills</div>
+    <div><strong id="c-total">92</strong> total</div>
+    <div><strong id="c-personal">37</strong> personal skills</div>
+    <div><strong id="c-repo">35</strong> repository skills</div>
     <div><strong id="c-mcp">7</strong> MCP servers</div>
-    <div><strong id="c-hooks">6</strong> hooks / rules</div>
+    <div><strong id="c-hooks">9</strong> hooks / rules</div>
     <div><strong id="c-agents">4</strong> subagents</div>
-    <div><strong id="c-equiv">9</strong> plugin mappings</div>
+    <div><strong id="c-equiv">8</strong> plugin mappings</div>
   </div>
 
   <div class="controls">
@@ -171,9 +171,9 @@ const personal = {
     ["dev-log-convert","Logs / docs","Convert daily Ukrainian/English/mixed raw work logs into structured form. Trigger: literal 'dev-log'."],
     ["explain-code-tutor","Learning / explain","Explain code, a bug, a concept, or an approach/architecture trade-off like a patient senior engineer: one everyday analogy fit to the mechanism, numbered steps with short snippets quoted from the real project files, a marked break-point (bug) / key insight (concept) / trade-off verdict (compare), the real fix or recommendation, and a one-line takeaway. Adjustable depth (ELI5/intermediate/expert); answers in the user's language."],
     ["angular-conventions","Frontend / Angular","Angular 17+: signals, RxJS, OnPush, new control flow templates, a11y, performance, feature-boundary decoupling. TS/JS language baseline -> typescript."],
-    ["angular-material","Frontend / Angular","Angular Material (@angular/material) + CDK: selective component-module imports (tree-shaking), M3 mat.theme() theming + CSS custom properties, CDK primitives (Overlay, virtual scroll, FocusTrap/LiveAnnouncer), Material test harnesses. Distinct from material-3 (generic MD3). Framework baseline -> angular-conventions."],
+    ["angular-material","Frontend / Angular","Angular Material (@angular/material) + CDK: selective component-module imports (tree-shaking), M3 mat.theme() theming + CSS custom properties, CDK primitives (Overlay, virtual scroll, FocusTrap/LiveAnnouncer), Material test harnesses. Framework baseline -> angular-conventions."],
     ["angular-styling","Frontend / Angular","Angular CSS/SCSS architecture (Material or not): ViewEncapsulation choice, :host / :host-context, the discouraged ::ng-deep and its sanctioned ways out, design tokens as CSS custom properties, mobile-first + container queries + fluid type, global vs scoped styles, utility-first vs scoped SCSS, a11y-affecting styling. Material token work -> angular-material; framework -> angular-conventions."],
-    ["frontend","Frontend / router","Web frontend router/index: Angular (-> angular-conventions), TS/JS baseline (-> typescript), distinctive UI (frontend-design plugin), Material 3 (-> material-3), Ionic/Capacitor (-> mobile)."],
+    ["frontend","Frontend / router","Web frontend router/index: Angular (-> angular-conventions), TS/JS baseline (-> typescript), distinctive UI (frontend-design plugin), Ionic/Capacitor (-> mobile)."],
     ["mobile","Mobile / router","Ionic/Capacitor router/index: ionic-angular, capacitor-angular, capacitor-plugins over the Angular (angular-conventions) + TypeScript (typescript) baselines."],
     ["ionic","Mobile / Ionic","House Ionic/Capacitor conventions: standalone+signals Ionic UI, IonRouterOutlet + lazy routes, CSS-variable theming, Capacitor lifecycle + isNativePlatform guards, runtime permissions, Capacitor plugin sourcing (official -> Capawesome -> capacitor-community) + typed-service wrapping. Mechanics -> capacitor-plugins."],
     ["capacitor-release","Mobile / release","House Ionic/Capacitor release pipeline: cap sync + native build (.ipa/.aab), iOS signing (cert + profile, App Store Connect API key, Fastlane match) + Android signing (upload key vs Play app-signing key), store submission (TestFlight + Play tracks), OTA / live updates and the native-binary boundary, marketing-version vs build-number sync, Fastlane / GitHub Actions CI with secrets, dSYM + sourcemap upload. App under release -> ionic; native plugin mechanics -> capacitor-plugins."],
@@ -201,6 +201,8 @@ const personal = {
     ["dotnet-web-backend","Backend / HTTP","HTTP-service cross-cutting: IHttpClientFactory, FluentValidation, Polly, API versioning, OpenAPI, observability (Serilog, OpenTelemetry, correlation IDs, health checks), caching (IMemoryCache, HybridCache, Redis)."],
     ["dotnet-wpf","WPF / Desktop","Strict MVVM, dep/attached props, explicit binding modes, async commands, INotifyDataErrorInfo validation, virtualization, VM testing. (WPF is Windows desktop - the skill installs regardless of editor.)"],
     ["project-quality-loop","Review / automation","Autonomous review-and-fix loop over a loops/ folder of numbered prompts: runs each in numeric order, loops it on the target until its bar (default zero findings at every severity) is met, then advances - deciding and logging judgment calls, never pausing. Per-module on large codebases."],
+    ["project-scaffold","Greenfield / scaffolding","Build a new application or major module from scratch: routes to the right architecture skill (clean-architecture, ddd, vertical-slice-architecture, dotnet-project-structure) and scaffolding command (dotnet new, ng new via the angular-cli MCP); in a stack-installed Claude Code project also drives the build slice by slice over the agent pipeline (INLINE mode in Cursor)."],
+    ["domain-build","Build / orchestration","Build a feature through a stack specialist team: the domain solution-designer decomposes it into independent parallel tasks, several implementers build them at once, and the domain verifier gates the assembled result against the plan and quality, looping punch-lists back until it signs off. The per-domain agent trio it dispatches is Claude-only (INLINE mode in Cursor)."],
     ["typescript","TypeScript / JavaScript","Framework-agnostic TS/JS baseline: strict flags, discriminated unions, utility types, ESM modules, async (no floating promises), typed errors + Result, readonly, plain-JS via JSDoc + checkJs, ESLint/Prettier/tsconfig."],
   ]
 };
@@ -230,7 +232,6 @@ const repository = [
   ["index-strategies","Database / SQL","https://github.com/josiahsiegel/claude-plugin-marketplace","SQL Server clustered/nonclustered/filtered/columnstore index design."],
   ["ionic-angular","Ionic / Angular","https://github.com/capawesome-team/skills","Angular-specific Ionic Framework development patterns (components, theming, navigation)."],
   ["markdown-style","Docs / Markdown","https://github.com/josiahsiegel/claude-plugin-marketplace","Two-pass syntax/style review of Markdown with line refs."],
-  ["material-3","UI / Material 3","https://github.com/hamen/material-3-skill","Material Design 3 (Material You): design tokens, 30+ components, layout, theming, M3 Expressive, accessibility. Primary: Jetpack Compose + Flutter; web is the maintenance-mode @material/web (NOT Angular Material)."],
   ["microbenchmarking","Performance / .NET","https://github.com/dotnet/skills","BenchmarkDotNet design/run/compare workflow (jobs, presets, dead-code-elimination pitfalls). Official Microsoft .NET skill, cherry-picked; net-new runtime perf measurement."],
   ["microsoft-extensions-configuration","C# / .NET","https://github.com/aaronontheweb/dotnet-skills","IValidateOptions, strongly-typed settings, startup validation."],
   ["OpenTelemetry-NET-Instrumentation","Observability / .NET","https://github.com/aaronontheweb/dotnet-skills","Deep manual OpenTelemetry instrumentation: custom Activity/spans, HasListeners gating, metric cardinality, zero-alloc TagList. Beyond dotnet-web-backend's wiring-level OTel."],
@@ -244,9 +245,6 @@ const repository = [
   ["tsql-functions","Database / SQL","https://github.com/josiahsiegel/claude-plugin-marketplace","T-SQL function catalog (string/date/window/JSON/XML)."],
   ["type-design-performance","C# / .NET","https://github.com/aaronontheweb/dotnet-skills","Seal classes, readonly structs, static pure functions, collection choice."],
   ["vertical-slice-architecture","Architecture / multi-lang","https://github.com/mryll/skills","Enforce VSA: feature-based folders, one entry point per feature, minimize cross-slice coupling, no premature shared layers. Multi-language (Go/.NET/Java/Kotlin/TS/Python)."],
-  ["wordpress-router","WordPress / routing","https://github.com/WordPress/agent-skills","Official WordPress router skill - maps a WP task to the focused skill (blocks, themes, plugins)."],
-  ["wp-plugin-development","WordPress / WooCommerce","https://github.com/WordPress/agent-skills","Official plugin-development guidance: hooks/filters idioms, security (nonces, escaping, sanitization), best practices."],
-  ["wp-project-triage","WordPress","https://github.com/WordPress/agent-skills","Detects WordPress project type (plugin/theme/block) and routes setup and conventions."],
 ];
 
 // ---- MCP servers (native in Cursor via .cursor/mcp.json) ----
@@ -268,6 +266,8 @@ const hooksRules = [
   ["typescript-conventions.mdc","rule (globs .ts/.tsx/.js/.jsx/.mjs/.cjs)",".cursor/rules/","TypeScript/JS baseline (typescript). Mirrors the gate's 'ts' table. Auto-attaches by glob; composes with angular-conventions on Angular .ts files."],
   ["sql-conventions.mdc","rule (globs **/*.sql)",".cursor/rules/","SQL house conventions (database-conventions). Mirrors the gate's 'sql' table - hand-written SQL only."],
   ["angular-conventions.mdc","rule (globs *.component.ts / *.service.ts / *.directive.ts / etc.)",".cursor/rules/","Angular conventions (angular-conventions). Mirrors the gate's 'ng' table - keyed on Angular compound suffixes; bare .html stays ungated."],
+  ["wpf-conventions.mdc","rule (globs **/*.xaml)",".cursor/rules/","WPF/XAML house conventions (dotnet-wpf). Mirrors the Claude gate's opt-in 'xaml' table - wire in for WPF repos only, not every C# repo has XAML."],
+  ["scss-conventions.mdc","rule (globs **/*.scss, **/*.css)",".cursor/rules/","Stylesheet house conventions (angular-styling). Mirrors the Claude gate's opt-in 'scss' table - for Angular workspaces that own their stylesheets."],
   ["ponytail.mdc","rule (alwaysApply; fetched from ponytail repo)",".cursor/rules/","Ponytail 'lazy senior dev' minimal-code rule (always applies). Fetched from DietrichGebert/ponytail - the Cursor form of the ponytail plugin the Claude stack installs; referenced, not vendored here."],
 ];
 
@@ -286,7 +286,6 @@ const agents = [
 // [claude plugin, cursor equivalent, mechanism tag, available?, notes]
 const equivalents = [
   ["typescript-lsp","Built-in TypeScript service (tsserver)","native (built-in)",true,"Cursor ships VS Code's TypeScript service - TS/JS diagnostics work with no extension."],
-  ["gopls-lsp","golang.Go extension (backed by gopls)","Open VSX extension",true,"Identical to VS Code; install the Go extension from Open VSX. (Verify publisher id: golang/Go vs ms-vscode/Go.)"],
   ["csharp-lsp","Roslyn-based C# extension (DotRush, or muhammad-sammy/csharp, or JetBrains ReSharper)","Open VSX extension",true,"Microsoft's official C# Dev Kit is BLOCKED in Cursor (license, since Apr 2025). Use a Roslyn-based open/community alternative. If our csharp-lsp wraps Microsoft's CodeAnalysis LanguageServer, the same license may apply - check."],
   ["superpowers","/add-plugin superpowers","Cursor plugin (manual UI)",true,"superpowers ships a real .cursor-plugin manifest (14 SKILL.md workflow skills + a Cursor hooks file). Install in Cursor chat with /add-plugin superpowers - a manual UI step, NOT auto-fetched by cursor-stack (unlike ponytail's single .mdc rule)."],
   ["security-guidance (/security-review)","Bugbot (/review, /review-bugbot)","native",true,"Cursor's native Bugbot reviews for bugs + security + quality, in-editor (Cursor 3.7+) or on PRs."],
