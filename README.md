@@ -45,6 +45,8 @@ npx skills remove      # uninstall skills
   M3 theming, CDK primitives, and component test harnesses (the @angular/material library specifically, not generic MD3).
 - **angular-styling** - Angular CSS/SCSS architecture (Material or not):
   ViewEncapsulation, `:host` / `:host-context`, the discouraged `::ng-deep` and its sanctioned ways out, design tokens as CSS custom properties, mobile-first + container queries, and accessibility-affecting styling (Material token work → angular-material).
+- **angular-security** - Angular / web frontend security hardening: XSS and the DomSanitizer
+  `bypassSecurityTrust*` escape hatches, CSP, CSRF via HttpClient XSRF, no secrets in the bundle, token storage, and SSR/TransferState leaks (server side → dotnet-security, native shell → mobile-security).
 - **frontend** - Web frontend router: indexes Angular, TypeScript,
   the frontend-design plugin, and Ionic/Capacitor (→ mobile).
 - **mobile** - Ionic / Capacitor router: ionic-angular, capacitor-angular,
@@ -53,12 +55,16 @@ npx skills remove      # uninstall skills
   signals), navigation, lifecycle/permissions, and Capacitor plugin sourcing + wrapping.
 - **capacitor-release** - House Ionic / Capacitor release pipeline: cap sync +
   native build, iOS/Android signing, store submission, OTA / live updates, version sync, Fastlane/Actions CI, and dSYM/sourcemap upload.
+- **mobile-security** - Ionic / Capacitor mobile security hardening: Keychain/Keystore secret
+  storage (never plaintext Preferences), deep-link input validation, least-privilege permissions, cleartext/WebView hardening, and data-at-rest protection (web layer → angular-security, signing → capacitor-release).
 - **csharp** - C# style and runtime conventions: layout, naming, modern
   syntax, async, exceptions, logging, dependency injection.
 - **csharp-design-patterns** - All 23 GoF design patterns with modern
   .NET 8+ idioms: selection table, anti-pattern checks, framework-native forms.
 - **database-conventions** - Database conventions across Postgres,
   SQL Server/T-SQL, SQLite, and MongoDB: schema, migrations, indexes, query safety.
+- **data-security** - SQL / data-layer security hardening: parameterized-only
+  injection (no interpolated FromSqlRaw, sp_executesql for dynamic proc SQL), least-privilege DB accounts, row-level security + tenant isolation, connection-string secrets, encryption at rest/in transit, and audit-logging (app-layer EF → dotnet-security, primitives → dotnet-cryptography, migrations → dotnet-migrate).
 - **dotnet** - Router that points to the focused .NET/C# specialist
   skill for the area you are working in.
 - **dotnet-architecture-tests** - Architecture fitness tests: encode layer /

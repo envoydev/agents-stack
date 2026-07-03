@@ -28,7 +28,7 @@ everything below applies to both unless a row is marked otherwise.
 
 | Component | Count | Notes |
 | --------- | ----- | ----- |
-| **Skills**  | 72 | conventions + utilities (ticket writers, C#/.NET, Angular/TS, SQL, Docker, git, `domain-build` per-domain orchestration) - `npx skills add … --agent claude-code` |
+| **Skills**  | 75 | conventions + utilities (ticket writers, C#/.NET, Angular/TS, SQL, Docker, git, `domain-build` per-domain orchestration) - `npx skills add … --agent claude-code` |
 | **Plugins** | 8  | `superpowers`, `claude-md-management`, `csharp-lsp`, `typescript-lsp`, `security-guidance`, `frontend-design`, `claude-hud`, `ponytail` - `claude plugin install` (needs the `claude` CLI) |
 | **MCP servers** | 7 | `angular-cli`, `serena`, `playwright`, `memory`, `context7`, plus `chrome-devtools` + `appium-mcp` (heavy - now active; comment out where not needed) → `<repo>/.mcp.json` |
 | **Hooks** | 4 | `require-convention-skill` (PreToolUse Edit/Write gate - the cs/ng/sql/ts base tables plus the scss and xaml opt-in tables) + `guard-protected-force-push` (blocks force-push to main/master/develop) + `guard-catastrophic-rm` (blocks recursive rm of /, ~, $HOME, or a bare *) + `guard-read-whole-file` (PreToolUse Read - blocks a whole-file Read of a >100-line source file, locate via serena first) → `.claude/hooks/` + wired into `.claude/settings.json` |

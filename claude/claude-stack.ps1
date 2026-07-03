@@ -189,7 +189,7 @@ else {
 # MANIFEST - edit these, then run.
 # ===========================================================================
 
-# (1) Skills "repo|skill" (comment a line to skip). Full inventory - every skill (72).
+# (1) Skills "repo|skill" (comment a line to skip). Full inventory - every skill (75).
 $Skills = @(
   # Personal (envoydev/agents-stack)
   'envoydev/agents-stack|create-ticket'             # ticket generator (bug/story/epic/task) - tracker-agnostic EN Markdown, routes to references/<type>.md
@@ -199,14 +199,17 @@ $Skills = @(
   'envoydev/agents-stack|project-scaffold' # greenfield scaffolding + design->scaffold->slice-by-slice build orchestration over the pipeline
   'envoydev/agents-stack|domain-build'     # domain-build orchestration - designer decomposes, implementers fan out, verifier gates
   'envoydev/agents-stack|database-conventions' # cross-engine DB conventions + per-engine skill routing
+  'envoydev/agents-stack|data-security'    # SQL/data-layer security: parameterized-only injection, least-privilege DB accounts, row-level security, connection-string secrets, encryption, audit
   'envoydev/agents-stack|typescript'       # framework-agnostic TS/JS baseline (strict typing, modules, async, JS+JSDoc)
   'envoydev/agents-stack|angular-conventions' # Angular 17+/TS house conventions (signals, OnPush, a11y)
   'envoydev/agents-stack|angular-material'   # Angular Material + CDK: selective imports, M3 theming, CDK primitives, harnesses
   'envoydev/agents-stack|angular-styling'    # Angular CSS/styling: ViewEncapsulation, :host, ::ng-deep ways-out, design tokens, responsive, a11y styling
+  'envoydev/agents-stack|angular-security'   # Angular/web frontend security: XSS/DomSanitizer bypass, CSP, CSRF, no-secrets-in-bundle, token storage, SSR/TransferState
   'envoydev/agents-stack|frontend'         # web frontend router: Angular/TS/frontend-design + -> mobile
   'envoydev/agents-stack|mobile'           # Ionic/Capacitor router: ionic-angular/capacitor-angular/capacitor-plugins + Angular/TS baseline
   'envoydev/agents-stack|ionic'            # house Ionic/Capacitor conventions: UI, nav, lifecycle, permissions, plugin sourcing + wrapping
   'envoydev/agents-stack|capacitor-release' # Ionic/Capacitor release pipeline: cap sync/build, iOS+Android signing, store submission, OTA, versioning, CI, symbols
+  'envoydev/agents-stack|mobile-security'  # Ionic/Capacitor mobile security: Keychain/Keystore storage, deep-link validation, permissions, cleartext/WebView hardening
   'envoydev/agents-stack|csharp'           # C# house conventions - style, naming, async, logging, DI
   'envoydev/agents-stack|csharp-design-patterns' # all 23 GoF patterns with modern .NET 8+ forms
   'envoydev/agents-stack|dotnet'           # router mapping .NET work areas to specialist skills
