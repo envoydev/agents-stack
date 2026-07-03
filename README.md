@@ -113,6 +113,9 @@ npx skills remove      # uninstall skills
 - **domain-build** - Build a feature through a stack specialist team: the domain designer
   decomposes into parallel tasks, implementers build them at once, the verifier gates and loops
   back.
+- **devops** - Containers, CI/CD, and safe deploys for the .NET/Angular house: multi-stage
+  digest-pinned non-root Docker, GitHub Actions CI/CD (lockfile-hash caching, service-container
+  tests, masked secrets, SHA-pinned actions, OIDC), and health-gated expand-contract deploys.
 - **typescript** - Framework-agnostic TypeScript/JavaScript baseline:
   strict typing, type modeling, modules, async, error handling, JS with JSDoc.
 

@@ -1,6 +1,6 @@
 ---
 name: domain-build
-description: "Build a feature or change through a stack specialist team - the domain solution designer decomposes it into parallel tasks, several implementers build them at once, and the domain verifier gates the assembled whole against the plan and code quality, looping a punch-list back. Detects the stack (ASP.NET / Angular / WPF / Ionic / SQL) and drives its designer, implementers and verifier from the main session. Triggers on build/implement a feature, add functionality, make this change - anything that is design plus build plus verify within one stack."
+description: "Build a feature or change through a stack specialist team - the domain solution designer decomposes it into parallel tasks, several implementers build them at once, and the domain verifier gates the assembled whole against the plan and code quality, looping a punch-list back. Detects the stack (ASP.NET / Angular / WPF / Ionic / SQL / DevOps) and drives its designer, implementers and verifier from the main session. Triggers on build/implement a feature, add functionality, make this change - anything that is design plus build plus verify within one stack."
 ---
 
 # Domain Build - Team-Lead Loop for a Stack's Design, Build, Verify Vertical
@@ -17,7 +17,7 @@ Detection keys on dispatch capability, not on file presence - a project can carr
 
 ## Steps
 
-1. **DESIGN** - detect the stack from the work and the touched files. For a feature or change, dispatch its solution designer (aspnet-solution-designer / angular-solution-designer / wpf-solution-designer / mobile-solution-designer / data-solution-designer - see Per-stack seats). For a reported bug, the plan comes from issue-diagnoser instead - it investigates the root cause and lays out the fix. Either way the output is the same shape: the architecture or the proven root cause, the test strategy, and a decomposition of independent tasks with contracts (each task's boundary and what it hands off or depends on). Get the user's approval before building - never fan out against an unapproved plan.
+1. **DESIGN** - detect the stack from the work and the touched files. For a feature or change, dispatch its solution designer (aspnet-solution-designer / angular-solution-designer / wpf-solution-designer / mobile-solution-designer / data-solution-designer / devops-solution-designer - see Per-stack seats). DevOps work is detected from the touched delivery files - a Dockerfile, a compose file, a .github/workflows pipeline, a deploy script, or the Aspire AppHost. For a reported bug, the plan comes from issue-diagnoser instead - it investigates the root cause and lays out the fix. Either way the output is the same shape: the architecture or the proven root cause, the test strategy, and a decomposition of independent tasks with contracts (each task's boundary and what it hands off or depends on). Get the user's approval before building - never fan out against an unapproved plan.
 2. **BUILD (fan-out)** - once approved, dispatch one implementer per task, in parallel, from the main session (aspnet-implementer / angular-implementer / ... - the same stack's seat). Hand each implementer exactly one task plus its contract; it never touches anything outside its boundary, which is what keeps the parallel runs collision-free.
 3. **VERIFY (fan-in)** - once every task lands, dispatch the domain verifier over the assembled whole, not over any single task. If it returns a punch-list, dispatch the named implementers to fix their own items, then re-dispatch the verifier. Loop until the verifier signs off.
 
@@ -30,6 +30,7 @@ Detection keys on dispatch capability, not on file presence - a project can carr
 | wpf | wpf-solution-designer | wpf-implementer | wpf-verifier |
 | mobile | mobile-solution-designer | mobile-implementer | mobile-verifier |
 | data | data-solution-designer | data-implementer | data-verifier |
+| devops | devops-solution-designer | devops-implementer | devops-verifier |
 
 ## Bookkeeping
 

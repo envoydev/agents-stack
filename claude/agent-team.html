@@ -112,9 +112,9 @@
     background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
     padding: 12px; display: flex; flex-wrap: wrap; gap: 8px; align-content: center;
   }
-  .cols { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
+  .cols { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; }
   .col-heads { display: grid; grid-template-columns: 138px 1fr; gap: 14px; margin-bottom: 2px; }
-  .col-heads .heads { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
+  .col-heads .heads { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; }
   .dom {
     font-family: var(--mono); font-size: 11px; letter-spacing: 0.02em; color: var(--muted);
     text-align: center; padding: 2px 4px 8px; border-bottom: 1px solid var(--line-soft);
@@ -212,13 +212,13 @@
     asked to be good at both Angular and C# - each seat is a single deep role.
   </p>
   <div class="stat-row">
-    <div class="stat"><b>28</b><span>agents, built</span></div>
-    <div class="stat"><b>15</b><span>per-domain seats</span></div>
+    <div class="stat"><b>31</b><span>agents, built</span></div>
+    <div class="stat"><b>18</b><span>per-domain seats</span></div>
     <div class="stat"><b>8</b><span>cross-cutting</span></div>
     <div class="stat"><b>4</b><span>build/test resolvers</span></div>
     <div class="stat"><b>1</b><span>evidence-gatherer</span></div>
-    <div class="stat"><b>5</b><span>domains</span></div>
-    <div class="stat"><b>40</b><span>skills</span></div>
+    <div class="stat"><b>6</b><span>domains</span></div>
+    <div class="stat"><b>41</b><span>skills</span></div>
   </div>
 
   <div class="flow">
@@ -297,6 +297,7 @@
             <div class="dom">Angular<b>Web</b></div>
             <div class="dom">Ionic<b>Mobile</b></div>
             <div class="dom">SQL<b>Data</b></div>
+            <div class="dom">Docker<b>DevOps</b></div>
           </div>
         </div>
 
@@ -312,6 +313,7 @@
             <div class="cell"><span class="agent design">angular-solution-designer<span class="role">components · state · routing</span><span class="mdl opus">opus · xhigh</span></span></div>
             <div class="cell"><span class="agent design">mobile-solution-designer<span class="role">shell · native bridge · release</span><span class="mdl opus">opus · xhigh</span></span></div>
             <div class="cell"><span class="agent design">data-solution-designer<span class="role">schema · model · perf</span><span class="mdl opus">opus · xhigh</span></span></div>
+            <div class="cell"><span class="agent design">devops-solution-designer<span class="role">containers · CI/CD · deploy</span><span class="mdl opus">opus · xhigh</span></span></div>
           </div>
         </div>
 
@@ -327,6 +329,7 @@
             <div class="cell"><span class="agent build">angular-implementer<span class="role">TS + Jest / TestBed</span><span class="mdl sonnet">sonnet · medium</span></span></div>
             <div class="cell"><span class="agent build">mobile-implementer<span class="role">Ionic + Appium E2E</span><span class="mdl sonnet">sonnet · medium</span></span></div>
             <div class="cell"><span class="agent build">data-implementer<span class="role">SQL + migration tests</span><span class="mdl sonnet">sonnet · medium</span></span></div>
+            <div class="cell"><span class="agent build">devops-implementer<span class="role">Docker + Actions + deploy</span><span class="mdl sonnet">sonnet · medium</span></span></div>
           </div>
         </div>
 
@@ -342,6 +345,7 @@
             <div class="cell"><span class="agent qa">angular-verifier<span class="role">vs signals / OnPush / a11y</span><span class="mdl sonnet">sonnet · xhigh</span></span></div>
             <div class="cell"><span class="agent qa">mobile-verifier<span class="role">vs native + platform parity</span><span class="mdl sonnet">sonnet · xhigh</span></span></div>
             <div class="cell"><span class="agent qa">data-verifier<span class="role">vs schema + query safety</span><span class="mdl sonnet">sonnet · xhigh</span></span></div>
+            <div class="cell"><span class="agent qa">devops-verifier<span class="role">vs pinned builds + secrets</span><span class="mdl sonnet">sonnet · xhigh</span></span></div>
           </div>
         </div>
 
@@ -360,6 +364,7 @@
               <span class="agent repair">ng-build-error-resolver<span class="role">build · Angular + Ionic (ionic wraps ng build)</span><span class="mdl sonnet">sonnet · high</span></span>
               <span class="agent repair">angular-test-resolver<span class="role">tests · Angular + Ionic</span><span class="mdl sonnet">sonnet · high</span></span>
             </div>
+            <div class="cell"><span class="agent repair" style="opacity:.48">-<span class="role">no compile loop</span></span></div>
             <div class="cell"><span class="agent repair" style="opacity:.48">-<span class="role">no compile loop</span></span></div>
           </div>
         </div>
@@ -572,14 +577,15 @@
         <li><b>Agents hardened, skills enriched.</b> The four resolvers and <code>ci-failure-diagnoser</code> now run the superpowers <code>systematic-debugging</code> method; implementers report a <code>DONE / DONE_WITH_CONCERNS / NEEDS_CONTEXT / BLOCKED</code> status and <code>domain-build</code> gained a compaction-safe progress ledger + per-task diff review (from <code>subagent-driven-development</code>). Seven best-practice field guides were distilled into nine house skills (29 additions, private names scrubbed), and the WPF seats now reach <code>dotnet-hosted-services</code> for a companion Windows Service.</li>
         <li><b>Two cross-cutting seats added - roster 24 &rarr; 26.</b> <code>cross-stack-contract-designer</code> (opus/xhigh, read-only) freezes the shared backend&harr;frontend contract - DTOs, routes, error envelope, auth, pagination, versioning - before the per-stack designers, so a full-stack feature builds to one agreed seam instead of drifting into a runtime bug. <code>framework-upgrade-planner</code> (opus/xhigh, read-only) turns a version/deprecation event - a .NET or Angular major, an EOL - into an ordered, contracted upgrade plan the implementers and resolvers execute. Both fill gaps the adversarial roster audit confirmed no existing seat covered.</li>
         <li><b>Cross-cutting <code>security-auditor</code> added - roster 27 &rarr; 28.</b> A read-only, opus/xhigh security seat that audits the posture of a feature or codebase across all five stacks - auth, authorization, input/injection, secrets, config, data exposure - and returns an OWASP/CWE punch-list that routes to the domain implementers to fix and the verifier to confirm. It complements <code>/security-review</code> (diff/PR-scoped) and the <code>security-guidance</code> commit hook by being the deep, posture-scoped, routed audit; it finds and reports, never writes the fix. Claude-only.</li>
-        <li><b>Verified</b> - <code>npm run lint</code> clean, all 28 frontmatters valid, 4-way parity held.</li>
+        <li><b>DevOps vertical added - roster 28 &rarr; 31.</b> A sixth per-domain stack: <code>devops-solution-designer</code> (opus/xhigh, read-only) settles the container build, CI job graph, deploy/release strategy and secret seam, then decomposes into parallel tasks; <code>devops-implementer</code> (sonnet/medium) writes the Dockerfiles, GitHub Actions workflows, and deploy pipelines and validates them locally (docker build, actionlint, dotnet build); <code>devops-verifier</code> (sonnet/xhigh, read-only) gates reproducible digest-pinned builds, secret hygiene, safe migration-in-deploy, and non-root healthy containers. Backed by a new house <code>devops</code> skill; <code>domain-build</code> gained the sixth vertical. No new MCP - the seats never open PRs. Claude-only.</li>
+        <li><b>Verified</b> - <code>npm run lint</code> clean, all 31 frontmatters valid, 4-way parity held.</li>
       </ul>
     </div>
   </section>
 
   <footer>
     <span>envoydev/agents-stack · roster built</span>
-    <span>5 domains · 15 seats · 8 cross-cutting · 4 resolvers · 1 gatherer · 28 total</span>
+    <span>6 domains · 18 seats · 8 cross-cutting · 4 resolvers · 1 gatherer · 31 total</span>
   </footer>
 
 </div>

@@ -189,7 +189,7 @@ else {
 # MANIFEST - edit these, then run.
 # ===========================================================================
 
-# (1) Skills "repo|skill" (comment a line to skip). Full inventory - every skill (75).
+# (1) Skills "repo|skill" (comment a line to skip). Full inventory - every skill (76).
 $Skills = @(
   # Personal (envoydev/agents-stack)
   'envoydev/agents-stack|create-ticket'             # ticket generator (bug/story/epic/task) - tracker-agnostic EN Markdown, routes to references/<type>.md
@@ -198,6 +198,7 @@ $Skills = @(
   'envoydev/agents-stack|project-quality-loop'             # autonomous review-and-fix loop pipeline over a loops/ folder of numbered prompts
   'envoydev/agents-stack|project-scaffold' # greenfield scaffolding + design->scaffold->slice-by-slice build orchestration over the pipeline
   'envoydev/agents-stack|domain-build'     # domain-build orchestration - designer decomposes, implementers fan out, verifier gates
+  'envoydev/agents-stack|devops'           # DevOps for the .NET/Angular house: Docker multi-stage/digest-pinned/non-root, GitHub Actions CI/CD, safe expand-contract deploys, secrets/OIDC, Aspire AppHost
   'envoydev/agents-stack|database-conventions' # cross-engine DB conventions + per-engine skill routing
   'envoydev/agents-stack|data-security'    # SQL/data-layer security: parameterized-only injection, least-privilege DB accounts, row-level security, connection-string secrets, encryption, audit
   'envoydev/agents-stack|typescript'       # framework-agnostic TS/JS baseline (strict typing, modules, async, JS+JSDoc)
@@ -401,7 +402,7 @@ $Agents = @(
   'cross-stack-contract-designer.md' # analysis phase (opus/xhigh): read-only - freezes the shared backend/frontend contract before the per-stack designers
   'framework-upgrade-planner.md'     # analysis phase (opus/xhigh): read-only - turns a version/deprecation event into an ordered, contracted upgrade plan
   'security-auditor.md'              # analysis phase (opus/xhigh): read-only cross-stack security posture audit - OWASP/CWE punch-list routed to implementers, complements /security-review
-  # Per-domain specialist team (5 stacks x designer/implementer/verifier) + architect analysis agents above; model/effort pinned in frontmatter
+  # Per-domain specialist team (6 stacks x designer/implementer/verifier) + architect analysis agents above; model/effort pinned in frontmatter
   'aspnet-solution-designer.md'      # design phase (opus/xhigh): ASP.NET Core architecture + plan + test strategy, decomposes into parallel tasks
   'aspnet-implementer.md'            # build phase (sonnet/medium): builds one ASP.NET task - code + tests
   'aspnet-verifier.md'               # verify phase (sonnet/xhigh): gates the ASP.NET build vs plan + quality, punch-list back
@@ -417,6 +418,9 @@ $Agents = @(
   'data-solution-designer.md'        # design phase (opus/xhigh): schema/data-model architecture + plan + test strategy, decomposes
   'data-implementer.md'              # build phase (sonnet/medium): builds one data task - SQL + migration tests
   'data-verifier.md'                 # verify phase (sonnet/xhigh): gates the data build vs plan + quality
+  'devops-solution-designer.md'      # design phase (opus/xhigh): Docker/CI/CD/deploy architecture + plan + validation strategy, decomposes
+  'devops-implementer.md'            # build phase (sonnet/medium): builds one devops task - Dockerfile/workflow/deploy + local validation
+  'devops-verifier.md'               # verify phase (sonnet/xhigh): gates the devops build vs plan + quality
 )
 
 # (6) Path-scoped rules (claude-code): fetched into .claude/rules/ on BOTH actions - lazy-load on
