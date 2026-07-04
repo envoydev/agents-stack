@@ -399,10 +399,10 @@ $Agents = @(
   'ng-build-error-resolver.md'       # implement phase (sonnet/high): ng build -> minimal fix loop (serena/LSP), capped
   'angular-test-resolver.md'         # implement phase (sonnet/high): ng test/Jest -> red->green repair loop, anti-reward-hacking, capped
   'architecture-analyzer.md'         # analysis phase (opus/xhigh): read-only system-level structure map + change-fit verdict
-  'task-analyzer.md'                 # analysis phase (opus/xhigh): read-only deep task analysis - impact, coupling, open questions
-  'ci-failure-diagnoser.md'          # analysis phase (opus/xhigh): read-only CI red-run diagnosis via gh - categorize, local repro, route
+  'task-analyzer.md'                 # analysis phase (opus/high): read-only deep task analysis - impact, coupling, open questions
+  'ci-failure-diagnoser.md'          # analysis phase (opus/high): read-only CI red-run diagnosis via gh - categorize, local repro, route
   'issue-diagnoser.md'               # analysis phase (opus/xhigh): read-only bug diagnosis from logs/errors/screenshots - root cause + route, no fix
-  'evidence-gatherer.md'             # diagnosis support (sonnet/medium): read-only - a diagnoser dispatches it to reproduce/confirm and return a compact digest, keeping log volume off the opus seat
+  'evidence-gatherer.md'             # diagnosis support (sonnet/low): read-only - a diagnoser dispatches it to reproduce/confirm and return a compact digest, keeping log volume off the opus seat
   'greenfield-solution-designer.md'  # analysis phase (opus/xhigh): read-only greenfield design - architecture/stack/structure options from a spec
   'cross-stack-contract-designer.md' # analysis phase (opus/xhigh): read-only - freezes the shared backend/frontend contract before the per-stack designers
   'framework-upgrade-planner.md'     # analysis phase (opus/xhigh): read-only - turns a version/deprecation event into an ordered, contracted upgrade plan

@@ -1,131 +1,682 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <title>Skills inventory</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <style>
-    :root {
-      --bg: #0f1216;
-      --panel: #161b22;
-      --panel-2: #1c2230;
-      --text: #e6edf3;
-      --muted: #8b949e;
-      --border: #30363d;
-      --accent: #2f81f7;
-    }
-    @media (prefers-color-scheme: light) {
-      :root {
-        --bg: #ffffff;
-        --panel: #f6f8fa;
-        --panel-2: #eaeef2;
-        --text: #1f2328;
-        --muted: #57606a;
-        --border: #d0d7de;
-        --accent: #0969da;
-      }
-    }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      padding: 24px;
-      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", "Segoe UI", system-ui, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      line-height: 1.45;
-    }
-    h1 { margin: 0 0 4px 0; font-size: 22px; }
-    h2 {
-      margin: 28px 0 10px 0;
-      font-size: 15px;
-      text-transform: uppercase;
-      letter-spacing: 0.6px;
-      color: var(--accent);
-      border-bottom: 1px solid var(--border);
-      padding-bottom: 6px;
-    }
-    .sub { color: var(--muted); font-size: 13px; margin-bottom: 18px; }
-    .counts {
-      display: flex;
-      gap: 18px;
-      flex-wrap: wrap;
-      margin-bottom: 18px;
-      padding: 12px 16px;
-      background: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      font-size: 13px;
-    }
-    .counts strong { color: var(--accent); }
-    .controls {
-      display: flex;
-      gap: 12px;
-      align-items: center;
-      margin-bottom: 14px;
-      flex-wrap: wrap;
-    }
-    input[type=search] {
-      flex: 1;
-      min-width: 220px;
-      padding: 8px 12px;
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      background: var(--panel);
-      color: var(--text);
-      font-size: 14px;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 13.5px;
-      background: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      overflow: hidden;
-    }
-    thead { background: var(--panel-2); }
-    th, td {
-      padding: 10px 14px;
-      text-align: left;
-      border-bottom: 1px solid var(--border);
-      vertical-align: top;
-    }
-    th { font-weight: 600; font-size: 12.5px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; }
-    tbody tr:last-child td { border-bottom: none; }
-    tbody tr:hover { background: var(--panel-2); }
-    code, .name { font-family: "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace; font-size: 13px; }
-    .name { color: var(--text); font-weight: 600; }
-    .src { color: var(--muted); font-size: 12.5px; }
-    .src a { color: var(--accent); text-decoration: none; }
-    .src a:hover { text-decoration: underline; }
-    .desc { color: var(--text); }
-    footer { color: var(--muted); font-size: 12px; margin-top: 18px; }
-    .group-meta { color: var(--muted); font-size: 12px; margin-bottom: 8px; }
-  </style>
+<meta charset="utf-8">
+<title>Claude stack - agent roster + inventory</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root {
+    --ground: #131519;
+    --panel: #191C22;
+    --panel-2: #20242D;
+    --line: #2B313C;
+    --line-soft: #23272F;
+    --ink: #E9EBF0;
+    --muted: #99A1B0;
+    --faint: #69707E;
+    --brass: #D8A85B;      /* accent + architect tier */
+    --design: #67AABB;     /* domain design tier */
+    --build: #8FB18C;      /* domain build tier */
+    --qa: #A896CC;         /* verify */
+    --repair: #CB855F;     /* repair / ops */
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --mono: "SF Mono", "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background:
+      radial-gradient(1100px 620px at 82% -8%, rgba(216,168,91,0.07), transparent 60%),
+      var(--ground);
+    color: var(--ink);
+    font-family: var(--sans);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: none; margin: 0; padding: 40px clamp(20px, 3.5vw, 60px) 84px; }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 12px; letter-spacing: 0.22em; text-transform: uppercase;
+    color: var(--brass); margin: 0 0 18px;
+  }
+  h1 {
+    font-size: clamp(30px, 5.4vw, 52px);
+    line-height: 1.03; letter-spacing: -0.025em; font-weight: 800;
+    margin: 0 0 16px; text-wrap: balance;
+  }
+  h1 .q { color: var(--brass); }
+  .lede { font-size: 17px; color: var(--muted); margin: 0 0 28px; }
+  .lede b { color: var(--ink); font-weight: 600; }
+  .stat-row {
+    display: flex; flex-wrap: wrap; gap: 10px 12px;
+    border-top: 1px solid var(--line); padding-top: 20px;
+  }
+  .stat {
+    display: flex; align-items: baseline; gap: 8px;
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: 8px; padding: 9px 13px;
+  }
+  .stat b {
+    font-family: var(--mono); font-variant-numeric: tabular-nums;
+    font-size: 18px; font-weight: 700; color: var(--ink);
+  }
+  .stat b.up { color: var(--build); }
+  .stat b.down { color: var(--repair); }
+  .stat span { font-size: 12.5px; color: var(--muted); }
+
+  /* ---- domain flow ---- */
+  .flow { margin-top: 34px; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 20px 22px; }
+  .flow .cap { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--faint); margin-bottom: 16px; }
+  .flow-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .node {
+    display: flex; flex-direction: column; gap: 3px; padding: 10px 13px;
+    background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px;
+    border-left: 3px solid var(--nc, var(--brass));
+  }
+  .node .nn { font-family: var(--mono); font-size: 12.5px; font-weight: 700; color: var(--ink); }
+  .node .nd { font-size: 11px; color: var(--faint); }
+  .node.design { --nc: var(--design); }
+  .node.build { --nc: var(--build); }
+  .node.verify { --nc: var(--qa); }
+  .node.diagnose { --nc: var(--repair); }
+  .node.sm { padding: 6px 10px; }
+  .node.sm .nn { font-size: 11.5px; font-weight: 600; }
+  .fan { display: flex; flex-direction: column; gap: 6px; }
+  .fan-label { font-family: var(--mono); font-size: 10px; letter-spacing: 0.03em; color: var(--build); }
+  .fan-nodes { display: flex; flex-direction: column; gap: 5px; padding-left: 12px; border-left: 1px dashed var(--build); }
+  .arrow { color: var(--faint); font-family: var(--mono); font-size: 16px; }
+  .loopback { margin-top: 15px; padding-top: 13px; border-top: 1px solid var(--line-soft); font-size: 12px; color: var(--muted); font-family: var(--mono); }
+  .loopback .dash { color: var(--qa); }
+
+  section { margin-top: 56px; }
+  .sec-head { display: flex; align-items: baseline; gap: 14px; margin-bottom: 6px; }
+  .sec-num { font-family: var(--mono); font-size: 12px; color: var(--faint); letter-spacing: 0.1em; }
+  h2 { font-size: 21px; font-weight: 700; letter-spacing: -0.01em; margin: 0; text-wrap: balance; }
+  .sec-sub { color: var(--muted); font-size: 14.5px; margin: 6px 0 26px; }
+  .sec-sub b { color: var(--ink); font-weight: 600; }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-bottom: 24px; }
+  .key { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--muted); }
+  .swatch { width: 11px; height: 11px; border-radius: 3px; flex: none; }
+  .key .solid { width: 22px; height: 15px; border-radius: 4px; border: 1px solid var(--line); background: var(--panel-2); }
+
+  .matrix-scroll { overflow-x: auto; padding-bottom: 6px; }
+  .matrix { min-width: 880px; display: flex; flex-direction: column; gap: 14px; }
+  .band { display: grid; grid-template-columns: 138px 1fr; gap: 14px; align-items: stretch; }
+  .tier-label {
+    display: flex; flex-direction: column; justify-content: center; gap: 3px;
+    padding: 12px 14px; border-radius: 10px;
+    background: var(--panel); border: 1px solid var(--line);
+    border-left: 3px solid var(--tier, var(--brass));
+  }
+  .tier-label .t { font-family: var(--mono); font-size: 12.5px; font-weight: 700; letter-spacing: 0.03em; color: var(--ink); text-transform: uppercase; }
+  .tier-label .d { font-size: 11.5px; color: var(--faint); line-height: 1.35; }
+
+  .spanning {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+    padding: 12px; display: flex; flex-wrap: wrap; gap: 8px; align-content: center;
+  }
+  .cols { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; }
+  .col-heads { display: grid; grid-template-columns: 138px 1fr; gap: 14px; margin-bottom: 2px; }
+  .col-heads .heads { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; }
+  .dom {
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.02em; color: var(--muted);
+    text-align: center; padding: 2px 4px 8px; border-bottom: 1px solid var(--line-soft);
+  }
+  .dom b { display: block; color: var(--ink); font-size: 12px; font-weight: 700; }
+  .cell {
+    background: var(--panel); border: 1px solid var(--line-soft); border-radius: 10px;
+    padding: 10px; min-height: 62px; display: flex; flex-direction: column; gap: 7px;
+  }
+
+  .agent {
+    display: block; font-family: var(--mono); font-size: 12px; line-height: 1.3;
+    padding: 7px 9px; border-radius: 7px; border: 1px solid var(--line);
+    background: var(--panel-2); color: var(--ink);
+  }
+  .agent .role { display: block; font-size: 10px; color: var(--faint); margin-top: 2px; font-weight: 600; letter-spacing: 0.03em; }
+  .agent.arch { border-color: rgba(216,168,91,0.45); }
+  .agent.qa .role { color: var(--qa); }
+  .agent.repair .role { color: var(--repair); }
+  .agent.arch .role { color: var(--brass); }
+  .agent.design .role { color: var(--design); }
+  .agent.build .role { color: var(--build); }
+  .mdl {
+    display: inline-block; margin-top: 5px;
+    font-family: var(--mono); font-size: 9px; letter-spacing: 0.03em; font-weight: 600;
+    padding: 1px 6px; border-radius: 5px;
+    border: 1px solid var(--line); background: var(--panel); color: var(--muted);
+  }
+  .mdl.opus { color: var(--brass); border-color: rgba(216,168,91,0.42); background: rgba(216,168,91,0.06); }
+  .mdl.sonnet { color: var(--muted); }
+
+  .grid-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 16px; }
+  .card {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
+    padding: 18px 18px 16px; display: flex; flex-direction: column; gap: 13px;
+    border-top: 2px solid var(--card, var(--brass));
+  }
+  .card-head { display: flex; flex-direction: column; gap: 4px; }
+  .card-head .kicker { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--faint); }
+  .card-head h3 { margin: 0; font-size: 17px; font-weight: 700; letter-spacing: -0.01em; }
+  .card-head .seat { font-family: var(--mono); font-size: 11.5px; color: var(--muted); line-height: 1.5; }
+  .card-head .seat b { color: var(--card, var(--brass)); font-weight: 600; }
+
+  .row { display: flex; flex-direction: column; gap: 6px; }
+  .row .rl { font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--faint); }
+  .chips { display: flex; flex-wrap: wrap; gap: 5px; }
+  .chip {
+    font-family: var(--mono); font-size: 11px; padding: 3px 7px; border-radius: 6px;
+    background: var(--panel-2); border: 1px solid var(--line-soft); color: var(--muted);
+  }
+  .chip.lang { color: var(--ink); border-color: var(--line); }
+  .row.tests .rl { color: var(--build); }
+  .chip.test { color: var(--build); border-color: rgba(143,177,140,0.28); }
+  .serve { margin-top: 2px; padding-top: 12px; border-top: 1px solid var(--line-soft); display: flex; flex-wrap: wrap; gap: 5px; }
+  .chip.mcp { color: var(--design); border-color: rgba(103,170,187,0.3); }
+  .chip.plugin { color: var(--build); border-color: rgba(143,177,140,0.3); }
+
+  .note {
+    margin-top: 12px;
+    background: linear-gradient(180deg, rgba(216,168,91,0.06), transparent);
+    border: 1px solid var(--line); border-left: 3px solid var(--brass);
+    border-radius: 12px; padding: 20px 22px;
+  }
+  .note h3 { margin: 0 0 10px; font-size: 15px; }
+  .note ul { margin: 0; padding-left: 18px; color: var(--muted); font-size: 14px; list-style: none; }
+  .note ul li { margin-bottom: 9px; position: relative; padding-left: 18px; }
+  .note ul li::before { content: "→"; position: absolute; left: 0; color: var(--brass); }
+  .note ul li b { color: var(--ink); font-weight: 600; }
+  .note .open { color: var(--brass); font-weight: 600; }
+  .note code { font-family: var(--mono); font-size: 12.5px; color: #c7cdd8; }
+
+  footer {
+    margin-top: 54px; padding-top: 20px; border-top: 1px solid var(--line);
+    color: var(--faint); font-size: 12px; font-family: var(--mono);
+    display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px;
+  }
+  a { color: var(--brass); }
+  @media (max-width: 640px) {
+    .wrap { padding: 28px 16px 56px; }
+    .band, .col-heads { grid-template-columns: 1fr; }
+    .col-heads .heads { display: none; }
+  }
+
+
+  /* ---- folded-in stack inventory (the browser from claude-stack.html) ---- */
+  .counts { display: flex; gap: 12px 22px; flex-wrap: wrap; margin: 6px 0 16px; padding: 13px 16px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; font-size: 13px; font-family: var(--mono); }
+  .counts div { color: var(--muted); }
+  .counts strong { color: var(--brass); font-variant-numeric: tabular-nums; font-weight: 700; }
+  .controls { display: flex; gap: 12px; margin-bottom: 18px; }
+  input[type=search] { flex: 1; min-width: 220px; padding: 10px 14px; border: 1px solid var(--line); border-radius: 9px; background: var(--panel-2); color: var(--ink); font-size: 14px; font-family: var(--sans); }
+  input[type=search]::placeholder { color: var(--faint); }
+  input[type=search]:focus { outline: none; border-color: var(--brass); }
+  #content h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--brass); border: 0; border-bottom: 1px solid var(--line); padding: 0 0 7px; margin: 30px 0 4px; font-weight: 700; }
+  #content h2 .src { color: var(--faint); font-weight: 400; }
+  .group-meta { color: var(--muted); font-size: 12.5px; margin-bottom: 10px; line-height: 1.5; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; margin-bottom: 6px; }
+  thead { background: var(--panel-2); }
+  th, td { padding: 9px 13px; text-align: left; border-bottom: 1px solid var(--line-soft); vertical-align: top; }
+  th { font-weight: 600; font-size: 11px; color: var(--faint); text-transform: uppercase; letter-spacing: 0.05em; font-family: var(--mono); }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: var(--panel-2); }
+  .name { font-family: var(--mono); font-size: 12px; color: var(--ink); font-weight: 600; }
+  td code { font-family: var(--mono); font-size: 11.5px; color: #c7cdd8; }
+  .src { color: var(--muted); font-size: 12px; }
+  td a { color: var(--brass); text-decoration: none; }
+  td a:hover { text-decoration: underline; }
+  .desc { color: var(--muted); }
+  .inv-sources { color: var(--faint); font-size: 12px; margin-top: 18px; font-family: var(--mono); line-height: 1.6; }
+  .inv-sources code { color: var(--muted); }
+</style>
 </head>
 <body>
-  <h1>Skills inventory</h1>
+<div class="wrap">
 
-  <div class="counts">
-    <div><strong id="c-total">140</strong> total</div>
-    <div><strong id="c-bi">14</strong> built-in</div>
-    <div><strong id="c-personal">37</strong> personal</div>
-    <div><strong id="c-plugins">19</strong> plugins</div>
-    <div><strong id="c-repo">35</strong> repository</div>
-    <div><strong id="c-other">35</strong> tools / MCP</div>
-    <div><strong id="c-hooks">3</strong> hooks</div>
+  <p class="eyebrow">envoydev/agents-stack · Claude Code stack reference</p>
+  <h1>Everything the stack installs<span class="q">.</span><br>The agents, and every tool behind them.</h1>
+  <p class="lede">
+    One place to find it all. The <b>agent roster</b> maps the specialist team - what each seat does,
+    and how a solution designer, several implementers and a verifier take a feature from plan to
+    verified. Below it, the <b>full inventory</b> lists everything else the installer lays down - every
+    skill, MCP server, subagent, plugin, hook and path-scoped rule - searchable, each with how it's
+    installed. Look here for any agent or tool in the stack: what it is, what it does, and how it gets
+    there.
+  </p>
+  <div class="stat-row">
+    <div class="stat"><b>31</b><span>subagents</span></div>
+    <div class="stat"><b>41</b><span>house skills</span></div>
+    <div class="stat"><b>7</b><span>MCP servers</span></div>
+    <div class="stat"><b>8</b><span>plugins</span></div>
+    <div class="stat"><b>3</b><span>hooks</span></div>
+    <div class="stat"><b>8</b><span>rules</span></div>
+    <div class="stat"><b>6</b><span>domains</span></div>
   </div>
 
-  <div class="controls">
-    <input type="search" id="q" placeholder="Filter by name, source, or description...">
+  <div class="flow">
+    <div class="cap">How one domain runs - a feature or a bug fix</div>
+    <div class="flow-row" style="flex-wrap:nowrap; overflow-x:auto; padding-bottom:4px">
+      <div class="fan">
+        <span class="fan-label">the plan comes from one of two</span>
+        <div class="fan-nodes">
+          <span class="node design sm"><span class="nn">solution-designer</span><span class="nd">a feature &rarr; tasks + contracts</span></span>
+          <div style="display:flex; align-items:center; gap:7px; flex-wrap:nowrap">
+            <span class="node diagnose sm"><span class="nn">issue-diagnoser</span><span class="nd">a bug &rarr; a decomposed fix plan</span></span>
+            <span class="arrow" style="font-size:15px" title="issue-diagnoser dispatches a gather-task; evidence-gatherer returns quoted digests">&#8644;</span>
+            <span class="node diagnose sm"><span class="nn">evidence-gatherer &times;N</span></span>
+          </div>
+        </div>
+      </div>
+      <span class="arrow">&rarr;</span>
+      <div class="fan">
+        <span class="fan-label">implementers &middot; in parallel &middot; one task each</span>
+        <div class="fan-nodes">
+          <span class="node build sm"><span class="nn">implementer &middot; task A</span></span>
+          <span class="node build sm"><span class="nn">implementer &middot; task B</span></span>
+          <span class="node build sm"><span class="nn">implementer &middot; task C</span></span>
+        </div>
+      </div>
+      <span class="arrow">&rarr;</span>
+      <div class="node verify">
+        <span class="nn">verifier</span>
+        <span class="nd">once all parts land: vs plan + code quality</span>
+      </div>
+    </div>
+    <div class="loopback"><span class="dash">&larr; &middot;&middot;&middot;&middot;&middot;&middot;&middot;&middot;&middot;</span> &nbsp;gaps return to the implementers as a punch-list, and re-verify, until the verifier signs off. The main session runs the fan-out - the vertical's seats never dispatch agents; the two diagnosers are the one exception, each dispatching a read-only evidence-gatherer.</div>
   </div>
 
-  <div id="content"></div>
+  <!-- ===================== TEAM MATRIX ===================== -->
+  <section>
+    <div class="sec-head"><span class="sec-num">01</span><h2>The team</h2></div>
+    <p class="sec-sub">
+      Role down the side, domain across the top. The <b>architect</b> and <b>ops</b>
+      rows span every stack; the <b>design</b>, <b>build</b> and <b>verify</b> rows get one seat per
+      domain.
+    </p>
+
+    <div class="legend">
+      <span class="key"><span class="swatch" style="background:var(--brass)"></span> architect</span>
+      <span class="key"><span class="swatch" style="background:var(--design)"></span> solution design</span>
+      <span class="key"><span class="swatch" style="background:var(--build)"></span> implementation</span>
+      <span class="key"><span class="swatch" style="background:var(--qa)"></span> verify</span>
+      <span class="key"><span class="swatch" style="background:var(--repair)"></span> repair / ops</span>
+    </div>
+
+    <div class="matrix-scroll">
+      <div class="matrix">
+
+        <!-- Architect band -->
+        <div class="band">
+          <div class="tier-label" style="--tier:var(--brass)">
+            <span class="t">Architect</span>
+            <span class="d">scopes + directs the whole project</span>
+          </div>
+          <div class="spanning">
+            <span class="agent arch">architecture-analyzer<span class="role">maps an existing system</span><span class="mdl opus">opus · xhigh</span></span>
+            <span class="agent arch">greenfield-solution-designer<span class="role">designs a new one</span><span class="mdl opus">opus · xhigh</span></span>
+            <span class="agent arch">task-analyzer<span class="role">scopes the problem</span><span class="mdl opus">opus · high</span></span>
+            <span class="agent arch">cross-stack-contract-designer<span class="role">freezes the full-stack contract</span><span class="mdl opus">opus · xhigh</span></span>
+            <span class="agent arch">framework-upgrade-planner<span class="role">plans a version upgrade</span><span class="mdl opus">opus · xhigh</span></span>
+          </div>
+        </div>
+
+        <!-- column headings -->
+        <div class="col-heads">
+          <div></div>
+          <div class="heads">
+            <div class="dom">ASP.NET Core<b>Backend · API</b></div>
+            <div class="dom">WPF<b>Desktop</b></div>
+            <div class="dom">Angular<b>Web</b></div>
+            <div class="dom">Ionic<b>Mobile</b></div>
+            <div class="dom">SQL<b>Data</b></div>
+            <div class="dom">Docker<b>DevOps</b></div>
+          </div>
+        </div>
+
+        <!-- Design row -->
+        <div class="band">
+          <div class="tier-label" style="--tier:var(--design)">
+            <span class="t">Solution design</span>
+            <span class="d">best practice · plan · test strategy · splits the work</span>
+          </div>
+          <div class="cols">
+            <div class="cell"><span class="agent design">aspnet-solution-designer<span class="role">clean-arch · API shape · auth</span><span class="mdl opus">opus · xhigh</span></span></div>
+            <div class="cell"><span class="agent design">wpf-solution-designer<span class="role">strict MVVM · view composition</span><span class="mdl opus">opus · xhigh</span></span></div>
+            <div class="cell"><span class="agent design">angular-solution-designer<span class="role">components · state · routing</span><span class="mdl opus">opus · xhigh</span></span></div>
+            <div class="cell"><span class="agent design">mobile-solution-designer<span class="role">shell · native bridge · release</span><span class="mdl opus">opus · xhigh</span></span></div>
+            <div class="cell"><span class="agent design">data-solution-designer<span class="role">schema · model · perf</span><span class="mdl opus">opus · xhigh</span></span></div>
+            <div class="cell"><span class="agent design">devops-solution-designer<span class="role">containers · CI/CD · deploy</span><span class="mdl opus">opus · xhigh</span></span></div>
+          </div>
+        </div>
+
+        <!-- Build row -->
+        <div class="band">
+          <div class="tier-label" style="--tier:var(--build)">
+            <span class="t">Implementation</span>
+            <span class="d">several in parallel, one task each; code + tests</span>
+          </div>
+          <div class="cols">
+            <div class="cell"><span class="agent build">aspnet-implementer<span class="role">C# + xUnit / integration</span><span class="mdl sonnet">sonnet · medium</span></span></div>
+            <div class="cell"><span class="agent build">wpf-implementer<span class="role">XAML + VM unit tests</span><span class="mdl sonnet">sonnet · medium</span></span></div>
+            <div class="cell"><span class="agent build">angular-implementer<span class="role">TS + Jest / TestBed</span><span class="mdl sonnet">sonnet · medium</span></span></div>
+            <div class="cell"><span class="agent build">mobile-implementer<span class="role">Ionic + Appium E2E</span><span class="mdl sonnet">sonnet · medium</span></span></div>
+            <div class="cell"><span class="agent build">data-implementer<span class="role">SQL + migration tests</span><span class="mdl sonnet">sonnet · medium</span></span></div>
+            <div class="cell"><span class="agent build">devops-implementer<span class="role">Docker + Actions + deploy</span><span class="mdl sonnet">sonnet · medium</span></span></div>
+          </div>
+        </div>
+
+        <!-- Verify row (per-domain) -->
+        <div class="band">
+          <div class="tier-label" style="--tier:var(--qa)">
+            <span class="t">Verify</span>
+            <span class="d">once all parts land: vs plan + quality, loops back</span>
+          </div>
+          <div class="cols">
+            <div class="cell"><span class="agent qa">aspnet-verifier<span class="role">vs clean-arch + async</span><span class="mdl sonnet">sonnet · xhigh</span></span></div>
+            <div class="cell"><span class="agent qa">wpf-verifier<span class="role">vs MVVM + bindings</span><span class="mdl sonnet">sonnet · xhigh</span></span></div>
+            <div class="cell"><span class="agent qa">angular-verifier<span class="role">vs signals / OnPush / a11y</span><span class="mdl sonnet">sonnet · xhigh</span></span></div>
+            <div class="cell"><span class="agent qa">mobile-verifier<span class="role">vs native + platform parity</span><span class="mdl sonnet">sonnet · xhigh</span></span></div>
+            <div class="cell"><span class="agent qa">data-verifier<span class="role">vs schema + query safety</span><span class="mdl sonnet">sonnet · xhigh</span></span></div>
+            <div class="cell"><span class="agent qa">devops-verifier<span class="role">vs pinned builds + secrets</span><span class="mdl sonnet">sonnet · xhigh</span></span></div>
+          </div>
+        </div>
+
+        <!-- Repair row -->
+        <div class="band">
+          <div class="tier-label" style="--tier:var(--repair)">
+            <span class="t">Repair</span>
+            <span class="d">bounded fix loops, already per-domain</span>
+          </div>
+          <div class="cols">
+            <div class="cell" style="grid-column: span 2">
+              <span class="agent repair">dotnet-build-error-resolver<span class="role">build · ASP.NET + WPF (XAML compiles through dotnet)</span><span class="mdl sonnet">sonnet · high</span></span>
+              <span class="agent repair">dotnet-test-failure-resolver<span class="role">tests · ASP.NET + WPF</span><span class="mdl sonnet">sonnet · high</span></span>
+            </div>
+            <div class="cell" style="grid-column: span 2">
+              <span class="agent repair">ng-build-error-resolver<span class="role">build · Angular + Ionic (ionic wraps ng build)</span><span class="mdl sonnet">sonnet · high</span></span>
+              <span class="agent repair">angular-test-resolver<span class="role">tests · Angular + Ionic</span><span class="mdl sonnet">sonnet · high</span></span>
+            </div>
+            <div class="cell"><span class="agent repair" style="opacity:.48">-<span class="role">no compile loop</span></span></div>
+            <div class="cell"><span class="agent repair" style="opacity:.48">-<span class="role">no compile loop</span></span></div>
+          </div>
+        </div>
+
+        <!-- Diagnose band -->
+        <div class="band">
+          <div class="tier-label" style="--tier:var(--repair)">
+            <span class="t">Diagnose</span>
+            <span class="d">find the cause, route the fix</span>
+          </div>
+          <div class="spanning">
+            <span class="agent repair">ci-failure-diagnoser<span class="role">reads red pipelines via gh</span><span class="mdl opus">opus · high</span></span>
+            <span class="agent repair">issue-diagnoser<span class="role">reads logs / errors / screenshots, plans the fix</span><span class="mdl opus">opus · xhigh</span></span>
+            <span class="agent repair">security-auditor<span class="role">audits the security posture, routes an OWASP/CWE punch-list</span><span class="mdl opus">opus · xhigh</span></span>
+            <span class="agent repair">evidence-gatherer<span class="role">the diagnosers' cheap hands · repro + log pulls</span><span class="mdl sonnet">sonnet · low</span></span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== DOMAIN GROUPING ===================== -->
+  <section>
+    <div class="sec-head"><span class="sec-num">02</span><h2>The areas each seat owns</h2></div>
+    <p class="sec-sub">
+      The installed inventory, regrouped by the <b>six domains</b> each vertical owns. Each domain
+      inherits a <b>language</b> tier, a <b>framework</b> tier, its own <b>tests</b> (owned by the
+      implementer), and the plugins, MCPs and rules that serve it. Shared services at the end belong
+      to no single seat.
+    </p>
+
+    <div class="grid-cards">
+
+      <!-- Backend -->
+      <div class="card" style="--card:var(--design)">
+        <div class="card-head">
+          <span class="kicker">Domain 01 · C#</span>
+          <h3>ASP.NET Core Backend &amp; API</h3>
+          <span class="seat">designed by <b>aspnet-solution-designer</b><br>built by <b>aspnet-implementer</b><br>verified by <b>aspnet-verifier</b></span>
+        </div>
+        <div class="row"><span class="rl">Language</span><div class="chips">
+          <span class="chip lang">csharp</span><span class="chip">csharp-design-patterns</span>
+          <span class="chip">csharp-concurrency-patterns</span><span class="chip">dependency-injection-patterns</span>
+          <span class="chip">type-design-performance</span><span class="chip">serialization</span>
+          <span class="chip">dotnet-source-generators</span>
+        </div></div>
+        <div class="row"><span class="rl">Framework</span><div class="chips">
+          <span class="chip">dotnet-web-backend</span><span class="chip">dotnet-minimal-api</span>
+          <span class="chip">dotnet-mvc-controllers</span><span class="chip">dotnet-openapi</span>
+          <span class="chip">dotnet-grpc</span><span class="chip">dotnet-realtime</span>
+          <span class="chip">dotnet-messaging</span><span class="chip">dotnet-aspire</span>
+          <span class="chip">dotnet-hosted-services</span><span class="chip">dotnet-authentication</span>
+          <span class="chip">dotnet-error-handling</span><span class="chip">api-design</span>
+        </div></div>
+        <div class="row"><span class="rl">Architecture</span><div class="chips">
+          <span class="chip">clean-architecture</span><span class="chip">ddd</span>
+          <span class="chip">vertical-slice-architecture</span><span class="chip">dotnet-project-structure</span>
+        </div></div>
+        <div class="row tests"><span class="rl">Tests · owned here</span><div class="chips">
+          <span class="chip test">dotnet-testing</span><span class="chip test">dotnet-architecture-tests</span>
+          <span class="chip test">testcontainers-integration-tests</span><span class="chip test">aspire-integration-testing</span>
+          <span class="chip test">snapshot-testing</span>
+        </div></div>
+        <div class="serve">
+          <span class="chip plugin">csharp-lsp</span><span class="chip">dotnet · router</span>
+          <span class="chip">dotnet-security</span><span class="chip">dotnet-cryptography</span>
+          <span class="chip">dump-collect</span><span class="chip">OpenTelemetry</span>
+        </div>
+      </div>
+
+      <!-- Angular web -->
+      <div class="card" style="--card:var(--design)">
+        <div class="card-head">
+          <span class="kicker">Domain 02 · TypeScript</span>
+          <h3>Angular Web</h3>
+          <span class="seat">designed by <b>angular-solution-designer</b><br>built by <b>angular-implementer</b><br>verified by <b>angular-verifier</b></span>
+        </div>
+        <div class="row"><span class="rl">Language</span><div class="chips"><span class="chip lang">typescript</span></div></div>
+        <div class="row"><span class="rl">Framework</span><div class="chips">
+          <span class="chip">angular-conventions</span><span class="chip">angular-material</span>
+          <span class="chip">angular-styling</span><span class="chip">angular-security</span><span class="chip">frontend · router</span>
+        </div></div>
+        <div class="row tests"><span class="rl">Tests · owned here</span><div class="chips">
+          <span class="chip test">Jest / Karma</span><span class="chip test">TestBed</span>
+          <span class="chip test">CDK harnesses</span><span class="chip test">HttpTestingController</span>
+        </div></div>
+        <div class="serve">
+          <span class="chip plugin">typescript-lsp</span><span class="chip plugin">frontend-design</span>
+          <span class="chip mcp">angular-cli</span><span class="chip mcp">playwright</span>
+          <span class="chip mcp">chrome-devtools</span><span class="chip">scss rule</span>
+        </div>
+      </div>
+
+      <!-- WPF -->
+      <div class="card" style="--card:var(--design)">
+        <div class="card-head">
+          <span class="kicker">Domain 03 · C#</span>
+          <h3>WPF Desktop</h3>
+          <span class="seat">designed by <b>wpf-solution-designer</b><br>built by <b>wpf-implementer</b><br>verified by <b>wpf-verifier</b></span>
+        </div>
+        <div class="row"><span class="rl">Language</span><div class="chips">
+          <span class="chip lang">csharp</span><span class="chip">r3-reactive-extensions</span>
+        </div></div>
+        <div class="row"><span class="rl">Framework</span><div class="chips">
+          <span class="chip">dotnet-wpf</span><span class="chip">strict MVVM</span>
+          <span class="chip">dotnet-hosted-services · companion Windows Service</span>
+        </div></div>
+        <div class="row tests"><span class="rl">Tests · owned here</span><div class="chips">
+          <span class="chip test">xUnit · ViewModels only</span><span class="chip test">INotifyPropertyChanged / commands</span>
+        </div></div>
+        <div class="serve">
+          <span class="chip plugin">csharp-lsp</span><span class="chip">xaml rule</span>
+          <span class="chip">wpf-conventions rule</span><span class="chip">dump-collect</span>
+        </div>
+      </div>
+
+      <!-- Mobile -->
+      <div class="card" style="--card:var(--design)">
+        <div class="card-head">
+          <span class="kicker">Domain 04 · TypeScript</span>
+          <h3>Ionic / Capacitor Mobile</h3>
+          <span class="seat">designed by <b>mobile-solution-designer</b><br>built by <b>mobile-implementer</b><br>verified by <b>mobile-verifier</b></span>
+        </div>
+        <div class="row"><span class="rl">Base</span><div class="chips">
+          <span class="chip lang">typescript</span><span class="chip">angular-conventions</span>
+        </div></div>
+        <div class="row"><span class="rl">Framework</span><div class="chips">
+          <span class="chip">ionic</span><span class="chip">mobile · router</span>
+          <span class="chip">ionic-angular</span><span class="chip">capacitor-angular</span>
+          <span class="chip">capacitor-plugins</span><span class="chip">capacitor-release</span><span class="chip">mobile-security</span>
+        </div></div>
+        <div class="row tests"><span class="rl">Tests · owned here</span><div class="chips">
+          <span class="chip test">Jest · specs</span><span class="chip test">Appium · native E2E</span>
+        </div></div>
+        <div class="serve">
+          <span class="chip mcp">appium-mcp</span><span class="chip">shares the Angular web tier</span>
+        </div>
+      </div>
+
+      <!-- Data -->
+      <div class="card" style="--card:var(--design)">
+        <div class="card-head">
+          <span class="kicker">Domain 05 · SQL</span>
+          <h3>Data &amp; Persistence</h3>
+          <span class="seat">designed by <b>data-solution-designer</b><br>built by <b>data-implementer</b><br>verified by <b>data-verifier</b></span>
+        </div>
+        <div class="row"><span class="rl">Conventions</span><div class="chips">
+          <span class="chip lang">database-conventions</span><span class="chip">efcore-patterns</span><span class="chip">data-security</span>
+        </div></div>
+        <div class="row"><span class="rl">Performance</span><div class="chips">
+          <span class="chip">database-performance</span><span class="chip">index-strategies</span>
+          <span class="chip">query-optimization</span>
+        </div></div>
+        <div class="row"><span class="rl">Engine</span><div class="chips">
+          <span class="chip">tsql-functions · SQL Server</span><span class="chip">supabase-postgres-best-practices</span>
+        </div></div>
+        <div class="row tests"><span class="rl">Tests · owned here</span><div class="chips">
+          <span class="chip test">Testcontainers · real engine</span><span class="chip test">migration tests</span>
+        </div></div>
+        <div class="serve">
+          <span class="chip">dotnet-migrate</span><span class="chip">shares C# with the backend seat</span>
+        </div>
+      </div>
+
+      <!-- DevOps -->
+      <div class="card" style="--card:var(--design)">
+        <div class="card-head">
+          <span class="kicker">Domain 06 · Docker</span>
+          <h3>DevOps &amp; Delivery</h3>
+          <span class="seat">designed by <b>devops-solution-designer</b><br>built by <b>devops-implementer</b><br>verified by <b>devops-verifier</b></span>
+        </div>
+        <div class="row"><span class="rl">Conventions</span><div class="chips">
+          <span class="chip lang">devops</span>
+        </div></div>
+        <div class="row"><span class="rl">Containers &amp; CI/CD</span><div class="chips">
+          <span class="chip">docker-platform-guide</span><span class="chip">docker-security-guide</span>
+          <span class="chip">multi-stage / digest-pinned / non-root</span><span class="chip">GitHub Actions graph</span>
+        </div></div>
+        <div class="row"><span class="rl">Deploy &amp; release</span><div class="chips">
+          <span class="chip">expand-contract migrations</span><span class="chip">health-gated blue-green / rolling</span>
+          <span class="chip">OIDC secrets</span><span class="chip">dotnet-aspire · AppHost</span>
+        </div></div>
+        <div class="row tests"><span class="rl">Validation · owned here</span><div class="chips">
+          <span class="chip test">docker build</span><span class="chip test">actionlint</span>
+        </div></div>
+        <div class="serve">
+          <span class="chip">devops-conventions rule</span><span class="chip">shares the C# / Angular build tiers</span>
+        </div>
+      </div>
+
+      <!-- Shared services -->
+      <div class="card" style="--card:var(--faint)">
+        <div class="card-head">
+          <span class="kicker">Belongs to no seat</span>
+          <h3>Shared services</h3>
+          <span class="seat" style="color:var(--muted)">every agent draws on these</span>
+        </div>
+        <div class="row"><span class="rl">Navigation</span><div class="chips">
+          <span class="chip mcp">serena</span><span class="chip mcp">context7</span><span class="chip mcp">memory</span>
+        </div></div>
+        <div class="row"><span class="rl">Quality &amp; security</span><div class="chips">
+          <span class="chip">project-quality-loop</span><span class="chip">dotnet-code-quality</span>
+          <span class="chip">crap-analysis</span><span class="chip plugin">security-guidance</span>
+          <span class="chip">ponytail</span>
+        </div></div>
+        <div class="row"><span class="rl">Process</span><div class="chips">
+          <span class="chip">project-scaffold</span><span class="chip">git-master</span>
+          <span class="chip">create-ticket</span><span class="chip">markdown-style</span>
+          <span class="chip">superpowers · plan/TDD/debug/verify/finish</span>
+        </div></div>
+        <div class="serve">
+          <span class="chip">guard-read-whole-file</span><span class="chip">guard-protected-force-push</span>
+          <span class="chip">guard-catastrophic-rm</span>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ===================== SCOPE ===================== -->
+  <section>
+    <div class="sec-head"><span class="sec-num">03</span><h2>Built</h2></div>
+    <div class="note">
+      <h3>Settled</h3>
+      <ul>
+        <li><b>Per-domain vertical, fanned out.</b> The designer decomposes the work into parallel tasks with contracts; several implementer instances build them at once; the verifier gates the assembled whole and loops a punch-list back. Five stack-agnostic pipeline agents dissolve into it; the fan-out is main-session orchestrated (a domain-build skill); the vertical's seats never dispatch agents. The sole nested dispatch in the roster is the two diagnosers calling a cheap read-only <code>evidence-gatherer</code> to keep log volume off the opus seat.</li>
+        <li><b>No rank words.</b> Seats are named <span style="font-family:var(--mono)">&lt;domain&gt;-solution-designer</span>, <span style="font-family:var(--mono)">&lt;domain&gt;-implementer</span> and <span style="font-family:var(--mono)">&lt;domain&gt;-verifier</span> - stack + function, no senior / middle.</li>
+        <li><b>Pins.</b> Designers Opus 4.8 / xhigh (top-level design judgment); verifiers Sonnet 5 / xhigh (an independent gate at full effort); implementers Sonnet 5 / medium (build to the contract).</li>
+        <li><b>Skills rewired.</b> <code>project-scaffold</code> and <code>project-quality-loop</code> were repointed off the retired agents onto the domain seats and <code>domain-build</code>.</li>
+      </ul>
+      <h3 style="margin-top:16px">Shipped this session</h3>
+      <ul>
+        <li><b>Fifteen seats + the <code>domain-build</code> skill created</b>; the five generic agents (<code>implementation-planner</code>, <code>test-planner</code>, <code>code-implementer</code>, <code>test-writer</code>, <code>change-verifier</code>) retired into them.</li>
+        <li><span class="open">Plus a cross-cutting <code>issue-diagnoser</code></span> - the debugger, and the bug-side counterpart of a solution designer. It reads logs, errors and screenshots, isolates the root cause, and lays out a decomposed fix plan that feeds the same implementers &rarr; verifier loop. It plans; it never writes the fix. Roster is now 24.</li>
+        <li><b>Agents hardened, skills enriched.</b> The four resolvers and <code>ci-failure-diagnoser</code> now run the superpowers <code>systematic-debugging</code> method; implementers report a <code>DONE / DONE_WITH_CONCERNS / NEEDS_CONTEXT / BLOCKED</code> status and <code>domain-build</code> gained a compaction-safe progress ledger + per-task diff review (from <code>subagent-driven-development</code>). Seven best-practice field guides were distilled into nine house skills (29 additions, private names scrubbed), and the WPF seats now reach <code>dotnet-hosted-services</code> for a companion Windows Service.</li>
+        <li><b>Two cross-cutting seats added - roster 24 &rarr; 26.</b> <code>cross-stack-contract-designer</code> (opus/xhigh, read-only) freezes the shared backend&harr;frontend contract - DTOs, routes, error envelope, auth, pagination, versioning - before the per-stack designers, so a full-stack feature builds to one agreed seam instead of drifting into a runtime bug. <code>framework-upgrade-planner</code> (opus/xhigh, read-only) turns a version/deprecation event - a .NET or Angular major, an EOL - into an ordered, contracted upgrade plan the implementers and resolvers execute. Both fill gaps the adversarial roster audit confirmed no existing seat covered.</li>
+        <li><b>Cross-cutting <code>security-auditor</code> added - roster 27 &rarr; 28.</b> A read-only, opus/xhigh security seat that audits the posture of a feature or codebase across all five stacks - auth, authorization, input/injection, secrets, config, data exposure - and returns an OWASP/CWE punch-list that routes to the domain implementers to fix and the verifier to confirm. It complements <code>/security-review</code> (diff/PR-scoped) and the <code>security-guidance</code> commit hook by being the deep, posture-scoped, routed audit; it finds and reports, never writes the fix. Claude-only.</li>
+        <li><b>DevOps vertical added - roster 28 &rarr; 31.</b> A sixth per-domain stack: <code>devops-solution-designer</code> (opus/xhigh, read-only) settles the container build, CI job graph, deploy/release strategy and secret seam, then decomposes into parallel tasks; <code>devops-implementer</code> (sonnet/medium) writes the Dockerfiles, GitHub Actions workflows, and deploy pipelines and validates them locally (docker build, actionlint, dotnet build); <code>devops-verifier</code> (sonnet/xhigh, read-only) gates reproducible digest-pinned builds, secret hygiene, safe migration-in-deploy, and non-root healthy containers. Backed by a new house <code>devops</code> skill; <code>domain-build</code> gained the sixth vertical. No new MCP - the seats never open PRs. Claude-only.</li>
+        <li><b>Verified</b> - <code>npm run lint</code> clean, all 31 frontmatters valid, 4-way parity held.</li>
+      </ul>
+    </div>
+  </section>
+
+  
+
+  <!-- ===================== FULL INVENTORY (folded in from claude-stack.html) ===================== -->
+  <section>
+    <div class="sec-head"><span class="sec-num">04</span><h2>The full inventory</h2></div>
+    <p class="sec-sub">
+      Everything the installer lays down, live-filterable: <b>skills</b> (built-in, personal, plugin, repository), the <b>tools / MCP servers</b> and stack subagents, the <b>hooks</b>, and the path-scoped <b>rules</b>. Type to filter across name, source, and description.
+    </p>
+
+    <div class="counts">
+      <div><strong id="c-total">140</strong> total</div>
+      <div><strong id="c-bi">14</strong> built-in</div>
+      <div><strong id="c-personal">37</strong> personal</div>
+      <div><strong id="c-plugins">19</strong> plugins</div>
+      <div><strong id="c-repo">35</strong> repository</div>
+      <div><strong id="c-other">35</strong> tools / MCP</div>
+      <div><strong id="c-hooks">3</strong> hooks</div>
+    </div>
+
+    <div class="controls">
+      <input type="search" id="q" placeholder="Filter by name, source, or description...">
+    </div>
+
+    <div id="content"></div>
+
+    <div class="inv-sources">
+      Sources: <code>built-in</code> ships with Claude Code CLI &middot; <code>personal</code> published to <code>envoydev/agents-stack</code>, installed via <code>npx skills add envoydev/agents-stack</code> &middot; <code>plugins</code> installed via <code>/plugin install &lt;name&gt;@&lt;marketplace&gt;</code> &middot; <code>repository</code> installed via <code>npx skills add &lt;owner/repo&gt;</code>.
+    </div>
+  </section>
 
   <footer>
-    Sources: <code>built-in</code> ships with Claude Code CLI · <code>personal</code> published to <code>envoydev/agents-stack</code>, installed via <code>npx skills add envoydev/agents-stack</code> · <code>plugins</code> installed via <code>/plugin install &lt;name&gt;@&lt;marketplace&gt;</code> · <code>repository</code> installed via <code>npx skills add &lt;owner/repo&gt;</code>.
+    <span>envoydev/agents-stack &middot; agent roster + full stack inventory</span>
+    <span>6 domains &middot; 18 seats &middot; 8 cross-cutting &middot; 4 resolvers &middot; 1 gatherer &middot; 31 total</span>
   </footer>
-
+</div>
 <script>
 // rows: [name, description]
 const builtin = {
@@ -412,10 +963,10 @@ const otherTools = [
   ["ng-build-error-resolver", "subagent", "Frontend / build", "fetched into .claude/agents/", "https://github.com/envoydev/agents-stack", "Autonomous ng build fix loop: parse TS/template/bundler errors, locate via serena, apply the minimal correct edit, rebuild until clean (5-cycle cap). Refuses to weaken types (any / @ts-ignore), disable lint, or stub logic. Obeys angular-conventions + typescript. Pinned sonnet/high."],
   ["angular-test-resolver", "subagent", "Frontend / test", "fetched into .claude/agents/", "https://github.com/envoydev/agents-stack", "Autonomous ng test / Jest red->green loop: fix the real defect (component vs spec), never xit/skip/weaken a spec or fake timing (5-cycle cap). Pairs after the ng build resolver. Pinned sonnet/high."],
   ["architecture-analyzer", "subagent", "Analysis / architecture", "fetched into .claude/agents/", "https://github.com/envoydev/agents-stack", "Read-only system-level analysis: maps the layers, boundaries, dependency directions, and patterns of the area a change touches, then verdicts the fit (extend / refactor first / isolate). Best before the domain solution-designer on work that crosses modules. Pinned opus/xhigh."],
-  ["task-analyzer", "subagent", "Analysis / task", "fetched into .claude/agents/", "https://github.com/envoydev/agents-stack", "Read-only deep task analysis: the affected code located by symbol, hidden coupling, edge cases, and the open questions ranked by plan impact. Feeds the domain solution-designer. Pinned opus/xhigh. First delegation on a nontrivial feature/bug."],
-  ["ci-failure-diagnoser", "subagent", "CI / diagnosis", "fetched into .claude/agents/", "https://github.com/envoydev/agents-stack", "Read-only CI red-run diagnosis: pulls the failing run logs via the gh CLI (gh pr checks, gh run view --log-failed), categorizes each failure (build/test/lint/workflow/signing/environment/flake), attempts one local repro where an equivalent exists, and routes to the matching resolver or domain verifier. Pinned opus/xhigh."],
+  ["task-analyzer", "subagent", "Analysis / task", "fetched into .claude/agents/", "https://github.com/envoydev/agents-stack", "Read-only deep task analysis: the affected code located by symbol, hidden coupling, edge cases, and the open questions ranked by plan impact. Feeds the domain solution-designer. Pinned opus/high. First delegation on a nontrivial feature/bug."],
+  ["ci-failure-diagnoser", "subagent", "CI / diagnosis", "fetched into .claude/agents/", "https://github.com/envoydev/agents-stack", "Read-only CI red-run diagnosis: pulls the failing run logs via the gh CLI (gh pr checks, gh run view --log-failed), categorizes each failure (build/test/lint/workflow/signing/environment/flake), attempts one local repro where an equivalent exists, and routes to the matching resolver or domain verifier. Pinned opus/high."],
   ["issue-diagnoser", "subagent", "Diagnosis / bug", "fetched into .claude/agents/", "https://github.com/envoydev/agents-stack", "Read-only bug diagnosis: reads the evidence (a stack trace, a log excerpt, an error message, or a screenshot of a crash / broken UI), reproduces the failure where possible, isolates the root cause to a file and symbol, and routes it to the matching domain implementer or a resolver - never fixes what it finds. Pinned opus/xhigh."],
-  ["evidence-gatherer", "subagent", "Diagnosis / support", "fetched into .claude/agents/", "https://github.com/envoydev/agents-stack", "Read-only gather-task runner a diagnoser dispatches: reproduces a failure, pulls a run log via gh, greps to the failing frames, or locates a symbol, then returns a compact quoted digest - keeping the raw log volume off the opus diagnoser. Never diagnoses or fixes. Pinned sonnet/medium."],
+  ["evidence-gatherer", "subagent", "Diagnosis / support", "fetched into .claude/agents/", "https://github.com/envoydev/agents-stack", "Read-only gather-task runner a diagnoser dispatches: reproduces a failure, pulls a run log via gh, greps to the failing frames, or locates a symbol, then returns a compact quoted digest - keeping the raw log volume off the opus diagnoser. Never diagnoses or fixes. Pinned sonnet/low."],
   ["greenfield-solution-designer", "subagent", "Greenfield / design", "fetched into .claude/agents/", "https://github.com/envoydev/agents-stack", "Read-only greenfield design pass: turns a spec into concrete architecture options - stack fit, architecture style (clean / vertical-slice / minimal-API / strict-MVVM), project structure, and the first vertical slice to build. Best as the first delegation on a new project; feeds project-scaffold, which then runs domain-build per slice. Pinned opus/xhigh."],
   ["security-auditor", "subagent", "Security / audit", "fetched into .claude/agents/", "https://github.com/envoydev/agents-stack", "Read-only cross-stack security posture audit: sweeps auth, authorization, input/injection, secrets, config, and data exposure across ASP.NET/Angular/WPF/mobile/SQL, proves each finding against the code, and returns an OWASP/CWE punch-list routed to the domain implementers to fix and the verifier to confirm. Complements /security-review (diff/PR-scoped) and the security-guidance commit hook; finds and reports, never fixes. Pinned opus/xhigh."],
   // Per-domain specialist team (6 stacks x solution-designer/implementer/verifier), dispatched by the domain-build skill:
@@ -451,12 +1002,31 @@ const otherTools = [
 ];
 
 function renderOther(filtered) {
-  let html = `<h2>Other tools / MCP servers</h2><div class="group-meta">Non-skill capabilities: plugins that expose only agents/LSPs/commands, plus top-level MCP servers configured in <code>~/.claude/.claude.json</code>. ${filtered.length} entries.</div>`;
-  html += `<table><thead><tr><th style="width:16%">Name</th><th style="width:12%">Type</th><th style="width:14%">Area</th><th style="width:22%">Install</th><th style="width:18%">Source</th><th>Description</th></tr></thead><tbody>`;
-  for (const [name, type, area, install, url, desc] of filtered) {
-    html += `<tr><td><span class="name">${name}</span></td><td><code>${type}</code></td><td><code>${area}</code></td><td><code>${install}</code></td><td><a href="${url}" target="_blank" rel="noopener">${url}</a></td><td class="desc">${desc}</td></tr>`;
+  // Split the non-skill capabilities by type into sub-groups.
+  const bucketOf = type =>
+    type === "subagent"            ? "agents"  :
+    type.startsWith("MCP server")  ? "mcps"    :
+    type.startsWith("plugin")      ? "plugins" : "tools";
+  const groups = {
+    agents:  { title: "Subagents",   meta: "Stack-native Claude subagents fetched into <code>.claude/agents/</code>, all model/effort-pinned. Not skills.", rows: [] },
+    mcps:    { title: "MCP servers", meta: "Top-level MCP servers, wired per project into the repo's <code>.mcp.json</code>.", rows: [] },
+    plugins: { title: "Plugins",     meta: "Installed via <code>/plugin install &lt;name&gt;@&lt;marketplace&gt;</code>; expose LSPs, hooks, or commands rather than skills.", rows: [] },
+    tools:   { title: "Other tools", meta: "Non-skill capabilities that fit none of the above.", rows: [] },
+  };
+  for (const row of filtered) groups[bucketOf(row[1])].rows.push(row);
+
+  let html = `<h2>Other tools / MCP servers</h2><div class="group-meta">Non-skill capabilities, split by type - subagents, MCP servers, and plugins. ${filtered.length} entries.</div>`;
+  for (const key of ["agents", "mcps", "plugins", "tools"]) {
+    const g = groups[key];
+    if (!g.rows.length) continue;
+    html += `<h2 style="font-size:13px;margin-top:18px">${g.title} <span class="src" style="font-weight:400">(${g.rows.length})</span></h2>`;
+    html += `<div class="group-meta">${g.meta}</div>`;
+    html += `<table><thead><tr><th style="width:16%">Name</th><th style="width:12%">Type</th><th style="width:14%">Area</th><th style="width:22%">Install</th><th style="width:18%">Source</th><th>Description</th></tr></thead><tbody>`;
+    for (const [name, type, area, install, url, desc] of g.rows) {
+      html += `<tr><td><span class="name">${name}</span></td><td><code>${type}</code></td><td><code>${area}</code></td><td><code>${install}</code></td><td><a href="${url}" target="_blank" rel="noopener">${url}</a></td><td class="desc">${desc}</td></tr>`;
+    }
+    html += `</tbody></table>`;
   }
-  html += `</tbody></table>`;
   return html;
 }
 

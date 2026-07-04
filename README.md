@@ -123,7 +123,7 @@ npx skills remove      # uninstall skills
 
 ```text
 skills/                 # the personal skills - one <skill-name>/SKILL.md per skill (some carry a references/ subfolder)
-claude/                 # Claude Code stack: claude-stack.{sh,ps1,html}, agent-team.html, CLAUDE.template.md, hooks/, agents/, rules/
+claude/                 # Claude Code stack: claude-stack.{sh,ps1,html} (agent roster viz + full inventory), CLAUDE.template.md, hooks/, agents/, rules/
 cursor/                 # Cursor stack: cursor-stack.{sh,ps1,html}, AGENTS.template.md, hooks/, rules/, agents/
 scripts/lint-skills.js  # repo lint (keeps skills / manifests / HTML in sync)
 ```
