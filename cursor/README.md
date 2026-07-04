@@ -127,23 +127,25 @@ profile). `CLAUDE_CONFIG_DIR` is **not** used - Cursor resolves everything under
 
 ## How to run
 
-The only positional argument is the **action** (`install` | `update`, default `install`).
+The **action** (`install` | `update`) is **required**; every other argument is optional with a default.
 
 ```bash
 cd /path/to/your/project        # run inside the target project
 bash cursor-stack.sh install
 bash cursor-stack.sh update
 
-# Optional extras (args 2+, any order): separate work memory DB, install gh
-bash cursor-stack.sh install work
+# Optional extras (args 2+, any order): a space (separate memory DB), install gh, context7 transport
+bash cursor-stack.sh install work            # space 'work' -> memory_work.db
 bash cursor-stack.sh install github-cli
+bash cursor-stack.sh install context7-local  # local npx context7 (default: remote hosted server)
 ```
 
 ```powershell
 Set-Location C:\path\to\your\project
 pwsh cursor-stack.ps1 install
-pwsh cursor-stack.ps1 install work          # work memory profile (positional)
+pwsh cursor-stack.ps1 install work          # space 'work' -> memory_work.db (positional)
 pwsh cursor-stack.ps1 install -GitHubCli    # install gh (switch)
+pwsh cursor-stack.ps1 install -Context7 local  # local npx context7 (default: remote)
 ```
 
 > On Windows PowerShell 5.1 use `powershell` instead of `pwsh`. If scripts are blocked, run once:
@@ -157,7 +159,7 @@ For Cursor, **`install` and `update` are effectively the same**: a clean skill r
 ## Memory database
 
 Cursor and Claude Code share **`~/.memory-mcp`** so both see the same DB: default `memory.db`, or
-`memory_work.db` with the **`work`** extra. The path is resolved at install time and baked into
+`memory_<space>.db` with a **space** (e.g. `work`). The path is resolved at install time and baked into
 `.cursor/mcp.json`.
 
 ---

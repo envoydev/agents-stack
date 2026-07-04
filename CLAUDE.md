@@ -101,8 +101,9 @@ because the platforms differ:
 - **serena isolates, the `memory` MCP shares** - granularity follows each tool's scope. Three
   stores, don't conflate: the file-based auto-memory (`MEMORY.md` + `memory/*.md`, harness-injected);
   serena's per-project memories (under `.serena/home`); the `memory` MCP (one SQLite DB under
-  `$HOME`, shared across projects *and* accounts - that's the point; `MemoryProfile=work` →
-  `memory_work.db` for a work/personal split; narrow to a single product only by overriding
+  `$HOME`, shared across projects *and* accounts - that's the point; a space arg (any word, e.g.
+  `work`) → `memory_<space>.db` for a per-space (work/personal) split - and on Claude the same space
+  also selects the `~/.claude-<space>` account; narrow to a single product only by overriding
   `MCP_MEMORY_SQLITE_PATH`).
 - **Never `Read` a whole file to find a symbol** - the hard rule shipped to both stacks: locate via
   serena (`find_symbol` / `find_referencing_symbols`) or the LSP; `Read` is for code already located.

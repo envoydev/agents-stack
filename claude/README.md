@@ -90,10 +90,19 @@ SCOPE=global bash claude-stack.sh install            # macOS/Linux
 $env:SCOPE = 'global'; pwsh claude-stack.ps1 install # Windows
 ```
 
-### `CLAUDE_CONFIG_DIR` - which Claude account
+### The `space` argument / `CLAUDE_CONFIG_DIR` - which Claude account
 
-Used **only for path resolution** (e.g. the memory DB), never exported to any CLI. Unset → the
-default account, resolving config paths to `~/.claude`. Set it to target a specific account:
+Pass a **space** (any word) as the optional positional arg and the installer targets the
+`~/.claude-<space>` account - it exports `CLAUDE_CONFIG_DIR` so the `claude` CLI installs
+skills/plugins/MCPs there - and uses a separate `memory_<space>.db`:
+
+```bash
+bash claude-stack.sh install work        # -> ~/.claude-work account + memory_work.db
+bash claude-stack.sh install clientx     # -> ~/.claude-clientx + memory_clientx.db
+```
+
+Without a space, the default `~/.claude` account is used. To target a specific account **manually**
+(no space), set `CLAUDE_CONFIG_DIR` yourself - used only for path resolution, never exported:
 
 ```bash
 export CLAUDE_CONFIG_DIR="$HOME/.claude-work"          # macOS/Linux
@@ -121,25 +130,27 @@ No other API keys are required by any component.
 
 ## How to run
 
-The only positional argument is the **action** (`install` | `update`, default `install`).
+The **action** (`install` | `update`) is **required**; every other argument is optional with a default.
 
 ```bash
 cd /path/to/your/project        # run inside the target project
 bash claude-stack.sh install
 bash claude-stack.sh update
 
-# Optional extras (args 2+, any order): separate work memory DB, install gh
-bash claude-stack.sh install work
+# Optional extras (args 2+, any order): a space (account + memory DB), install gh, context7 transport
+bash claude-stack.sh install work            # space 'work' -> ~/.claude-work account + memory_work.db
 bash claude-stack.sh install github-cli
 bash claude-stack.sh install work github-cli
+bash claude-stack.sh install context7-local  # local npx context7 (default: remote hosted server)
 ```
 
 ```powershell
 Set-Location C:\path\to\your\project
 pwsh claude-stack.ps1 install
 pwsh claude-stack.ps1 update
-pwsh claude-stack.ps1 install work          # work memory profile (positional)
+pwsh claude-stack.ps1 install work          # space 'work' -> ~/.claude-work + memory_work.db (positional)
 pwsh claude-stack.ps1 install -GitHubCli    # install gh (switch)
+pwsh claude-stack.ps1 install -Context7 local  # local npx context7 (default: remote)
 ```
 
 > On Windows PowerShell 5.1 use `powershell` instead of `pwsh`. If scripts are blocked, run once:
@@ -149,8 +160,8 @@ pwsh claude-stack.ps1 install -GitHubCli    # install gh (switch)
 
 | Position / flag | Values | Meaning |
 | --------------- | ------ | ------- |
-| 1 - **action** | `install` \| `update` (default `install`) | `install` adds everything (idempotent - existing items skipped, MCP versions frozen). `update` brings everything to latest (clean re-add of skills, plugin/MCP refresh, re-fetch hook files). |
-| extra - **work** | bash: `work` positional · PS: `work` as `MemoryProfile` | Use a **separate** work memory DB (`memory_work.db`) instead of the shared one. |
+| 1 - **action** | `install` \| `update` (required) | `install` adds everything (idempotent - existing items skipped, MCP versions frozen). `update` brings everything to latest (clean re-add of skills, plugin/MCP refresh, re-fetch hook files). |
+| extra - **space** | bash: any word positional · PS: any word as `Space` positional | Selects the Claude account `~/.claude-<space>` (skills/plugins/MCPs install there) and a separate `memory_<space>.db`. Omit for `~/.claude` + shared `memory.db`. |
 | extra - **github-cli** | bash: `github-cli` positional · PS: `-GitHubCli` switch | Install the GitHub CLI (`gh`) if missing. No auth during install; run `gh auth login` once before first GitHub platform use. |
 | env - **SCOPE** | `project` (default) \| `global` | See table above. |
 
@@ -174,7 +185,7 @@ pwsh claude-stack.ps1 install -GitHubCli    # install gh (switch)
 Claude Code and Cursor share **`~/.memory-mcp`** so both see the same DB:
 
 - default: `memory.db` (`sqlite_vec` backend),
-- with the **`work`** extra: `memory_work.db` - a separate work DB (same `sqlite_vec` backend, different path).
+- with a **space** (e.g. `work`): `memory_<space>.db` - a separate per-space DB (same `sqlite_vec` backend, different path).
 
 The path is resolved at install time, so the choice is baked into the registration.
 

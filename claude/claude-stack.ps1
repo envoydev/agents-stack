@@ -1,43 +1,70 @@
 #Requires -Version 5.1
 <#
-  claude-stack.ps1 [install|update] [work] [github-cli] - install/update the CLAUDE CODE stack FOR A PROJECT (Windows/PowerShell).
+.SYNOPSIS
+  Install or update the Claude Code stack (skills, plugins, MCPs, hooks, agents, rules) into a project.
 
-  PowerShell port of claude-stack.sh: every skill / plugin / MCP from
-  claude-stack.html (the complete toolset, not a curated subset), installed INTO a
-  project. Built-in/system CLI skills are excluded (they ship with the CLI). Cursor lives in cursor-stack.ps1.
+.DESCRIPTION
+  PowerShell port of claude-stack.sh: every skill / plugin / MCP from claude-stack.html (the complete
+  toolset, not a curated subset), installed INTO a project. Built-in/system CLI skills are excluded
+  (they ship with the CLI). Requires the `claude` CLI; claude-only steps fail soft if it is absent.
+  Cursor lives in cursor-stack.ps1.
 
-  Usage (Windows PowerShell 5.1 or PowerShell 7+), run inside the target project:
-    pwsh claude-stack.ps1 install   # install for Claude Code
-    pwsh claude-stack.ps1 update    # update Claude Code (skills + plugins + mcp + hooks)
+  Windows differences vs claude-stack.sh: hook .js files are invoked via `node` (no shebang/exec bit);
+  settings.json is merged natively (ConvertFrom/To-Json), no python dependency; MCP arg strings stay
+  LITERAL (${CLAUDE_PROJECT_DIR:-.} / ${CLAUDE_CONFIG_DIR}) so Claude Code interpolates them at launch.
 
-  Provisions Claude Code: skills --agent claude-code; plugins; MCPs via `claude mcp add`; hooks +
-  settings.json. Requires the `claude` CLI; claude-only steps fail soft if it is absent.
+.PARAMETER Action
+  REQUIRED. 'install' = first-time provision; MCP/plugin versions freeze until the next update; wires
+  .claude/settings.json. 'update' = re-resolve every runtime to latest + refresh hooks/agents/rules;
+  leaves settings.json untouched.
 
-  Optional extras: MemoryProfile 'work' -> separate work memory DB (memory_work.db),
-  omit for the default shared DB; -GitHubCli -> install gh via winget if missing. Both agents share
-  ~/.memory-mcp so Claude Code and Cursor see the same DB. e.g.: .\claude-stack.ps1 install work -GitHubCli
+.PARAMETER Space
+  Any word -> install into the ~/.claude-<Space> account (CLAUDE_CONFIG_DIR is exported for the claude
+  CLI) and use a separate memory_<Space>.db. Omit for the default ~/.claude account + shared memory.db.
 
-  Scope (default PROJECT - installs the full set INTO this repo; $env:SCOPE = 'global' to
-  install it into the active account instead):
-    project -> skills project-scoped, plugins/mcps --scope project
-    global  -> skills -g, plugins/mcps --scope user
+.PARAMETER Context7
+  context7 transport: 'remote' (default) = the hosted HTTP server, no local process; 'local' = the
+  local npx stdio server.
 
-  Windows differences vs claude-stack.sh:
-    - hook .js files are invoked via `node` (Windows has no shebang / exec bit) - see Set-HookSettings.
-    - settings.json is merged natively (ConvertFrom/To-Json), no python dependency.
-    - claude-code keeps MCP arg strings LITERAL (${CLAUDE_PROJECT_DIR:-.} / ${CLAUDE_CONFIG_DIR}) so
-      Claude Code interpolates them at launch.
+.PARAMETER GitHubCli
+  Install the GitHub CLI (gh) via winget if missing. Reminds you to run `gh auth login` when unauthenticated.
+
+.NOTES
+  Environment variables (not parameters):
+    SCOPE=project|global  project (default) installs INTO this repo; global installs into the account.
+    CLAUDE_CONFIG_DIR     target a specific account when no -Space is given (default ~/.claude).
+    CONTEXT7_API_KEY      context7 API key; add it to settings.json 'env' for higher rate limits.
+    CONTEXT7_BAKE_KEY     with -Context7 local, bake CONTEXT7_API_KEY into the registration (keep .mcp.json uncommitted).
+
+  On Windows PowerShell 5.1 use `powershell` instead of `pwsh`. If scripts are blocked, run once:
+  Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass.
+
+.EXAMPLE
+  .\claude-stack.ps1 install
+  Install the full stack into the current project (default account, project scope).
+
+.EXAMPLE
+  .\claude-stack.ps1 install work -GitHubCli
+  Install into the ~/.claude-work account (+ memory_work.db) and install the GitHub CLI.
+
+.EXAMPLE
+  $env:SCOPE = 'global'; .\claude-stack.ps1 update
+  Update everything to latest in the global (~/.claude) account.
 #>
 [CmdletBinding()]
 param(
-  [Parameter(Position = 0)]
+  # REQUIRED main action.
+  [Parameter(Mandatory = $true, Position = 0)]
   [ValidateSet('install', 'update')]
-  [string]$Action = 'install',
-  # Optional memory profile. 'work' -> separate work DB (memory_work.db).
-  # Omit for the default shared DB.
+  [string]$Action,
+  # Optional space (any word): selects the Claude account ~/.claude-<Space> (skills/plugins/MCPs
+  # install there) AND a separate memory DB (memory_<Space>.db). Omit for the default account + shared DB.
   [Parameter(Position = 1)]
-  [ValidateSet('', 'work')]
-  [string]$MemoryProfile = '',
+  [string]$Space = '',
+  # Optional: context7 transport. 'remote' (default) = hosted HTTP server, no local process;
+  # 'local' = the local npx stdio server. e.g.: .\claude-stack.ps1 install -Context7 local
+  [ValidateSet('remote', 'local')]
+  [string]$Context7 = 'remote',
   # Optional: install the GitHub CLI (gh) via winget if missing; prompts for `gh auth login`
   # when unauthenticated. e.g.: .\claude-stack.ps1 install -GitHubCli
   [switch]$GitHubCli
@@ -49,7 +76,26 @@ if (Get-Variable -Name PSNativeCommandUseErrorActionPreference -ErrorAction Sile
   $PSNativeCommandUseErrorActionPreference = $false
 }
 
+# A space is any word but becomes part of a path (~/.claude-<Space>, memory_<Space>.db) - validate it.
+if ($Space -and $Space -notmatch '^[A-Za-z0-9][A-Za-z0-9._-]*$') {
+  Write-Host "space name '$Space' must start alphanumeric and contain only [A-Za-z0-9._-]" -ForegroundColor Red
+  exit 1
+}
+
+# These are bash positional flag-words; on Windows they are switches, so a positional here is a mistake.
+switch ($Space) {
+  'github-cli'      { Write-Host "'github-cli' is a Windows flag, not a space name - use -GitHubCli instead." -ForegroundColor Red; exit 1 }
+  'context7-local'  { Write-Host "'context7-local' is a Windows flag - use -Context7 local instead." -ForegroundColor Red; exit 1 }
+  'context7-remote' { Write-Host "'context7-remote' is a Windows flag - use -Context7 remote instead." -ForegroundColor Red; exit 1 }
+}
+
 function Log([string]$Message) { Write-Host "==> $Message" -ForegroundColor Blue }
+
+# Run-outcome tracking for the honest end-of-run summary.
+$script:FailCount     = 0        # item install/add failures (skills / plugins / mcps)
+$script:ClaudeMissing = $false   # claude CLI absent -> plugins / MCPs / settings.json wiring skipped
+$script:PrereqMissing = $false   # a hard prerequisite (uvx / python3 / node) was missing
+function Add-Failure([string]$Message) { $script:FailCount++; Write-Host "  !! $Message" -ForegroundColor Red }
 
 function Write-JsonFile([object]$Data, [string]$Path, [int]$Depth = 20) {
   # PowerShell's ConvertTo-Json indents inconsistently and version-dependently (5.1 = 4-space
@@ -156,7 +202,15 @@ function Test-Prerequisites {
     Write-Host '  !! typescript-language-server not found - the typescript-lsp plugin needs it (TS/JS work).' -ForegroundColor Yellow
     Write-Host '     Install: npm i -g typescript-language-server typescript.' -ForegroundColor Yellow
   }
-  if (-not $ok) { Write-Host '  Install the missing tools above, then re-run.' -ForegroundColor Yellow }
+  # claude CLI: the core dependency for plugins, MCPs, and settings.json wiring. Absent -> those steps
+  # are skipped (fail-soft); flag it upfront so the user can fix PATH before the long skill install runs.
+  if (Get-Command claude -ErrorAction SilentlyContinue) { Write-Host "  claude: $((Get-Command claude).Source)" -ForegroundColor Green }
+  else {
+    Write-Host '  !! claude CLI not found - plugins, MCPs, and settings.json wiring will be SKIPPED.' -ForegroundColor Red
+    Write-Host '     Install: https://docs.claude.com/claude-code (then re-run to add plugins/MCPs).' -ForegroundColor Yellow
+    $script:ClaudeMissing = $true
+  }
+  if (-not $ok) { $script:PrereqMissing = $true; Write-Host '  Install the missing tools above, then re-run.' -ForegroundColor Yellow }
 }
 
 $Scope = if ($env:SCOPE) { $env:SCOPE } else { 'project' }
@@ -164,11 +218,28 @@ $Scope = if ($env:SCOPE) { $env:SCOPE } else { 'project' }
 # This script provisions the Claude Code agent. (Cursor lives in cursor-stack.ps1.)
 $Agent = 'claude-code'
 
-# $ConfigDir is for path resolution only (e.g. the memory MCP db) - never exported to any CLI:
-# CLAUDE_CONFIG_DIR (a specific account, e.g. ...\.claude-work) or the ~/.claude default.
-$ConfigDir = if ($env:CLAUDE_CONFIG_DIR) { $env:CLAUDE_CONFIG_DIR } else { Join-Path $HOME '.claude' }
-if (-not $env:CLAUDE_CONFIG_DIR) {
-  Log "CLAUDE_CONFIG_DIR not set - using the claude CLI default account; resolving config paths to $ConfigDir."
+# $ConfigDir is for path resolution only and is normally NOT exported - EXCEPT when a space is given:
+# a space (any word) selects the Claude account ~/.claude-<Space> and IS exported so the claude CLI
+# (skills/plugins/mcp) installs into it. Without a space, CLAUDE_CONFIG_DIR (a specific account you
+# set yourself, e.g. ...\.claude-work) or the ~/.claude default is used and never exported.
+if ($Space) {
+  $spaceAccount = Join-Path $HOME (".claude-" + $Space)
+  # Distinguish an existing account from a brand-new one so a typo'd space ('wrok') is visible, not silent.
+  if (Test-Path -LiteralPath $spaceAccount -PathType Container) {
+    Log "space '$Space' -> existing account $spaceAccount (CLAUDE_CONFIG_DIR exported for the claude CLI); memory DB memory_$Space.db."
+  } else {
+    Log "space '$Space' -> creating NEW account $spaceAccount (typo? did you mean an existing one?); memory DB memory_$Space.db."
+  }
+  if ($env:CLAUDE_CONFIG_DIR -and $env:CLAUDE_CONFIG_DIR -ne $spaceAccount) {
+    Log "space '$Space' overrides CLAUDE_CONFIG_DIR ($env:CLAUDE_CONFIG_DIR)."
+  }
+  $ConfigDir = $spaceAccount
+  $env:CLAUDE_CONFIG_DIR = $ConfigDir
+} else {
+  $ConfigDir = if ($env:CLAUDE_CONFIG_DIR) { $env:CLAUDE_CONFIG_DIR } else { Join-Path $HOME '.claude' }
+  if (-not $env:CLAUDE_CONFIG_DIR) {
+    Log "CLAUDE_CONFIG_DIR not set - using the claude CLI default account; resolving config paths to $ConfigDir."
+  }
 }
 
 # serena's --context is per-agent: Cursor uses the generic ide-assistant context.
@@ -296,8 +367,8 @@ $Plugins = @(
 # (3) MCP servers "name|args"; scope follows $Scope. SINGLE-QUOTED so ${...} stays LITERAL ->
 #     Claude Code interpolates ${CLAUDE_PROJECT_DIR:-.} at server launch.
 #     memory: uses ${HOME_MEMORY_DIR} - a script-local token resolved to $HOME\.memory-mcp at install
-#     time for BOTH agents, so Claude Code and Cursor share the same DB. MemoryProfile='work'
-#     switches to a separate work DB (memory_work.db).
+#     time for BOTH agents, so Claude Code and Cursor share the same DB. A space (e.g. 'work')
+#     switches to a separate per-space DB (memory_<space>.db).
 # PERFORMANCE (see claude-stack.sh for the full rationale): resolve each runtime's LATEST version
 # HERE (install/update network step) and bake it into the registration. `install` skips already-
 # registered MCPs, so the resolved version stays FROZEN until `update` re-resolves and bumps it -
@@ -307,7 +378,9 @@ $Plugins = @(
 # server dies (-32000). serena runs from the pinned PyPI package (not git+https). memory injects
 # --with numpy (its sqlite_vec backend needs numpy but the package doesn't declare it, so uvx's
 # isolated env omits it -> "No module named 'numpy'"). Offline at provision -> empty -> unpinned.
-function Get-NpmLatest([string]$Pkg)  { try { ((npm view $Pkg version 2>$null) | Select-Object -First 1).Trim() } catch { '' } }
+# Bounded fetches (npm --fetch-timeout / Invoke-RestMethod -TimeoutSec) so a dead network fails fast to
+# the unpinned fallback instead of hanging on a single silent line.
+function Get-NpmLatest([string]$Pkg)  { try { ((npm view $Pkg version --fetch-timeout=15000 2>$null) | Select-Object -First 1).Trim() } catch { '' } }
 function Get-PypiLatest([string]$Pkg) { try { (Invoke-RestMethod "https://pypi.org/pypi/$Pkg/json" -TimeoutSec 15).info.version } catch { '' } }
 Log 'resolving latest MCP runtime versions (install/update network step)'
 $McpContext7Ver   = Get-NpmLatest  '@upstash/context7-mcp'
@@ -319,9 +392,15 @@ $Ctx7Pin   = if ($McpContext7Ver)   { '@' + $McpContext7Ver }   else { '' }
 $PwPin     = if ($McpPlaywrightVer) { '@' + $McpPlaywrightVer } else { '' }
 $SerenaPin = if ($McpSerenaVer)     { '@' + $McpSerenaVer }     else { '' }
 $MemoryPin = if ($McpMemoryVer)     { '@' + $McpMemoryVer }     else { '' }
+# Report what pinned vs. fell back to unpinned - the whole point of this step is 'frozen until update'.
+$resolvedVers = [ordered]@{ 'context7' = $McpContext7Ver; 'playwright' = $McpPlaywrightVer; 'serena' = $McpSerenaVer; 'memory' = $McpMemoryVer }
+foreach ($k in $resolvedVers.Keys) {
+  if ($resolvedVers[$k]) { Log "  pinned $k@$($resolvedVers[$k])" }
+  else { Log "  !! could not resolve $k latest - installing unpinned (re-run when online to pin it)" }
+}
 
 $MemoryBackend = 'sqlite_vec'  # separation is by DB path (below); backend stays sqlite_vec (the only valid local backend)
-$MemoryDbFile  = if ($MemoryProfile -eq 'work') { 'memory_work.db'  } else { 'memory.db'   }
+$MemoryDbFile  = if ($Space) { "memory_$Space.db" } else { 'memory.db' }
 # Windows path separator on purpose: ${HOME_MEMORY_DIR} resolves via Join-Path to a backslashed
 # root (C:\Users\...\.memory-mcp), so the file joins with '\' too - '...\.memory-mcp\memory.db' -
 # instead of the mixed '...\.memory-mcp/memory.db'. JSON serialization escapes it automatically.
@@ -337,16 +416,27 @@ $MemoryEntry   = 'memory|-e MCP_MEMORY_STORAGE_BACKEND=' + $MemoryBackend +
 $OnWindows = if ($null -ne $IsWindows) { $IsWindows } else { $true }
 $Npx       = if ($OnWindows) { 'cmd /c npx' } else { 'npx' }
 
-# context7 API key is a SECRET. Keyless registration by DEFAULT: put the key in
-# ~/.claude/settings.json (or a project .claude/settings.local.json) under "env" as
-# CONTEXT7_API_KEY - Claude Code injects it into the spawned MCP process and context7 reads it
-# from the environment at launch, so the key NEVER touches .mcp.json. On Windows this is the
-# reliable path (no session-only shell export / setx+restart dance). OPT-IN (legacy): set
-# $env:CONTEXT7_BAKE_KEY (with $env:CONTEXT7_API_KEY) to bake --api-key into the registration
-# (project scope = <repo>/.mcp.json, so keep that file uncommitted).
-$Ctx7Cmd = "$Npx -y @upstash/context7-mcp$Ctx7Pin"
-if ($env:CONTEXT7_BAKE_KEY -and $env:CONTEXT7_API_KEY) { $Ctx7Cmd += ' --api-key ' + $env:CONTEXT7_API_KEY }
-$Context7Entry   = 'context7|-- ' + $Ctx7Cmd
+# context7 runs REMOTE (the hosted server) by DEFAULT - no local process, and the key stays out of
+# the registration: put CONTEXT7_API_KEY in ~/.claude/settings.json (or .claude/settings.local.json)
+# under "env" and Claude Code expands ${CONTEXT7_API_KEY} in the header at launch, so .mcp.json holds
+# no secret. On Windows this is the reliable path (no setx/restart dance). Pass -Context7 local for
+# the local stdio server - keyless by default too, and $env:CONTEXT7_BAKE_KEY bakes --api-key.
+$Context7RemoteUrl = 'https://mcp.context7.com/mcp'
+$Context7RemoteHdr = 'CONTEXT7_API_KEY: ${CONTEXT7_API_KEY}'
+if ($Context7 -eq 'local') {
+  $Ctx7Cmd = "$Npx -y @upstash/context7-mcp$Ctx7Pin"
+  if ($env:CONTEXT7_BAKE_KEY -and $env:CONTEXT7_API_KEY) {
+    $Ctx7Cmd += ' --api-key ' + $env:CONTEXT7_API_KEY
+    Log "  !! baking CONTEXT7_API_KEY into the context7 registration; at project scope it lands in <repo>/.mcp.json - keep .mcp.json uncommitted (or use -Context7 remote to keep the key out of the file)."
+  }
+  $Ctx7Spec = '-- ' + $Ctx7Cmd
+} else {
+  $Ctx7Spec = '@HTTP@'
+  if ($env:CONTEXT7_BAKE_KEY) {
+    Log "  !! CONTEXT7_BAKE_KEY is set but context7 is remote - it is ignored; pass -Context7 local to bake, or add CONTEXT7_API_KEY to settings.json 'env'."
+  }
+}
+$Context7Entry = 'context7|' + $Ctx7Spec
 $AngularCliEntry = 'angular-cli|-- ' + $Npx + ' -y @angular/cli mcp'
 $PlaywrightEntry = 'playwright|-- ' + $Npx + " -y @playwright/mcp$PwPin " + '--user-data-dir ${CLAUDE_PROJECT_DIR:-.}/.playwright --output-dir ${CLAUDE_PROJECT_DIR:-.}/.playwright/screenshots'
 $SerenaEntry     = 'serena|-e SERENA_HOME=.serena/home -- uvx --from serena-agent' + $SerenaPin + ' serena start-mcp-server --context @SERENA_CONTEXT@ --enable-web-dashboard false --project-from-cwd'
@@ -454,7 +544,7 @@ function Get-RepoRoot {
 # INSTALL - skills re-add UNCONDITIONALLY (clean copy each run); MCPs and plugins SKIP if already present
 # ===========================================================================
 function Install-Skills {
-  if (-not (Get-Command npx -ErrorAction SilentlyContinue)) { Write-Host 'npx not found'; return }
+  if (-not (Get-Command npx -ErrorAction SilentlyContinue)) { Add-Failure 'npx not found - skills not installed'; return }
   $seen = @{}
   foreach ($entry in $Skills) {
     $repo = $entry.Split('|')[0]
@@ -468,12 +558,12 @@ function Install-Skills {
     $sargs += '--yes'
     Log "skills [$Scope -> $Agent]: $repo -> $($names -join ',')"
     & npx @sargs
-    if ($LASTEXITCODE -ne 0) { Log "  !! $repo ($Agent) failed - check selectors (npx skills add $repo --list)" }
+    if ($LASTEXITCODE -ne 0) { Add-Failure "$repo ($Agent) failed - check selectors (npx skills add $repo --list)" }
   }
 }
 
 function Install-Plugins {
-  if (-not (Get-Command claude -ErrorAction SilentlyContinue)) { Write-Host 'claude CLI not found'; return }
+  if (-not (Get-Command claude -ErrorAction SilentlyContinue)) { $script:ClaudeMissing = $true; return }   # fail-soft: skip, never abort
   foreach ($mp in $ExtraMarketplaces) { try { & claude plugin marketplace add $mp 2>$null } catch {} }
   foreach ($p in $Plugins) {
     # claude-hud is a statusline HUD - force USER scope regardless of $ClaudeScope. A project-scoped
@@ -481,11 +571,12 @@ function Install-Plugins {
     $pScope = if ($p -like 'claude-hud@*') { 'user' } else { $ClaudeScope }
     Log "plugin [$pScope]: $p"
     try { & claude plugin install $p --scope $pScope } catch {}   # may prompt to trust on first run
+    if ($LASTEXITCODE -ne 0) { Add-Failure "plugin $p failed" }
   }
 }
 
 function Install-Mcps {
-  if (-not (Get-Command claude -ErrorAction SilentlyContinue)) { Write-Host 'claude CLI not found'; return }
+  if (-not (Get-Command claude -ErrorAction SilentlyContinue)) { $script:ClaudeMissing = $true; return }   # fail-soft: skip, never abort
   foreach ($entry in $Mcps) {
     $parts = $entry.Split('|', 2)
     $name = $parts[0]
@@ -504,7 +595,13 @@ function Install-Mcps {
     try { & claude mcp get $name *> $null; $configured = ($LASTEXITCODE -eq 0) } catch { $configured = $false }
     if ($configured) { Write-Host "  mcp $name already configured - skipping"; continue }
     Log "mcp [$ClaudeScope]: $name"
+    if ($spec -eq '@HTTP@') {
+      try { & claude mcp add --transport http --scope $ClaudeScope $name $Context7RemoteUrl --header $Context7RemoteHdr } catch {}
+      if ($LASTEXITCODE -ne 0) { Add-Failure "mcp $name failed" }
+      continue
+    }
     try { & claude mcp add --scope $ClaudeScope $name @argArr } catch {}
+    if ($LASTEXITCODE -ne 0) { Add-Failure "mcp $name failed" }
   }
 }
 
@@ -657,7 +754,7 @@ function Update-Skills {
 }
 
 function Update-Plugins {
-  if (-not (Get-Command claude -ErrorAction SilentlyContinue)) { Write-Host 'claude CLI not found'; return }
+  if (-not (Get-Command claude -ErrorAction SilentlyContinue)) { $script:ClaudeMissing = $true; return }   # fail-soft: skip, never abort
   try { & claude plugin marketplace update 2>$null } catch {}   # refresh marketplaces first
   foreach ($p in $Plugins) {
     $pScope = if ($p -like 'claude-hud@*') { 'user' } else { $ClaudeScope }   # claude-hud is user-scope (statusline)
@@ -667,7 +764,7 @@ function Update-Plugins {
 }
 
 function Update-Mcps {
-  if (-not (Get-Command claude -ErrorAction SilentlyContinue)) { Write-Host 'claude CLI not found'; return }
+  if (-not (Get-Command claude -ErrorAction SilentlyContinue)) { $script:ClaudeMissing = $true; return }   # fail-soft: skip, never abort
   # MCP binaries auto-update at launch (@latest / uvx git+); this re-asserts the config.
   foreach ($entry in $Mcps) {
     $parts = $entry.Split('|', 2)
@@ -679,7 +776,13 @@ function Update-Mcps {
     $argArr = @($spec.Split(' ') | Where-Object { $_ -ne '' })
     Log "mcp refresh [$ClaudeScope]: $name"
     try { & claude mcp remove $name -s $ClaudeScope 2>$null } catch {}
+    if ($spec -eq '@HTTP@') {
+      try { & claude mcp add --transport http --scope $ClaudeScope $name $Context7RemoteUrl --header $Context7RemoteHdr } catch {}
+      if ($LASTEXITCODE -ne 0) { Add-Failure "mcp $name failed" }
+      continue
+    }
     try { & claude mcp add --scope $ClaudeScope $name @argArr } catch {}
+    if ($LASTEXITCODE -ne 0) { Add-Failure "mcp $name failed" }
   }
 }
 
@@ -751,7 +854,19 @@ if ($Action -eq 'install') { Install-Skills; Install-Plugins; Install-Mcps; Get-
 else { Update-Skills; Update-Plugins; Update-Mcps; Update-Hooks; Update-Agents; Update-Rules; Repair-SerenaTsLspWindows }
 
 Remove-AgentsCache
-Log "done: $Action ($Scope, agent=$Agent). $($Skills.Count) skills, $($Plugins.Count) plugins, MCPs, hooks=$($Hooks.Count), agents=$($Agents.Count), rules=$($ClaudeRules.Count)."
+Write-Host ''
+Log "done: $Action [scope=$Scope, account=$ConfigDir, agent=$Agent]"
+$summary = "  skills=$($Skills.Count), plugins=$($Plugins.Count), mcps=$($Mcps.Count), hooks=$($Hooks.Count), agents=$($Agents.Count), rules=$($ClaudeRules.Count)"
+if ($Space) { $summary += "; space=$Space, memory DB=$MemoryDbFile" }
+Log "$summary; context7=$Context7"
+if ($script:ClaudeMissing) { Log "  !! claude CLI absent - plugins, MCPs, and settings.json wiring were SKIPPED (install it, then re-run)" }
+if ($script:FailCount -gt 0) { Log "  !! $($script:FailCount) item(s) failed above - re-run '$Action' to retry" }
+
+Log 'next steps:'
+Log '  - restart Claude Code (or reopen the project) to load the new MCPs, hooks, and settings'
+if ($script:PrereqMissing) { Log '  - install the missing prerequisites flagged above, then re-run' }
+if ($Context7 -eq 'remote') { Log "  - context7 is remote; add CONTEXT7_API_KEY to $ConfigDir\settings.json 'env' for higher rate limits (or re-run with -Context7 local)" }
+if ($GitHubCli) { Log "  - run 'gh auth login' if gh is not yet authenticated (needed before PRs/issues)" }
 
 # Reminder: stack-generated, machine-local artifacts that should NOT be committed.
 Write-Host ''

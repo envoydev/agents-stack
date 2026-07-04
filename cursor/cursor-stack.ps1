@@ -1,6 +1,6 @@
 #Requires -Version 5.1
 <#
-  cursor-stack.ps1 [install|update] [work] [github-cli] - install/update the CURSOR stack FOR A PROJECT (Windows/PowerShell).
+  cursor-stack.ps1 [install|update] [space] [github-cli] - install/update the CURSOR stack FOR A PROJECT (Windows/PowerShell).
 
   PowerShell port of cursor-stack.sh: every skill / MCP from cursor-stack.html (the complete
   toolset, not a curated subset), installed INTO a project. Built-in/system CLI skills are
@@ -16,9 +16,10 @@
   the Cursor UI); their skill / MCP / hook components are provisioned here. The .cs conventions ship as
   a Cursor rule (.cursor/rules/csharp.mdc), not a hook.
 
-  Optional extras: MemoryProfile 'work' -> separate work memory DB (memory_work.db),
-  omit for the default shared DB; -GitHubCli -> install gh via winget if missing. Both agents share
-  ~/.memory-mcp so Claude Code and Cursor see the same DB. e.g.: .\cursor-stack.ps1 install work -GitHubCli
+  Optional extras: a Space (any word) -> separate memory DB (memory_<Space>.db), omit for the default
+  shared DB; -GitHubCli -> install gh via winget if missing. Both agents share ~/.memory-mcp so Claude
+  Code and Cursor see the same per-space DB. Cursor is self-contained under ~/.cursor; the space does
+  not change that. e.g.: .\cursor-stack.ps1 install work -GitHubCli
 
   Scope (default PROJECT - installs the full set INTO this repo; $env:SCOPE = 'global' to
   install it into the active account instead):
@@ -35,14 +36,18 @@
 #>
 [CmdletBinding()]
 param(
-  [Parameter(Position = 0)]
+  # REQUIRED main action.
+  [Parameter(Mandatory = $true, Position = 0)]
   [ValidateSet('install', 'update')]
-  [string]$Action = 'install',
-  # Optional memory profile. 'work' -> separate work DB (memory_work.db).
-  # Omit for the default shared DB.
+  [string]$Action,
+  # Optional space (any word): a separate memory DB (memory_<Space>.db). Omit for the default shared
+  # DB. Cursor is self-contained under ~/.cursor; the space does not change that.
   [Parameter(Position = 1)]
-  [ValidateSet('', 'work')]
-  [string]$MemoryProfile = '',
+  [string]$Space = '',
+  # Optional: context7 transport. 'remote' (default) = hosted HTTP server, no local process;
+  # 'local' = the local npx stdio server. e.g.: .\cursor-stack.ps1 install -Context7 local
+  [ValidateSet('remote', 'local')]
+  [string]$Context7 = 'remote',
   # Optional: install the GitHub CLI (gh) via winget if missing; prompts for `gh auth login`
   # when unauthenticated. e.g.: .\cursor-stack.ps1 install -GitHubCli
   [switch]$GitHubCli
@@ -52,6 +57,12 @@ $ErrorActionPreference = 'Stop'
 # Keep NATIVE command failures non-fatal (mirror the .sh `|| true` tolerance); cmdlet errors still throw.
 if (Get-Variable -Name PSNativeCommandUseErrorActionPreference -ErrorAction SilentlyContinue) {
   $PSNativeCommandUseErrorActionPreference = $false
+}
+
+# A space is any word but becomes part of a path (memory_<Space>.db) - validate it.
+if ($Space -and $Space -notmatch '^[A-Za-z0-9][A-Za-z0-9._-]*$') {
+  Write-Host "space name '$Space' must start alphanumeric and contain only [A-Za-z0-9._-]" -ForegroundColor Red
+  exit 1
 }
 
 function Log([string]$Message) { Write-Host "==> $Message" -ForegroundColor Blue }
@@ -260,8 +271,8 @@ $Skills = @(
 # (3) MCP servers "name|args"; scope follows $Scope. SINGLE-QUOTED so ${...} stays LITERAL ->
 #     Claude Code interpolates ${CLAUDE_PROJECT_DIR:-.} at server launch.
 #     memory: uses ${HOME_MEMORY_DIR} - a script-local token resolved to $HOME\.memory-mcp at install
-#     time for BOTH agents, so Claude Code and Cursor share the same DB. MemoryProfile='work'
-#     switches to a separate work DB (memory_work.db).
+#     time for BOTH agents, so Claude Code and Cursor share the same DB. A space (e.g. 'work')
+#     switches to a separate per-space DB (memory_<space>.db).
 # PERFORMANCE (see cursor-stack.sh for the full rationale): resolve each runtime's LATEST version
 # HERE (install/update network step) and bake it into the registration. `install` skips already-
 # registered MCPs, so the resolved version stays FROZEN until `update` re-resolves and bumps it -
@@ -285,7 +296,7 @@ $SerenaPin = if ($McpSerenaVer)     { '@' + $McpSerenaVer }     else { '' }
 $MemoryPin = if ($McpMemoryVer)     { '@' + $McpMemoryVer }     else { '' }
 
 $MemoryBackend = 'sqlite_vec'  # separation is by DB path (below); backend stays sqlite_vec (the only valid local backend)
-$MemoryDbFile  = if ($MemoryProfile -eq 'work') { 'memory_work.db'  } else { 'memory.db'   }
+$MemoryDbFile  = if ($Space) { "memory_$Space.db" } else { 'memory.db' }
 # Windows path separator on purpose: ${HOME_MEMORY_DIR} resolves via Join-Path to a backslashed
 # root (C:\Users\...\.memory-mcp), so the file joins with '\' too - '...\.memory-mcp\memory.db' -
 # instead of the mixed '...\.memory-mcp/memory.db'. JSON serialization escapes it automatically.
@@ -301,14 +312,19 @@ $MemoryEntry   = 'memory|-e MCP_MEMORY_STORAGE_BACKEND=' + $MemoryBackend +
 $OnWindows = if ($null -ne $IsWindows) { $IsWindows } else { $true }
 $Npx       = if ($OnWindows) { 'cmd /c npx' } else { 'npx' }
 
-# context7 API key is a SECRET. Keyless registration by DEFAULT: set CONTEXT7_API_KEY as a user
-# environment variable ([Environment]::SetEnvironmentVariable('CONTEXT7_API_KEY',$key,'User') then
-# restart) - Cursor's spawned MCP server inherits it and context7 reads the key at launch, so it
-# NEVER touches .cursor/mcp.json. OPT-IN (legacy): set $env:CONTEXT7_BAKE_KEY (with
-# $env:CONTEXT7_API_KEY) to bake --api-key into the registration - keep .cursor/mcp.json uncommitted.
-$Ctx7Cmd = "$Npx -y @upstash/context7-mcp$Ctx7Pin"
-if ($env:CONTEXT7_BAKE_KEY -and $env:CONTEXT7_API_KEY) { $Ctx7Cmd += ' --api-key ' + $env:CONTEXT7_API_KEY }
-$Context7Entry   = 'context7|-- ' + $Ctx7Cmd
+# context7 runs REMOTE (the hosted server) by DEFAULT - no local process, and the key stays out of
+# .cursor/mcp.json: set CONTEXT7_API_KEY as a user environment variable
+# ([Environment]::SetEnvironmentVariable('CONTEXT7_API_KEY',$key,'User') then restart) and Cursor
+# expands ${env:CONTEXT7_API_KEY} in the header at launch. Pass -Context7 local for the local stdio
+# server - keyless by default too, and $env:CONTEXT7_BAKE_KEY bakes --api-key.
+if ($Context7 -eq 'local') {
+  $Ctx7Cmd = "$Npx -y @upstash/context7-mcp$Ctx7Pin"
+  if ($env:CONTEXT7_BAKE_KEY -and $env:CONTEXT7_API_KEY) { $Ctx7Cmd += ' --api-key ' + $env:CONTEXT7_API_KEY }
+  $Ctx7Spec = '-- ' + $Ctx7Cmd
+} else {
+  $Ctx7Spec = '@HTTP@'
+}
+$Context7Entry = 'context7|' + $Ctx7Spec
 $AngularCliEntry = 'angular-cli|-- ' + $Npx + ' -y @angular/cli mcp'
 $PlaywrightEntry = 'playwright|-- ' + $Npx + " -y @playwright/mcp$PwPin " + '--user-data-dir ${CLAUDE_PROJECT_DIR:-.}/.playwright --output-dir ${CLAUDE_PROJECT_DIR:-.}/.playwright/screenshots'
 $SerenaEntry     = 'serena|-e SERENA_HOME=.serena/home -- uvx --from serena-agent' + $SerenaPin + ' serena start-mcp-server --context @SERENA_CONTEXT@ --enable-web-dashboard false --project-from-cwd'
@@ -429,6 +445,13 @@ function Set-CursorMcps {
     $spec = $parts[1].Replace('@SERENA_CONTEXT@', $SerenaContext['cursor'])
     $spec = $spec.Replace('${CLAUDE_PROJECT_DIR:-.}', $projDir).Replace('${CLAUDE_CONFIG_DIR}', $cfgDir)
     $spec = $spec.Replace('${HOME_MEMORY_DIR}', (Join-Path $HOME '.memory-mcp'))
+    if ($spec -eq '@HTTP@') {
+      $ctx7 = [ordered]@{ url = 'https://mcp.context7.com/mcp'; headers = [ordered]@{ CONTEXT7_API_KEY = '${env:CONTEXT7_API_KEY}' } }
+      if ($data.mcpServers.PSObject.Properties[$name]) { $data.mcpServers.PSObject.Properties.Remove($name) }
+      $data.mcpServers | Add-Member -NotePropertyName $name -NotePropertyValue ([pscustomobject]$ctx7)
+      Log "  cursor mcp: $name"
+      continue
+    }
     # ASSUMPTION: no resolved path token ($projDir / $cfgDir / $HOME\.memory-mcp) contains a space.
     # The spec is space-separated by design (-e KEY=VAL -- cmd args); a space inside one token would
     # be mis-parsed below, so project paths with spaces are unsupported.

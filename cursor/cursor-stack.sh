@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# cursor-stack.sh [install|update] [work] [github-cli] - install/update the CURSOR stack
+# cursor-stack.sh [install|update] [space] [github-cli] - install/update the CURSOR stack
 # FOR A PROJECT: every skill / MCP from cursor-stack.html (the complete toolset, not a curated
 # subset), installed INTO a project. Built-in/system CLI skills are excluded (they ship with the
 # CLI). Bash twin of cursor-stack.ps1; Claude Code lives in claude-stack.sh.
@@ -15,8 +15,9 @@
 # MCP / hook components are provisioned here.
 #
 # Optional extras (args 2+, any order):
-#   work        -> separate work memory DB (memory_work.db). Omit for the default
-#                  shared DB. Both agents share ~/.memory-mcp so Claude Code and Cursor see the same DB.
+#   space       -> any word; a separate memory DB (memory_<space>.db). Omit for the default shared
+#                  DB. Both agents share ~/.memory-mcp so Claude Code and Cursor see the same per-space
+#                  DB. (Cursor is self-contained under ~/.cursor; the space does not change that.)
 #   github-cli  -> install the GitHub CLI (gh) via Homebrew (macOS) if missing; prompts for
 #                  `gh auth login` when unauthenticated. e.g.:
 #                    bash cursor-stack.sh install github-cli
@@ -29,23 +30,38 @@
 # Full inventory - comment out manifest entries below to trim it to a curated subset.
 set -euo pipefail
 
-ACTION="${1:-install}"
+# 'install' or 'update' is REQUIRED (the main action); every arg after it is optional (has a default).
+ACTION="${1:-}"
 case "$ACTION" in
   install|update) ;;
-  *) echo "usage: bash $0 [install|update] [work] [github-cli]" >&2; exit 1 ;;
+  *) echo "usage: bash $0 <install|update> [space] [github-cli] [context7-local|context7-remote]" >&2; exit 1 ;;
 esac
 
 # This script provisions the Cursor agent. (Claude Code lives in claude-stack.sh.)
 AGENT="cursor"
 
-# Optional extras (args 2+, any order): 'work' (separate work memory DB), 'github-cli' (install gh).
-MEMORY_PROFILE=""
+# Optional extras (args 2+, any order, each with a default): a space name (any word -> a separate
+# memory_<space>.db), 'github-cli' (install gh), 'context7-local' | 'context7-remote' (context7
+# transport; default remote).
+SPACE=""
 INSTALL_GITHUB_CLI=false
+CONTEXT7_MODE="remote"
 for extra in "${@:2}"; do
   case "$extra" in
-    work) MEMORY_PROFILE="work" ;;
     github-cli) INSTALL_GITHUB_CLI=true ;;
-    *) echo "usage: bash $0 [install|update] [work] [github-cli]   (unknown extra: $extra)" >&2; exit 1 ;;
+    context7-local) CONTEXT7_MODE="local" ;;
+    context7-remote) CONTEXT7_MODE="remote" ;;
+    *)
+      # Any other single word is the SPACE (memory-DB namespace). Reserved flags are matched above;
+      # a second bare word, or a disallowed charset, is an error.
+      if [ -n "$SPACE" ]; then
+        echo "usage: bash $0 <install|update> [space] [github-cli] [context7-local|context7-remote]   (only one space name; got '$SPACE' and '$extra')" >&2; exit 1
+      fi
+      case "$extra" in
+        [!A-Za-z0-9]*|*[!A-Za-z0-9._-]*)
+          echo "usage: bash $0 <install|update> [space] [github-cli] [context7-local|context7-remote]   (space '$extra' must start alphanumeric; chars [A-Za-z0-9._-])" >&2; exit 1 ;;
+      esac
+      SPACE="$extra" ;;
   esac
 done
 
@@ -226,7 +242,7 @@ SKILLS=(
 #     @HOME_MEMORY_DIR@  -> resolved at install time to ~/.memory-mcp for BOTH agents (shared DB).
 #     \${CLAUDE_PROJECT_DIR:-.} stays LITERAL so Claude Code interpolates it at server launch; for
 #       Cursor (no shell interpolation) it is resolved to a concrete path when .cursor/mcp.json is written.
-#     memory (mcp-memory-service): MemoryProfile='work' switches to memory_work.db.
+#     memory (mcp-memory-service): a space (e.g. 'work') switches to memory_<space>.db.
 #
 # PERFORMANCE - network resolution is the cost of a slow new-session start, so it happens HERE
 # (install/update), never at launch:
@@ -257,17 +273,21 @@ SERENA_PIN="${MCP_SERENA_VER:+@$MCP_SERENA_VER}"
 MEMORY_PIN="${MCP_MEMORY_VER:+@$MCP_MEMORY_VER}"
 
 MEMORY_BACKEND="sqlite_vec"; MEMORY_DB_FILE="memory.db"
-if [ "$MEMORY_PROFILE" = "work" ]; then MEMORY_DB_FILE="memory_work.db"; fi  # separation is by DB path; backend stays sqlite_vec (the only valid local backend)
+if [ -n "$SPACE" ]; then MEMORY_DB_FILE="memory_$SPACE.db"; fi  # space -> per-space DB; backend stays sqlite_vec (the only valid local backend)
 MEMORY_ENTRY="memory|-e MCP_MEMORY_STORAGE_BACKEND=$MEMORY_BACKEND -e MCP_MEMORY_SQLITE_PATH=@HOME_MEMORY_DIR@/$MEMORY_DB_FILE -- uvx --with numpy --from mcp-memory-service${MEMORY_PIN} memory server"
 
-# context7 API key is a SECRET. Keyless registration by DEFAULT: set CONTEXT7_API_KEY as an
-# OS/user environment variable - Cursor's spawned MCP server inherits the environment and context7
-# reads the key at launch, so it NEVER touches .cursor/mcp.json. OPT-IN (legacy): export
-# CONTEXT7_BAKE_KEY=1 (with CONTEXT7_API_KEY set) to bake --api-key into the registration instead -
-# keep the resulting .cursor/mcp.json uncommitted.
-CONTEXT7_SPEC="-- npx -y @upstash/context7-mcp${CTX7_PIN}"
-if [ -n "${CONTEXT7_BAKE_KEY:-}" ] && [ -n "${CONTEXT7_API_KEY:-}" ]; then
-  CONTEXT7_SPEC="$CONTEXT7_SPEC --api-key $CONTEXT7_API_KEY"
+# context7 runs REMOTE (the hosted server) by DEFAULT - no local process, and the key stays out of
+# .cursor/mcp.json: set CONTEXT7_API_KEY as an OS/user environment variable and Cursor expands
+# ${env:CONTEXT7_API_KEY} in the header at launch. Pass the 'context7-local' arg for the local stdio
+# server - keyless by default too, and CONTEXT7_BAKE_KEY=1 (with CONTEXT7_API_KEY) bakes --api-key in (keep
+# the resulting .cursor/mcp.json uncommitted).
+if [ "$CONTEXT7_MODE" = "local" ]; then
+  CONTEXT7_SPEC="-- npx -y @upstash/context7-mcp${CTX7_PIN}"
+  if [ -n "${CONTEXT7_BAKE_KEY:-}" ] && [ -n "${CONTEXT7_API_KEY:-}" ]; then
+    CONTEXT7_SPEC="$CONTEXT7_SPEC --api-key $CONTEXT7_API_KEY"
+  fi
+else
+  CONTEXT7_SPEC="@HTTP@"
 fi
 CONTEXT7_ENTRY="context7|$CONTEXT7_SPEC"
 
@@ -427,6 +447,11 @@ for line in sys.stdin.read().splitlines():
     # Without this a plain install would re-write the freshly-resolved latest pin and silently bump it.
     if action == "install" and name in servers:
         print("  cursor mcp " + name + " already configured - skipping")
+        continue
+    if spec.strip() == "@HTTP@":
+        servers[name] = {"url": "https://mcp.context7.com/mcp",
+                         "headers": {"CONTEXT7_API_KEY": "${env:CONTEXT7_API_KEY}"}}
+        print("  cursor mcp: " + name)
         continue
     # ASSUMPTION: no resolved path token (proj_dir / CONFIG_DIR / HOME_MEMORY_DIR) contains a space.
     # The spec is space-separated by design (-e KEY=VAL -- cmd args); a space inside one token would

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# claude-stack.sh [install|update] [work] [github-cli] - install/update the CLAUDE CODE
+# claude-stack.sh [install|update] [space] [github-cli] [context7-local|context7-remote] - install/update the CLAUDE CODE
 # stack FOR A PROJECT: every skill / plugin / MCP from claude-stack.html (the complete
 # toolset, not a curated subset), installed INTO a project. Built-in/system CLI skills are
 # excluded (they ship with the CLI). Bash twin of claude-stack.ps1; Cursor lives in cursor-stack.sh.
@@ -13,8 +13,10 @@
 # settings.json. Requires the `claude` CLI; claude-only steps fail soft if it is absent.
 #
 # Optional extras (args 2+, any order):
-#   work        -> separate work memory DB (memory_work.db). Omit for the default
-#                  shared DB. Both agents share ~/.memory-mcp so Claude Code and Cursor see the same DB.
+#   space       -> any word; selects the Claude account ~/.claude-<space> (skills/plugins/MCPs
+#                  install there - CLAUDE_CONFIG_DIR is exported for the claude CLI) AND a separate
+#                  memory DB (memory_<space>.db). Omit for the default ~/.claude account + shared DB.
+#                  Both agents share ~/.memory-mcp so Claude Code and Cursor see the same per-space DB.
 #   github-cli  -> install the GitHub CLI (gh) via Homebrew (macOS) if missing; prompts for
 #                  `gh auth login` when unauthenticated. e.g.:
 #                    bash claude-stack.sh install github-cli
@@ -27,28 +29,82 @@
 # Full inventory - comment out manifest entries below to trim it to a curated subset.
 set -euo pipefail
 
-ACTION="${1:-install}"
+usage() {
+  cat <<USAGE
+claude-stack.sh - install or update the Claude Code stack into a project.
+
+Usage: bash $0 <install|update> [space] [github-cli] [context7-local|context7-remote]
+
+Actions (one is REQUIRED):
+  install   first-time provision; MCP/plugin versions freeze until the next update; wires .claude/settings.json
+  update    re-resolve every runtime to latest + refresh hooks/agents/rules; leaves settings.json untouched
+
+Optional extras (any order):
+  <space>           any word -> install into the ~/.claude-<space> account + a separate memory_<space>.db
+  github-cli        install the GitHub CLI (gh) if missing
+  context7-local    run context7 as a local npx server (default: context7-remote, the hosted server)
+  context7-remote   run context7 as the hosted remote server (the default)
+
+Environment variables:
+  SCOPE=project|global   project (default) installs INTO this repo; global installs into the account
+  CLAUDE_CONFIG_DIR      target a specific account when no <space> is given (default ~/.claude)
+  CONTEXT7_API_KEY       context7 API key, read from the environment at launch (higher rate limits)
+  CONTEXT7_BAKE_KEY      with context7-local, bake CONTEXT7_API_KEY into the registration (keep .mcp.json uncommitted)
+
+Examples:
+  bash $0 install
+  bash $0 install work github-cli
+  SCOPE=global bash $0 update
+USAGE
+}
+
+# -h/--help anywhere -> print full usage and exit 0, before the required-action check below.
+for _a in "$@"; do case "$_a" in -h|--help) usage; exit 0 ;; esac; done
+
+# 'install' or 'update' is REQUIRED (the main action); every arg after it is optional (has a default).
+ACTION="${1:-}"
 case "$ACTION" in
   install|update) ;;
-  *) echo "usage: bash $0 [install|update] [work] [github-cli]" >&2; exit 1 ;;
+  help) usage; exit 0 ;;
+  *) usage >&2; echo "error: first argument must be 'install' or 'update' (got '${ACTION:-<none>}')" >&2; exit 1 ;;
 esac
 
 # This script provisions the Claude Code agent. (Cursor lives in cursor-stack.sh.)
 AGENT="claude-code"
 
-# Optional extras (args 2+, any order): 'work' (separate work memory DB), 'github-cli' (install gh).
-MEMORY_PROFILE=""
+# Optional extras (args 2+, any order, each with a default): a space name (any word -> account
+# ~/.claude-<space> + memory_<space>.db), 'github-cli' (install gh), 'context7-local' |
+# 'context7-remote' (context7 transport; default remote).
+SPACE=""
 INSTALL_GITHUB_CLI=false
+CONTEXT7_MODE="remote"
 for extra in "${@:2}"; do
   case "$extra" in
-    work) MEMORY_PROFILE="work" ;;
     github-cli) INSTALL_GITHUB_CLI=true ;;
-    *) echo "usage: bash $0 [install|update] [work] [github-cli]   (unknown extra: $extra)" >&2; exit 1 ;;
+    context7-local) CONTEXT7_MODE="local" ;;
+    context7-remote) CONTEXT7_MODE="remote" ;;
+    *)
+      # Any other single word is the SPACE (account + memory-DB namespace). Reserved flags are
+      # matched above; a second bare word, or a disallowed charset, is an error.
+      if [ -n "$SPACE" ]; then
+        usage >&2; echo "error: only one space name allowed (got '$SPACE' and '$extra')" >&2; exit 1
+      fi
+      case "$extra" in
+        [!A-Za-z0-9]*|*[!A-Za-z0-9._-]*)
+          usage >&2; echo "error: space '$extra' must start alphanumeric; chars [A-Za-z0-9._-]" >&2; exit 1 ;;
+      esac
+      SPACE="$extra" ;;
   esac
 done
 
 SCOPE="${SCOPE:-project}"
 log() { printf '\033[1;34m==>\033[0m %s\n' "$*"; }
+
+# Run-outcome tracking for the honest end-of-run summary.
+FAIL_COUNT=0            # item install/add failures (skills / plugins / mcps)
+CLAUDE_MISSING=false    # claude CLI absent -> plugins / MCPs / settings.json wiring skipped
+PREREQ_MISSING=false    # a hard prerequisite (uvx / python3 / node) was missing
+note_failure() { FAIL_COUNT=$((FAIL_COUNT + 1)); log "  !! $*"; }
 
 prerequisites_check() {
   # Warn (not fail) on missing prerequisites, matching the script's fail-soft philosophy.
@@ -101,7 +157,16 @@ prerequisites_check() {
     echo "  !! typescript-language-server not found - the typescript-lsp plugin needs it (TS/JS work)." >&2
     echo "     Install: npm i -g typescript-language-server typescript (nvm scopes globals per node version; add both to ~/.nvm/default-packages to cover future versions)." >&2
   fi
-  $ok || echo "  Install the missing tools above, then re-run." >&2
+  # claude CLI: the core dependency for plugins, MCPs, and settings.json wiring. Absent -> those steps
+  # are skipped (fail-soft); flag it upfront so the user can fix PATH before the long skill install runs.
+  if command -v claude >/dev/null 2>&1; then
+    printf '  claude: %s\n' "$(command -v claude)"
+  else
+    echo "  !! claude CLI not found - plugins, MCPs, and settings.json wiring will be SKIPPED." >&2
+    echo "     Install: https://docs.claude.com/claude-code (then re-run to add plugins/MCPs)." >&2
+    CLAUDE_MISSING=true
+  fi
+  if ! $ok; then PREREQ_MISSING=true; echo "  Install the missing tools above, then re-run." >&2; fi
 }
 
 install_github_cli() {  # opt-in via the 'github-cli' extra; fail-soft like everything else
@@ -119,11 +184,26 @@ install_github_cli() {  # opt-in via the 'github-cli' extra; fail-soft like ever
   fi
 }
 
-# CONFIG_DIR is for path resolution only - never exported to any CLI:
-# CLAUDE_CONFIG_DIR (a specific account, e.g. ~/.claude-work) or the ~/.claude default.
-CONFIG_DIR="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
-if [ -z "${CLAUDE_CONFIG_DIR:-}" ]; then
-  log "CLAUDE_CONFIG_DIR not set - using the claude CLI default account; resolving config paths to $CONFIG_DIR."
+# CONFIG_DIR is for path resolution only and is normally NOT exported - EXCEPT when a space is given:
+# a space (any word) selects the Claude account ~/.claude-<space> and IS exported so the claude CLI
+# (skills/plugins/mcp) installs into it. Without a space, CLAUDE_CONFIG_DIR (a specific account you
+# set yourself, e.g. ~/.claude-work) or the ~/.claude default is used and never exported.
+if [ -n "$SPACE" ]; then
+  CONFIG_DIR="$HOME/.claude-$SPACE"
+  # Distinguish an existing account from a brand-new one so a typo'd space ('wrok') is visible, not silent.
+  if [ -d "$CONFIG_DIR" ]; then
+    log "space '$SPACE' -> existing account $CONFIG_DIR (CLAUDE_CONFIG_DIR exported for the claude CLI); memory DB memory_$SPACE.db."
+  else
+    log "space '$SPACE' -> creating NEW account $CONFIG_DIR (typo? did you mean an existing one?); memory DB memory_$SPACE.db."
+  fi
+  [ -n "${CLAUDE_CONFIG_DIR:-}" ] && [ "${CLAUDE_CONFIG_DIR}" != "$CONFIG_DIR" ] && \
+    log "space '$SPACE' overrides CLAUDE_CONFIG_DIR ($CLAUDE_CONFIG_DIR)."
+  export CLAUDE_CONFIG_DIR="$CONFIG_DIR"
+else
+  CONFIG_DIR="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
+  if [ -z "${CLAUDE_CONFIG_DIR:-}" ]; then
+    log "CLAUDE_CONFIG_DIR not set - using the claude CLI default account; resolving config paths to $CONFIG_DIR."
+  fi
 fi
 
 SERENA_CTX="claude-code"   # serena's --context for Claude Code
@@ -254,7 +334,7 @@ PLUGINS=(
 #     @HOME_MEMORY_DIR@  -> resolved at install time to ~/.memory-mcp for BOTH agents (shared DB).
 #     \${CLAUDE_PROJECT_DIR:-.} stays LITERAL so Claude Code interpolates it at server launch; for
 #       Cursor (no shell interpolation) it is resolved to a concrete path when .cursor/mcp.json is written.
-#     memory (mcp-memory-service): MemoryProfile='work' switches to memory_work.db.
+#     memory (mcp-memory-service): a space (e.g. 'work') switches to memory_<space>.db.
 #
 # PERFORMANCE - network resolution is the cost of a slow new-session start, so it happens HERE
 # (install/update), never at launch:
@@ -271,33 +351,51 @@ PLUGINS=(
 #   - memory: --with numpy is injected because mcp-memory-service's sqlite_vec backend needs numpy
 #     but doesn't declare it, so uvx's isolated env omits it -> "No module named 'numpy'" (-32000).
 #   - offline at provision -> resolution yields empty -> the entry falls back to unpinned.
-_npm_latest()  { command -v npm >/dev/null 2>&1 && npm view "$1" version 2>/dev/null | tr -d '[:space:]'; }
-_pypi_latest() { curl -fsSL "https://pypi.org/pypi/$1/json" 2>/dev/null | python3 -c "import json,sys;print(json.load(sys.stdin)['info']['version'])" 2>/dev/null; }
+# Bounded fetches (npm_config_fetch_timeout / curl --max-time) so a dead network fails fast to the
+# unpinned fallback instead of hanging on a single silent line.
+_npm_latest()  { command -v npm >/dev/null 2>&1 && npm_config_fetch_timeout=15000 npm view "$1" version 2>/dev/null | tr -d '[:space:]'; }
+_pypi_latest() { curl -fsSL --max-time 15 "https://pypi.org/pypi/$1/json" 2>/dev/null | python3 -c "import json,sys;print(json.load(sys.stdin)['info']['version'])" 2>/dev/null; }
 log "resolving latest MCP runtime versions (install/update network step)"
-MCP_CONTEXT7_VER="$(_npm_latest @upstash/context7-mcp)"
-MCP_PLAYWRIGHT_VER="$(_npm_latest @playwright/mcp)"
-MCP_SERENA_VER="$(_pypi_latest serena-agent)"
-MCP_MEMORY_VER="$(_pypi_latest mcp-memory-service)"
+# '|| true' is REQUIRED: under `set -e` a failing command substitution (offline, or npm/curl/python3
+# absent) aborts the whole run - these must fall through to empty -> unpinned, per the design above.
+MCP_CONTEXT7_VER="$(_npm_latest @upstash/context7-mcp)" || true
+MCP_PLAYWRIGHT_VER="$(_npm_latest @playwright/mcp)" || true
+MCP_SERENA_VER="$(_pypi_latest serena-agent)" || true
+MCP_MEMORY_VER="$(_pypi_latest mcp-memory-service)" || true
 # Version-pin suffix: "@1.2.3" when resolved, "" (unpinned fallback) when offline.
 CTX7_PIN="${MCP_CONTEXT7_VER:+@$MCP_CONTEXT7_VER}"
 PW_PIN="${MCP_PLAYWRIGHT_VER:+@$MCP_PLAYWRIGHT_VER}"
 SERENA_PIN="${MCP_SERENA_VER:+@$MCP_SERENA_VER}"
 MEMORY_PIN="${MCP_MEMORY_VER:+@$MCP_MEMORY_VER}"
+# Report what pinned vs. fell back to unpinned - the whole point of this step is 'frozen until update'.
+for _pv in "context7:$MCP_CONTEXT7_VER" "playwright:$MCP_PLAYWRIGHT_VER" "serena:$MCP_SERENA_VER" "memory:$MCP_MEMORY_VER"; do
+  _pn="${_pv%%:*}"; _pver="${_pv#*:}"
+  if [ -n "$_pver" ]; then log "  pinned $_pn@$_pver"
+  else log "  !! could not resolve $_pn latest - installing unpinned (re-run when online to pin it)"; fi
+done
 
 MEMORY_BACKEND="sqlite_vec"; MEMORY_DB_FILE="memory.db"
-if [ "$MEMORY_PROFILE" = "work" ]; then MEMORY_DB_FILE="memory_work.db"; fi  # separation is by DB path; backend stays sqlite_vec (the only valid local backend)
+if [ -n "$SPACE" ]; then MEMORY_DB_FILE="memory_$SPACE.db"; fi  # space -> per-space DB; backend stays sqlite_vec (the only valid local backend)
 MEMORY_ENTRY="memory|-e MCP_MEMORY_STORAGE_BACKEND=$MEMORY_BACKEND -e MCP_MEMORY_SQLITE_PATH=@HOME_MEMORY_DIR@/$MEMORY_DB_FILE -- uvx --with numpy --from mcp-memory-service${MEMORY_PIN} memory server"
 
-# context7 API key is a SECRET. Keyless registration by DEFAULT: put the key in
-# ~/.claude/settings.json (or a project .claude/settings.local.json) under "env" as
-# CONTEXT7_API_KEY - Claude Code injects it into the spawned MCP process and context7 reads it
-# from the environment at launch, so the key NEVER touches .mcp.json. Set once, user-global.
-# OPT-IN (legacy): export CONTEXT7_BAKE_KEY=1 (with CONTEXT7_API_KEY set) to bake --api-key into
-# the registration instead - but project scope writes <repo>/.mcp.json, so the secret lands in
-# that file; keep it uncommitted.
-CONTEXT7_SPEC="-- npx -y @upstash/context7-mcp${CTX7_PIN}"
-if [ -n "${CONTEXT7_BAKE_KEY:-}" ] && [ -n "${CONTEXT7_API_KEY:-}" ]; then
-  CONTEXT7_SPEC="$CONTEXT7_SPEC --api-key $CONTEXT7_API_KEY"
+# context7 runs REMOTE (the hosted server) by DEFAULT - no local process, and the key stays out of
+# the registration: put CONTEXT7_API_KEY in ~/.claude/settings.json (or .claude/settings.local.json)
+# under "env" and Claude Code expands ${CONTEXT7_API_KEY} in the header at launch, so .mcp.json holds
+# no secret. Pass the 'context7-local' arg for the local stdio server instead - keyless by default too,
+# and CONTEXT7_BAKE_KEY=1 (with CONTEXT7_API_KEY) bakes --api-key into <repo>/.mcp.json (keep it uncommitted).
+CONTEXT7_REMOTE_URL='https://mcp.context7.com/mcp'
+CONTEXT7_REMOTE_HDR='CONTEXT7_API_KEY: ${CONTEXT7_API_KEY}'
+if [ "$CONTEXT7_MODE" = "local" ]; then
+  CONTEXT7_SPEC="-- npx -y @upstash/context7-mcp${CTX7_PIN}"
+  if [ -n "${CONTEXT7_BAKE_KEY:-}" ] && [ -n "${CONTEXT7_API_KEY:-}" ]; then
+    CONTEXT7_SPEC="$CONTEXT7_SPEC --api-key $CONTEXT7_API_KEY"
+    log "  !! baking CONTEXT7_API_KEY into the context7 registration; at project scope it lands in <repo>/.mcp.json - keep .mcp.json uncommitted (or use context7-remote to keep the key out of the file)."
+  fi
+else
+  CONTEXT7_SPEC="@HTTP@"
+  if [ -n "${CONTEXT7_BAKE_KEY:-}" ]; then
+    log "  !! CONTEXT7_BAKE_KEY is set but context7 is remote - it is ignored; pass context7-local to bake, or add CONTEXT7_API_KEY to settings.json 'env'."
+  fi
 fi
 CONTEXT7_ENTRY="context7|$CONTEXT7_SPEC"
 
@@ -396,7 +494,7 @@ CLAUDE_RULES=(
 # INSTALL - skills re-add UNCONDITIONALLY (clean copy each run); MCPs and plugins SKIP if already present
 # ===========================================================================
 install_skills() {
-  command -v npx >/dev/null || { echo "npx not found"; return 1; }
+  command -v npx >/dev/null 2>&1 || { note_failure "npx not found - skills not installed"; return 0; }   # fail-soft: skip, never abort
   local seen="" entry repo skill sargs names
   for entry in "${SKILLS[@]}"; do
     repo="${entry%%|*}"
@@ -409,24 +507,24 @@ install_skills() {
       names="${names:+$names,}${skill#*|}"
     done
     log "skills [$SCOPE -> $AGENT]: $repo -> $names"
-    npx -y skills add "$repo" "${sargs[@]}" --agent "$AGENT" $SKILLS_ADD_FLAG --yes || log "  !! $repo ($AGENT) failed - check selectors (npx skills add $repo --list)"
+    npx -y skills add "$repo" "${sargs[@]}" --agent "$AGENT" $SKILLS_ADD_FLAG --yes || note_failure "$repo ($AGENT) failed - check selectors (npx skills add $repo --list)"
   done
 }
 
 install_plugins() {
-  command -v claude >/dev/null || { echo "claude CLI not found"; return 1; }
+  command -v claude >/dev/null 2>&1 || { CLAUDE_MISSING=true; return 0; }   # fail-soft: skip, never abort the run
   for mp in ${EXTRA_MARKETPLACES[@]+"${EXTRA_MARKETPLACES[@]}"}; do claude plugin marketplace add "$mp" 2>/dev/null || true; done
   for p in "${PLUGINS[@]}"; do
     # claude-hud is a statusline HUD - force USER scope regardless of $CLAUDE_SCOPE. A project-scoped
     # install + the global statusline enable mismatch, so every OTHER project warns "plugin not cached".
     pscope="$CLAUDE_SCOPE"; case "$p" in claude-hud@*) pscope="user" ;; esac
     log "plugin [$pscope]: $p"
-    claude plugin install "$p" --scope "$pscope" || true   # may prompt to trust on first run
+    claude plugin install "$p" --scope "$pscope" || note_failure "plugin $p failed"   # may prompt to trust on first run
   done
 }
 
 install_mcps() {
-  command -v claude >/dev/null || { echo "claude CLI not found"; return 1; }
+  command -v claude >/dev/null 2>&1 || { CLAUDE_MISSING=true; return 0; }   # fail-soft: skip, never abort the run
   local entry name args spec tok_cfg
   local -a spec_words
   tok_cfg='${CLAUDE_CONFIG_DIR}'
@@ -438,12 +536,16 @@ install_mcps() {
     [ -z "${CLAUDE_CONFIG_DIR:-}" ] && spec="${spec//"$tok_cfg"/$CONFIG_DIR}"
     if claude mcp get "$name" >/dev/null 2>&1; then echo "  mcp $name already configured - skipping"; continue; fi
     log "mcp [$CLAUDE_SCOPE]: $name"
+    if [ "$spec" = "@HTTP@" ]; then
+      claude mcp add --transport http --scope "$CLAUDE_SCOPE" "$name" "$CONTEXT7_REMOTE_URL" --header "$CONTEXT7_REMOTE_HDR" || note_failure "mcp $name failed"
+      continue
+    fi
     # ASSUMPTION: no resolved path token ($CONFIG_DIR / $HOME_MEMORY_DIR) contains a space - the MCP
     # spec is space-separated by design (-e KEY=VAL -- cmd args), so a space inside one token cannot
     # survive word-splitting. read -ra splits on whitespace into an array (the intended token split)
     # AND disables glob expansion, so a bare '*' in spec is passed literally, never expanded.
     read -ra spec_words <<<"$spec"
-    claude mcp add --scope "$CLAUDE_SCOPE" "$name" "${spec_words[@]}" || true
+    claude mcp add --scope "$CLAUDE_SCOPE" "$name" "${spec_words[@]}" || note_failure "mcp $name failed"
   done
 }
 
@@ -563,7 +665,7 @@ update_skills() {
 }
 
 update_plugins() {
-  command -v claude >/dev/null || { echo "claude CLI not found"; return 1; }
+  command -v claude >/dev/null 2>&1 || { CLAUDE_MISSING=true; return 0; }   # fail-soft: skip, never abort the run
   claude plugin marketplace update 2>/dev/null || true            # refresh marketplaces first
   for p in "${PLUGINS[@]}"; do
     pscope="$CLAUDE_SCOPE"; case "$p" in claude-hud@*) pscope="user" ;; esac   # claude-hud is user-scope (statusline)
@@ -573,7 +675,7 @@ update_plugins() {
 }
 
 update_mcps() {
-  command -v claude >/dev/null || { echo "claude CLI not found"; return 1; }
+  command -v claude >/dev/null 2>&1 || { CLAUDE_MISSING=true; return 0; }   # fail-soft: skip, never abort the run
   # MCP binaries auto-update at launch (@latest / uvx git+); this re-asserts the config.
   local entry name args spec tok_cfg
   local -a spec_words
@@ -585,9 +687,13 @@ update_mcps() {
     [ -z "${CLAUDE_CONFIG_DIR:-}" ] && spec="${spec//"$tok_cfg"/$CONFIG_DIR}"
     log "mcp refresh [$CLAUDE_SCOPE]: $name"
     claude mcp remove "$name" -s "$CLAUDE_SCOPE" >/dev/null 2>&1 || true
+    if [ "$spec" = "@HTTP@" ]; then
+      claude mcp add --transport http --scope "$CLAUDE_SCOPE" "$name" "$CONTEXT7_REMOTE_URL" --header "$CONTEXT7_REMOTE_HDR" || note_failure "mcp $name failed"
+      continue
+    fi
     # Same no-spaces-in-resolved-path assumption + glob-safe array split as install_mcps (see there).
     read -ra spec_words <<<"$spec"
-    claude mcp add --scope "$CLAUDE_SCOPE" "$name" "${spec_words[@]}" || true
+    claude mcp add --scope "$CLAUDE_SCOPE" "$name" "${spec_words[@]}" || note_failure "mcp $name failed"
   done
 }
 
@@ -627,7 +733,25 @@ else
 fi
 
 prune_agents_cache
-log "done: $ACTION ($SCOPE, agent=$AGENT). ${#SKILLS[@]} skills, ${#PLUGINS[@]} plugins, MCPs, hooks=${#HOOKS[@]}, agents=${#AGENTS[@]}, rules=${#CLAUDE_RULES[@]}."
+echo
+log "done: $ACTION [scope=$SCOPE, account=$CONFIG_DIR, agent=$AGENT]"
+_summary="  skills=${#SKILLS[@]}, plugins=${#PLUGINS[@]}, mcps=${#MCPS[@]}, hooks=${#HOOKS[@]}, agents=${#AGENTS[@]}, rules=${#CLAUDE_RULES[@]}"
+[ -n "$SPACE" ] && _summary="$_summary; space=$SPACE, memory DB=$MEMORY_DB_FILE"
+log "$_summary; context7=$CONTEXT7_MODE"
+if [ "$CLAUDE_MISSING" = true ]; then
+  log "  !! claude CLI absent - plugins, MCPs, and settings.json wiring were SKIPPED (install it, then re-run)"
+fi
+if [ "$FAIL_COUNT" -gt 0 ]; then
+  log "  !! $FAIL_COUNT item(s) failed above - re-run '$ACTION' to retry"
+fi
+
+log "next steps:"
+log "  - restart Claude Code (or reopen the project) to load the new MCPs, hooks, and settings"
+[ "$PREREQ_MISSING" = true ] && log "  - install the missing prerequisites flagged above, then re-run"
+if [ "$CONTEXT7_MODE" = "remote" ]; then
+  log "  - context7 is remote; add CONTEXT7_API_KEY to $CONFIG_DIR/settings.json 'env' for higher rate limits (or re-run with context7-local)"
+fi
+[ "$INSTALL_GITHUB_CLI" = true ] && log "  - run 'gh auth login' if gh is not yet authenticated (needed before PRs/issues)"
 
 # Reminder: stack-generated, machine-local artifacts that should NOT be committed.
 cat <<'GITIGNORE'

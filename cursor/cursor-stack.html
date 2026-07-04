@@ -253,7 +253,7 @@ const repository = [
 
 // ---- MCP servers (native in Cursor via .cursor/mcp.json) ----
 const mcp = [
-  ["context7","Library docs",".cursor/mcp.json (npx -y @upstash/context7-mcp)","https://github.com/upstash/context7","Fetch current library/framework/SDK docs. Same product as on Claude - an MCP server, so identical in Cursor. Add `use context7` to a prompt."],
+  ["context7","Library docs",".cursor/mcp.json (remote https://mcp.context7.com/mcp; 'context7-local' arg for local npx)","https://github.com/upstash/context7","Fetch current library/framework/SDK docs. Same product as on Claude - an MCP server, so identical in Cursor. Remote by default - key via ${env:CONTEXT7_API_KEY} from your OS env. Add `use context7` to a prompt."],
   ["serena","Code navigation",".cursor/mcp.json (uvx --from serena-agent, --context ide-assistant)","https://github.com/oraios/serena","Code-aware symbol navigation, find-references, call-hierarchy via LSP. Cursor uses the generic `ide-assistant` context. Per-project .serena/ (SERENA_HOME=.serena/home)."],
   ["playwright","Browser automation",".cursor/mcp.json (npx @playwright/mcp@<pinned>)","https://github.com/microsoft/playwright-mcp","Browser navigate/click/type/screenshot via Playwright. ${...} tokens are resolved to concrete paths when .cursor/mcp.json is written (Cursor does no shell interpolation)."],
   ["memory","Memory / recall",".cursor/mcp.json (mcp-memory-service, shared ~/.memory-mcp)","https://codeberg.org/doobidoo/mcp-memory-service","Cross-project semantic memory. Shares ~/.memory-mcp with Claude Code, so both see the same DB."],
