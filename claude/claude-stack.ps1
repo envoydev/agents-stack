@@ -268,7 +268,7 @@ else {
 # MANIFEST - edit these, then run.
 # ===========================================================================
 
-# (1) Skills "repo|skill" (comment a line to skip). Full inventory - every skill (76).
+# (1) Skills "repo|skill" (comment a line to skip). Full inventory - every skill (50).
 $Skills = @(
   # Personal (envoydev/agents-stack)
   'envoydev/agents-stack|create-ticket'             # ticket generator (bug/story/epic/task) - tracker-agnostic EN Markdown, routes to references/<type>.md
@@ -286,7 +286,7 @@ $Skills = @(
   'envoydev/agents-stack|angular-styling'    # Angular CSS/styling: ViewEncapsulation, :host, ::ng-deep ways-out, design tokens, responsive, a11y styling
   'envoydev/agents-stack|angular-security'   # Angular/web frontend security: XSS/DomSanitizer bypass, CSP, CSRF, no-secrets-in-bundle, token storage, SSR/TransferState
   'envoydev/agents-stack|frontend'         # web frontend router: Angular/TS/frontend-design + -> mobile
-  'envoydev/agents-stack|mobile'           # Ionic/Capacitor router: ionic-angular/capacitor-angular/capacitor-plugins + Angular/TS baseline
+  'envoydev/agents-stack|mobile'           # Ionic/Capacitor router/index over the Angular (angular-conventions) + TypeScript baselines
   'envoydev/agents-stack|ionic'            # house Ionic/Capacitor conventions: UI, nav, lifecycle, permissions, plugin sourcing + wrapping
   'envoydev/agents-stack|capacitor-release' # Ionic/Capacitor release pipeline: cap sync/build, iOS+Android signing, store submission, OTA, versioning, CI, symbols
   'envoydev/agents-stack|mobile-security'  # Ionic/Capacitor mobile security: Keychain/Keystore storage, deep-link validation, permissions, cleartext/WebView hardening
@@ -312,54 +312,22 @@ $Skills = @(
   'envoydev/agents-stack|dotnet-testing'   # .NET test strategy: AAA, per-layer coverage, library routing
   'envoydev/agents-stack|dotnet-web-backend' # ASP.NET Core cross-cutting: HttpClientFactory, OpenAPI, observability
   'envoydev/agents-stack|dotnet-wpf'       # WPF strict-MVVM conventions, bindings, virtualization
-  # .NET (aaronontheweb/dotnet-skills)
-  'aaronontheweb/dotnet-skills|api-design'    # stable extend-only public APIs, NuGet/wire versioning
-  'aaronontheweb/dotnet-skills|aspire-integration-testing' # .NET Aspire integration tests: DistributedApplicationTestingBuilder, AppHost, endpoint discovery
-  'aaronontheweb/dotnet-skills|crap-analysis' # CRAP-score risk hotspots (complexity x coverage)
-  'aaronontheweb/dotnet-skills|csharp-concurrency-patterns' # async/await, Channels, Akka.NET concurrency guidance
-  'aaronontheweb/dotnet-skills|database-performance' # read-path perf: N+1, projections, AsNoTracking, row limits
-  'aaronontheweb/dotnet-skills|dependency-injection-patterns' # IServiceCollection Add* extension composition
-  'aaronontheweb/dotnet-skills|dotnet-local-tools' # pin CLI tools (dotnet-ef/csharpier/reportgenerator) in .config/dotnet-tools.json for local+CI parity
-  'aaronontheweb/dotnet-skills|dotnet-project-structure' # .slnx, Directory.Build.props, global.json layout
-  'aaronontheweb/dotnet-skills|dotnet-slopwatch' # detect LLM reward-hacking in diffs (disabled tests, empty catches)
-  'aaronontheweb/dotnet-skills|efcore-patterns' # EF Core query/tracking/migration mechanics
-  'aaronontheweb/dotnet-skills|ilspy-decompile' # decompile assemblies to inspect the real API/behavior
-  'aaronontheweb/dotnet-skills|microsoft-extensions-configuration' # typed options binding + startup validation
-  'aaronontheweb/dotnet-skills|OpenTelemetry-NET-Instrumentation' # deep manual OTel: custom Activity/spans, metric cardinality, zero-alloc TagList (beyond web-backend wiring)
-  'aaronontheweb/dotnet-skills|package-management' # NuGet central package management via dotnet CLI
-  'aaronontheweb/dotnet-skills|r3-reactive-extensions' # R3 (Cysharp modern Rx): Observable, operators, schedulers for event-driven C#
-  'aaronontheweb/dotnet-skills|serialization' # System.Text.Json / Protobuf / MessagePack guidance
-  'aaronontheweb/dotnet-skills|snapshot-testing' # Verify snapshot/approval tests: HTTP responses, public API surface, serialized output
-  'aaronontheweb/dotnet-skills|testcontainers-integration-tests' # integration tests against real DBs in Docker
-  'aaronontheweb/dotnet-skills|type-design-performance' # structs vs classes, sealing, allocation-aware type design
-  # .NET diagnostics (dotnet/skills - official Microsoft)
-  'dotnet/skills|microbenchmarking'           # BenchmarkDotNet: design/run/compare microbenchmarks (net-new runtime perf)
-  'dotnet/skills|dump-collect'                # crash / on-demand dump capture (Linux/macOS/Win + containers)
-  # Architecture (codewithmukesh/dotnet-claude-kit) - version-neutral concepts referenced live; the
-  # version-coupled ASP.NET Core areas are covered by the original house dotnet-* skills above (.NET 8 floor).
-  'codewithmukesh/dotnet-claude-kit|clean-architecture' # Clean Architecture 4-project layout + dependency rules
-  'codewithmukesh/dotnet-claude-kit|ddd'      # tactical DDD: aggregates, value objects, domain events
-  # Docs / DB / Docker / Git (josiahsiegel/claude-plugin-marketplace)
-  'josiahsiegel/claude-plugin-marketplace|docker-platform-guide' # per-OS Docker Desktop setup specifics
-  'josiahsiegel/claude-plugin-marketplace|docker-security-guide' # container hardening, capability dropping, CIS
-  'josiahsiegel/claude-plugin-marketplace|git-master' # non-trivial git: recovery, history rewrite, submodules
-  'josiahsiegel/claude-plugin-marketplace|index-strategies' # SQL Server index design: clustered/filtered/columnstore/INCLUDE
-  'josiahsiegel/claude-plugin-marketplace|markdown-style' # two-pass Markdown syntax/style review
-  'josiahsiegel/claude-plugin-marketplace|query-optimization' # T-SQL rewrites, SARGability, execution-plan reading
-  'josiahsiegel/claude-plugin-marketplace|tsql-functions' # T-SQL function catalog (string/date/window/JSON/XML)
-  # Single-skill repos
-  'supabase/agent-skills|supabase-postgres-best-practices' # Postgres performance + schema best practices
-  'mryll/skills|vertical-slice-architecture'  # VSA: feature folders, minimal cross-slice coupling
-  # Ionic / Capacitor mobile (capawesome-team/skills - MIT)
-  'capawesome-team/skills|ionic-angular'      # Angular-specific Ionic patterns (components, theming, navigation)
-  'capawesome-team/skills|capacitor-angular'  # Angular-specific Capacitor app patterns
-  'capawesome-team/skills|capacitor-plugins'  # install/configure/use 160+ Capacitor plugins (official/Capawesome/community/CapGo)
+  'envoydev/agents-stack|postgres'         # PostgreSQL engine delta: index types, JSONB, SARGability, EXPLAIN, pooling
+  'envoydev/agents-stack|sqlite'           # SQLite engine delta: WAL/single-writer, PRAGMAs, type affinity, limited ALTER
+  'envoydev/agents-stack|dotnet-data-access' # EF Core + NHibernate ORM hub (references/): DbContext, tracking, N+1, projection
+  'envoydev/agents-stack|dotnet-architecture' # architecture decision hub (references/): clean/ddd/vsa/modular/microservices
+  'envoydev/agents-stack|markdown-style' # Markdown authoring / review: syntax canon (valid) + house style overlay, two-pass procedure
+  'envoydev/agents-stack|ilspy-decompile' # decompile a .NET assembly (ilspycmd via dnx) to read real API/behavior - framework internals, NuGet source, pre-upgrade checks
+  'envoydev/agents-stack|dotnet-project-setup' # .NET solution build spine (hub, references/): src/tests layout, .slnx, Directory.Build.props, global.json, central package management, dotnet-tool pinning
+  'envoydev/agents-stack|dotnet-performance' # perf-aware .NET design (hub, references/): allocation/type design (struct vs class, Span, ValueTask) + serialization-format choice (STJ source-gen / Protobuf / MessagePack)
+  'envoydev/agents-stack|dotnet-diagnostics' # measure/diagnose a live .NET process (hub, references/): BenchmarkDotNet microbenchmarks + crash/hang/OOM dump capture & first-look SOS analysis
 )
 
 # (2) Plugins "<plugin>@<marketplace>" (non-default marketplaces added first).
 $ExtraMarketplaces = @(
   'jarrodwatts/claude-hud'
   'DietrichGebert/ponytail'
+  'JuliusBrussee/caveman'
 )
 $Plugins = @(
   'superpowers@claude-plugins-official'       # workflow skills: plan, TDD, debug, verify-before-done
@@ -370,6 +338,7 @@ $Plugins = @(
   'frontend-design@claude-plugins-official'   # distinctive, production-grade frontend UI; polished code that avoids generic AI aesthetics
   'claude-hud@claude-hud'                       # statusline HUD (global/user scope)
   'ponytail@ponytail'                           # 'lazy senior dev' decision ladder: minimal-code default, cuts generated code/latency/cost
+  'caveman@caveman'                             # terse-output token reducer (~65% fewer output tokens); code/commands/errors kept byte-exact; MIT, needs Node >=18
 )
 
 # (3) MCP servers "name|args"; scope follows $Scope. SINGLE-QUOTED so ${...} stays LITERAL ->

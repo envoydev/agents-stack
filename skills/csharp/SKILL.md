@@ -122,7 +122,7 @@ Per-case braces give each case its own scope (no accidental variable leak); blan
 - **`System.Threading.Lock`** (C# 13) - use for new lock objects. Do not retrofit existing `lock(object)` sites.
 - **Switch expression vs switch statement** - prefer switch expression for value-returning code. Use switch statement only when arms have side effects (DI registration, channel writes, logging).
 
-Performance concerns (sealing, readonly structs, `Span<T>` / `Memory<T>` / `ArrayPool<T>`, collection choice) belong with the `type-design-performance` skill.
+Performance concerns (sealing, readonly structs, `Span<T>` / `Memory<T>` / `ArrayPool<T>`, collection choice) belong with the `dotnet-performance` skill.
 
 ## Forbidden patterns
 - No `#region` blocks.
@@ -131,7 +131,7 @@ Performance concerns (sealing, readonly structs, `Span<T>` / `Memory<T>` / `Arra
 - No `TODO` without an associated ticket reference.
 - No reflection in business or hot-path code; use source generators or compile-time alternatives. No object-mapping libraries (AutoMapper / Mapster / ExpressMapper) - write explicit mapping methods (compile-time checked, debuggable, refactor-safe). Reflection is acceptable only in serialization, the DI container, ORM / EF, test infrastructure, or one-time bootstrap - never for DTO / domain mapping. When you must reach a private member (serializer, test helper), use `UnsafeAccessorAttribute` (.NET 8), not `System.Reflection`.
 
-When a convention here drives a package change - adding, removing, or swapping one (e.g. dropping a banned mapper, replacing Newtonsoft with System.Text.Json) - the install itself follows `package-management`: use the `dotnet` CLI, never hand-edit `Directory.Packages.props`.
+When a convention here drives a package change - adding, removing, or swapping one (e.g. dropping a banned mapper, replacing Newtonsoft with System.Text.Json) - the install itself follows `dotnet-project-setup`: use the `dotnet` CLI, never hand-edit `Directory.Packages.props`.
 - No `dynamic` - use `object` + pattern matching or a typed interface.
 - No top-level statements outside `Program.cs`.
 
@@ -186,7 +186,7 @@ Behavior, I/O, and composition rules.
 - Configuration layering: `appsettings.json` (defaults) -> `appsettings.{Environment}.json` -> environment variables -> command-line args. Later layers override earlier.
 - Hashing / encryption primitives route via `dotnet` to `dotnet-cryptography`; the secret-leak / OWASP hardening boundary is `dotnet-security`.
 
-Typed options binding (`IOptions<T>` / `IOptionsSnapshot<T>` / `IOptionsMonitor<T>`) and startup validation (`ValidateOnStart`, `IValidateOptions<T>`, data-annotation validation) live in `microsoft-extensions-configuration` - consult it for those, do not restate here.
+Typed options binding (`IOptions<T>` / `IOptionsSnapshot<T>` / `IOptionsMonitor<T>`) and startup validation (`ValidateOnStart`, `IValidateOptions<T>`, data-annotation validation) live in `dotnet-web-backend` (its typed-options section) - consult it for those, do not restate here.
 
 ## LINQ
 - Method syntax (`Where`, `Select`, `GroupBy`), not query syntax, unless query syntax is materially clearer (e.g. multi-join queries).
@@ -204,3 +204,4 @@ Typed options binding (`IOptions<T>` / `IOptionsSnapshot<T>` / `IOptionsMonitor<
 - Never call `new` on service-layer or infrastructure types inside a class body - use factories or DI.
 - No circular dependencies between namespaces.
 - Never inject a shorter-lifetime service into a longer-lifetime one (captive dependency). Use `IServiceScopeFactory` or a `Func<T>` factory for cross-lifetime access.
+- Composition mechanics - grouping a feature's registrations behind an `Add*` extension, keyed services, factory registration, and `TryAdd` - are `references/dependency-injection.md`; this section owns only the lifetime rules.

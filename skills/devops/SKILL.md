@@ -14,15 +14,17 @@ The pipeline is production code - a broken workflow blocks every merge and a lea
 - Mount a persistent package cache in the restore layer - `RUN --mount=type=cache,target=/root/.nuget/packages dotnet restore` (and the npm cache) - so the cache survives even when the copy-lockfile-then-restore layer is busted.
 - When a build genuinely needs a secret - a private NuGet-feed PAT during restore - pass it with `RUN --mount=type=secret,id=...` so it never lands in a layer or image history, distinct from the runtime secrets pulled from the store.
 - Pin the base image by digest, never a floating :latest or a bare major tag - a moving tag makes the build non-reproducible and is a supply-chain hole. Prefer a chiseled or distroless .NET runtime image (no shell, minimal CVE surface).
+- Pin the BuildKit frontend on the Dockerfile's first line - `# syntax=docker/dockerfile:1` (to a digest for a fully locked build) - so an untrusted or moving frontend cannot run build-time code you never vetted; and treat `buildx` `--sbom` / `--provenance` attestations as metadata, not signatures - sign the image with cosign if you need provenance you can verify.
 - Build multi-arch images with `buildx --platform linux/amd64,linux/arm64` when developers are on Apple Silicon but production runs x64 - a locally-built image is otherwise the wrong architecture for the server.
 - Run as a non-root USER, mount the root filesystem read-only where the app allows, and keep a .dockerignore that excludes bin, obj, node_modules, .git, and every secret-bearing file.
-- Harden past non-root at runtime - drop all Linux capabilities (`cap_drop: [ALL]`), set no-new-privileges, and cap memory / CPU, so a compromised or leaking process cannot escalate or starve the host.
+- Harden past non-root at runtime - drop all Linux capabilities (`cap_drop: [ALL]`), set no-new-privileges, cap memory / CPU and the PID count (`--pids-limit`, compose `pids_limit`) against a fork bomb, and keep the default seccomp profile plus an AppArmor or SELinux profile (`--security-opt`) instead of reaching for `--privileged`, so a compromised or leaking process cannot escalate, exhaust PIDs, or starve the host.
 - Give the container a HEALTHCHECK and proper PID-1 signal handling (an init shim) so the orchestrator can tell ready from dead and a SIGTERM drains rather than kills.
 
 ## Compose - local topology, not a secret store
 
 - Express service dependencies with a health condition, and give every backing service (Postgres, SQL Server, Redis) its own healthcheck, so a dependent waits for ready and not merely started.
 - Keep state in named volumes; never bind-mount or inline a secret in the compose file - pull it from a gitignored env-file that never enters source control.
+- Segment the network - put backing services on an `internal: true` network with no published host ports, expose only the edge service and bind its port to `127.0.0.1` rather than `0.0.0.0`, and disable inter-container talk by default (`icc: false`) so a compromised service cannot reach the rest.
 
 ## GitHub Actions - the CI/CD contract
 

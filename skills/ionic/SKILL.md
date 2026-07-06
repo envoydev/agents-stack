@@ -1,11 +1,11 @@
 ---
 name: ionic
-description: "Personal Ionic / Capacitor mobile + hybrid app conventions - house rules for Ionic Angular UI (standalone + signals, IonRouterOutlet, lazy routes, page-caching view lifecycle, CSS-variable theming), Capacitor lifecycle + platform guards, runtime permissions, and Capacitor plugin sourcing (official -> Capawesome -> capacitor-community) + typed-service wrapping. Targets Angular 17+ / Capacitor 6+ (7 current). Load before building or editing an Ionic/Capacitor app. Companions: angular-conventions (the Angular framework), typescript (the language); plugin install/use mechanics route to capacitor-plugins. Do NOT load for plain web Angular with no native shell."
+description: "Personal Ionic / Capacitor mobile + hybrid app conventions - house rules for Ionic Angular UI (standalone + signals, IonRouterOutlet, lazy routes, page-caching view lifecycle, CSS-variable theming), Capacitor lifecycle + platform guards, runtime permissions, and Capacitor plugin sourcing (official -> Capawesome -> capacitor-community) + typed-service wrapping. Targets Angular 17+ / Capacitor 6+ (7 current). Load before building or editing an Ionic/Capacitor app. Companions: angular-conventions (the Angular framework), typescript (the language); per-plugin install/config is fetched live (context7 / the plugin README), the sourcing + typed-wrapping guidance is here. Do NOT load for plain web Angular with no native shell."
 ---
 
 # Ionic / Capacitor Conventions
 
-An Ionic app is an Angular app in a native (Capacitor) shell: the framework rules live in `angular-conventions` and the language baseline in `typescript` - load both. This skill is the Ionic/Capacitor-specific layer of house policy; the upstream mechanics skills (`ionic-angular`, `capacitor-angular`, `capacitor-plugins`) carry the how. Those three are external siblings installed live from capawesome-team/skills, not this repo - a dangling name here is that external skill, and it ships only when the full installer has run. Cutting a release - the build, signing, store submission, OTA, and release CI - is `capacitor-release`.
+An Ionic app is an Angular app in a native (Capacitor) shell: the framework rules live in `angular-conventions` and the language baseline in `typescript` - load both. This skill is the Ionic/Capacitor-specific layer of house policy. In-app navigation and the page lifecycle are owned here in `references/navigation-and-lifecycle.md`; broader Ionic UI mechanics (component APIs, theming) are fetched live via context7 or the Ionic docs, not vendored. Per-plugin install/config is fetched live (context7 or the plugin's README); the durable plugin-sourcing and typed-service-wrapping guidance is here in this skill. Cutting a release - the build, signing, store submission, OTA, and release CI - is `capacitor-release`.
 
 ## Components and structure
 - Standalone components + signals, OnPush, new control flow - same as `angular-conventions`. Ionic components (`IonContent`, `IonList`, ...) are standalone imports, not a shared module.
@@ -40,6 +40,33 @@ Three different questions, three different calls - don't conflate them:
 - The `App` plugin's `addListener` is async (returns a `Promise<PluginListenerHandle>`); await the handle before you rely on the listener being live, and store it for removal.
 - Own pause/resume, hardware back, and deep links (`appUrlOpen`) in that one service, not scattered across pages. On resume, re-read any state that may have gone stale in the background (auth token, geolocation) rather than trusting the pre-pause snapshot.
 
+## The Angular zone boundary - wrap every listener callback
+Capacitor plugin listener callbacks fire outside Angular's `NgZone`, so any state they mutate escapes change detection and the UI silently goes stale - the single most common Angular+Capacitor bug. Wrap the body of every listener callback that touches template-bound state - `appStateChange`, `backButton`, `appUrlOpen`, `networkStatusChange`, the push events - in `NgZone.run()`; inject `NgZone` rather than reaching for `setTimeout` or `ApplicationRef.tick()`. Registration and teardown follow the lifecycle rule above: register in the app-level service, capture the handle, remove on destroy.
+
+Broken - the template never updates:
+```typescript
+this.handle = await Network.addListener('networkStatusChange', (status) => {
+  this.online.set(status.connected);          // runs outside the zone
+});
+```
+
+Correct - run the mutation inside the zone:
+```typescript
+private zone = inject(NgZone);
+this.handle = await Network.addListener('networkStatusChange', (status) => {
+  this.zone.run(() => this.online.set(status.connected));
+});
+```
+
+The same wrap is what makes the deep-link `Router.navigateByUrl` mapping and the push-tap routing actually repaint - both run inside a listener callback.
+
+### Android hardware back button
+Own the `backButton` listener in that same app-level service and branch on `canGoBack` - pop when there is history, exit only when there is none. Never call `App.exitApp()` unconditionally; it closes the app mid-stack.
+```typescript
+App.addListener('backButton', ({ canGoBack }) =>
+  this.zone.run(() => (canGoBack ? this.location.back() : App.exitApp())));
+```
+
 ## Native-vs-web fallbacks - degrade, never crash
 - Every native call needs a defined web path so the PWA and `ionic serve` dev build still run. The branch lives in the wrapping service, not the component.
 - Three fallback shapes, in order of preference: (1) a real web implementation when the plugin ships web support (Capacitor's official plugins mostly do - Camera falls back to file input, Preferences to localStorage); (2) a degraded-but-functional stand-in (share via the Web Share API, or copy-link when even that is absent); (3) an explicit, typed 'unavailable' result the UI can render as a disabled affordance. Prefer the highest one the plugin and target support - a silent no-op is the one outcome to avoid, because it looks like a bug.
@@ -59,13 +86,13 @@ Preference order when you need a plugin:
 3. **capacitor-community** `@capacitor-community/*` (the capacitor-community org) for community-maintained needs.
 4. Vetted community / CapGo only if nothing above fits - never an unmaintained one-off npm package.
 
-Before adopting any third-party plugin: confirm its latest major matches your Capacitor version, check recent releases / commits (maintenance), and verify iOS / Android / web platform support. Install/config + usage mechanics route to `capacitor-plugins`.
+Before adopting any third-party plugin: confirm its latest major matches your Capacitor version, check recent releases / commits (maintenance), and verify iOS / Android / web platform support. Per-plugin install and config is fetched live - context7 or the plugin's own README, since it drifts per release; the durable sourcing and typed-wrapping policy is here.
 
 ## Wrapping
 - Call a plugin only through a typed Angular service - never the plugin API scattered across components. The service owns the permission check, the web fallback, and error mapping (a denied permission or missing capability is a `Result`, not an unhandled throw).
 
 ## Native-feature architecture
-The typed wrapping service is the unit for these too: each owns its permission check, its web fallback, its listener lifecycle, and its error-to-`Result` mapping. The three cases below are the cross-cutting ones nearly every production app hits. Plugin install + API mechanics stay with `capacitor-plugins`; what follows is the house shape that sits on top.
+The typed wrapping service is the unit for these too: each owns its permission check, its web fallback, its listener lifecycle, and its error-to-`Result` mapping. The three cases below are the cross-cutting ones nearly every production app hits. Per-plugin install and API mechanics are fetched live (context7 or the plugin README); what follows is the house shape that sits on top.
 
 ### Push notifications
 - Permission then register, never the reverse: run the `checkPermissions()` -> `requestPermissions()` cycle (same order as any permission-gated API), and only call `PushNotifications.register()` once the status is `'granted'`. `register()` itself does not prompt - it triggers the `'registration'` event with the token, or `'registrationError'`. On Android 12 and below the permission is always granted; on iOS the first check prompts, so still gate it behind a UI affordance that explains why.
@@ -91,4 +118,4 @@ The typed wrapping service is the unit for these too: each owns its permission c
 ## Anti-patterns
 - A native plugin call with no web fallback (breaks the dev / PWA build); permissions requested up front; raw plugin APIs in components; an unmaintained one-off plugin where an official / Capawesome / community one exists; hardcoded theme colors instead of Ionic CSS variables.
 
-<!-- House Ionic/Capacitor conventions; install/usage mechanics deferred to the capawesome-team capacitor-plugins / ionic-angular / capacitor-angular skills. -->
+<!-- House Ionic/Capacitor conventions; in-app navigation + page lifecycle owned in references/navigation-and-lifecycle.md; component APIs / theming fetched live via context7 / the Ionic docs. -->

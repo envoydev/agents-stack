@@ -24,9 +24,9 @@ The schema is the one place integrity is cheap to enforce and expensive to retro
 
 The rules in this skill hold across engines; the deep, engine-specific mechanics live elsewhere and this skill defers to them rather than duplicating them.
 
-- **PostgreSQL** - `supabase-postgres-best-practices` for query patterns, indexing, and partitioning. Ignore its RLS and Supabase-tenancy rules unless the project actually enforces tenancy in the database.
-- **SQL Server / T-SQL** - `query-optimization` for rewrites, SARGability, and plan reading; `index-strategies` for the clustered / nonclustered / filtered / columnstore decision; `tsql-functions` for the function catalog.
-- **SQLite** - no dedicated skill; treat it as Postgres-lite. WAL mode by default, one writer per file, pragmas applied at connection open, `INTEGER PRIMARY KEY` for autoincrement, and no concurrent writers across processes.
+- **PostgreSQL** - `postgres` for index-type selection, JSONB/full-text, SARGable rewrites, the planner (EXPLAIN / pg_stat_statements / autovacuum), and connection pooling.
+- **SQLite** - `sqlite` for the WAL / single-writer concurrency model, PRAGMAs, type affinity, limited ALTER TABLE, and connection-per-thread.
+- **SQL Server / T-SQL** - no dedicated house skill; the engine-neutral rules here plus `postgres`'s transferable index/SARGability principles cover most of it.
 - **MongoDB / document stores** - no dedicated skill; apply document-modeling care. Embed versus reference by access pattern, index every queried field path, bound array growth, and never run an unbounded `$lookup`.
 
 ## Query safety
@@ -43,7 +43,7 @@ For deep pagination, prefer keyset (seek) pagination over `OFFSET`: a `WHERE (cr
 
 The N+1 query is the most common performance regression in data access, and it hides in code that reads perfectly: a loop over rows that lazily fetches a relation per iteration. Eager-load the relations you know you need explicitly rather than letting per-row lazy loads fire; for a document store that is a `Populate` (Mongoose) or a single shaped read. And do the join in the database - never pull two tables into the application and join them in memory, which fetches more rows than the result needs and throws away the engine's join optimizer.
 
-This skill is engine and SQL only. All .NET data access routes out: the EF Core mechanics (`Include` / `ThenInclude`, `AsSplitQuery`, `AsNoTracking`) belong to `efcore-patterns`, and read-path performance - N+1 detection, projection shape, change-tracking cost, row count - belongs to `database-performance`. Do not restate either here.
+This skill is engine and SQL only. All .NET data access routes out: the ORM mechanics (`Include` / `ThenInclude`, `AsSplitQuery`, `AsNoTracking`, and their NHibernate equivalents) and read-path shape - N+1, projection, change-tracking cost, bounded results - belong to `dotnet-data-access`. Do not restate them here.
 
 ## Migrations
 

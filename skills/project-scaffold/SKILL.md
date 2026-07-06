@@ -1,6 +1,6 @@
 ---
 name: project-scaffold
-description: Build a new application or major module from scratch - greenfield scaffolding and orchestration. Routes a new project to the right architecture skill (clean-architecture, ddd, vertical-slice-architecture, dotnet-project-structure) and scaffolding command (dotnet new, ng new via the angular-cli MCP), then in a stack-installed Claude Code project drives the build from the main session - greenfield-solution-designer designs, and each vertical slice runs the `domain-build` skill for its stack. Triggers on build from scratch, new project, greenfield, scaffold, start a new app.
+description: Build a new application or major module from scratch - greenfield scaffolding and orchestration. Routes a new project to the right architecture skill (dotnet-architecture, dotnet-project-structure) and scaffolding command (dotnet new, ng new via the angular-cli MCP), then in a stack-installed Claude Code project drives the build from the main session - greenfield-solution-designer designs, and each vertical slice runs the `domain-build` skill for its stack. Triggers on build from scratch, new project, greenfield, scaffold, start a new app.
 ---
 
 # Project Scaffold - Greenfield Build Orchestration
@@ -26,7 +26,7 @@ Detection keys on dispatch capability, not file presence - a project can carry t
 |---|---|---|
 | Angular web | ng new (angular-cli MCP) | `angular-conventions` + `angular-styling` |
 | Ionic/Capacitor mobile | ionic start + cap add | `ionic` + `mobile` |
-| ASP.NET Core backend | dotnet new webapi/web | `clean-architecture` or `vertical-slice-architecture` + `dotnet-web-backend` / `dotnet-minimal-api` |
+| ASP.NET Core backend | dotnet new webapi/web | `dotnet-architecture` + `dotnet-web-backend` / `dotnet-minimal-api` |
 | WPF desktop | dotnet new wpf | `dotnet-wpf` (strict MVVM) |
 | SQL / data | first schema | `database-conventions` + `dotnet-migrate` |
 

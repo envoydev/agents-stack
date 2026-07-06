@@ -84,7 +84,7 @@ Pair the registration with `MapDefaultEndpoints()`, which maps the health endpoi
 ## Service discovery and configuration
 
 - Address other services by their Aspire resource name, never by a hardcoded host or port. With service discovery wired through ServiceDefaults, a typed `HttpClient` configured with a base address of `https+http://orders-api` resolves to wherever that resource is actually running. Hardcoding `localhost:5217` defeats the whole orchestration model and breaks the moment a port shifts.
-- Connection strings arrive as configuration, courtesy of the `WithReference` in the AppHost. The service should read them through the options pattern (`microsoft-extensions-configuration`) and bind them to a typed options class - not pull magic strings out of `IConfiguration` ad hoc, and never hardcode a value the AppHost is already supplying.
+- Connection strings arrive as configuration, courtesy of the `WithReference` in the AppHost. The service should read them through the options pattern (`dotnet-web-backend`) and bind them to a typed options class - not pull magic strings out of `IConfiguration` ad hoc, and never hardcode a value the AppHost is already supplying.
 - The contract between AppHost and service is the resource name plus the configuration key it injects under. Keep both stable; changing either is a wiring break even though nothing in the service signatures changed.
 
 ## The dashboard
@@ -93,7 +93,7 @@ A local run launches the Aspire dashboard automatically. Lean on it instead of s
 
 ## Testing the orchestrated app
 
-To spin up the full graph in a test and assert against it, use `DistributedApplicationTestingBuilder` to build the AppHost in-process. The harness specifics - waiting on resources, resolving endpoints, fixture lifetime - belong to `aspire-integration-testing`; load that skill when you write those tests rather than reinventing the setup here.
+To spin up the full graph in a test and assert against it, use `DistributedApplicationTestingBuilder` to build the AppHost in-process. The harness specifics - waiting on resources, resolving endpoints, fixture lifetime - belong to `dotnet-testing` (its `references/aspire-integration-testing.md`); load that when you write those tests rather than reinventing the setup here.
 
 ## Don't
 

@@ -1,6 +1,6 @@
 ---
 name: csharp-design-patterns
-description: Apply GoF design patterns idiomatically in C#/.NET. Use this skill whenever the user asks to implement, choose, explain, or compare a design pattern in C#, refactor C# code toward a pattern, review code for pattern misuse, or asks 'which pattern fits this problem'. Also trigger when the user describes a recurring design problem in .NET code (object creation sprawl, switch-on-type logic, tight coupling, notification chains, undo/redo, plugin architecture) even without naming a pattern. Covers all 23 GoF patterns with modern .NET 8+ idioms. Do NOT use for architectural patterns (repository, unit of work, CQRS, event sourcing, layering) - those route via dotnet to ddd / clean-architecture.
+description: Apply GoF design patterns idiomatically in C#/.NET. Use this skill whenever the user asks to implement, choose, explain, or compare a design pattern in C#, refactor C# code toward a pattern, review code for pattern misuse, or asks 'which pattern fits this problem'. Also trigger when the user describes a recurring design problem in .NET code (object creation sprawl, switch-on-type logic, tight coupling, notification chains, undo/redo, plugin architecture) even without naming a pattern. Covers all 23 GoF patterns with modern .NET 8+ idioms. Do NOT use for architectural patterns (repository, unit of work, CQRS, event sourcing, layering) - those route via dotnet to dotnet-architecture.
 ---
 
 # C# Design Patterns
@@ -81,6 +81,6 @@ For 'explain pattern X' requests, follow the refactoring.guru structure instead:
 ## Related skills
 
 - `csharp` - companion for any C# output; style and runtime conventions always apply (see core principle 5).
-- `dependency-injection-patterns` - registration mechanics (lifetimes, keyed services, `Add*` extensions) when a pattern collapses into DI, as Factory/Strategy/Singleton usually do.
-- `csharp-concurrency-patterns` - when Observer or Mediator turns into producer-consumer flows (`Channel<T>`, backpressure).
+- `csharp` (its `references/dependency-injection.md`) - registration mechanics (keyed services, `Add*` extensions, factories) when a pattern collapses into DI, as Factory/Strategy/Singleton usually do.
+- `dotnet-hosted-services` (its `references/concurrency.md`) - when Observer or Mediator turns into producer-consumer flows (`Channel<T>`, backpressure).
 - `dotnet-wpf` - `ICommand`/`[RelayCommand]` specifics when Command or Observer lands in WPF/MVVM.

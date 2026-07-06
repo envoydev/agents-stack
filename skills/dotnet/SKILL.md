@@ -16,9 +16,9 @@ The single source-of-truth index mapping a concrete .NET work area - a construct
 | You are about to... | Load |
 |---|---|
 | write or refactor any C# (naming, async, dispose, exceptions/Result, logging, DI lifetimes, modern syntax) | `csharp` (always) |
-| add a `Channel<>`, `lock`, `SemaphoreSlim`, `Interlocked`, `Thread`, or other synchronization / producer-consumer code | `csharp-concurrency-patterns` |
-| define a type where allocation or memory layout matters (struct vs class, `readonly struct`, pooling, `Span`) | `type-design-performance` |
-| (de)serialize JSON, reuse `JsonSerializerOptions`, or add a `JsonSerializerContext` | `serialization` |
+| add a `Channel<>`, `lock`, `SemaphoreSlim`, `Interlocked`, `Thread`, or other synchronization / producer-consumer code | `dotnet-hosted-services` (its `references/concurrency.md`) |
+| define a type where allocation or memory layout matters (struct vs class, `readonly struct`, pooling, `Span`) | `dotnet-performance` (its `references/type-design.md`) |
+| (de)serialize JSON, reuse `JsonSerializerOptions`, or add a `JsonSerializerContext`, or pick a wire format (Protobuf/MessagePack) | `dotnet-performance` (its `references/serialization.md`) |
 | author a Roslyn `IIncrementalGenerator`, or consume `[GeneratedRegex]` / `[LoggerMessage]` / `[JsonSerializable]` | `dotnet-source-generators` |
 | choose or implement a GoF design pattern (factory, strategy, observer, undo/redo, plugin seams) or fix pattern misuse | `csharp-design-patterns` |
 
@@ -26,13 +26,13 @@ The single source-of-truth index mapping a concrete .NET work area - a construct
 
 | You are about to... | Load |
 |---|---|
-| model a domain type - aggregate, value object, domain event, strongly-typed ID | `ddd` |
-| decide which layer something belongs in, or define a cross-layer port | `clean-architecture` or `vertical-slice-architecture` (which one, and the load-exactly-one rule, is owned by `dotnet-web-backend`) |
+| model a domain type - aggregate, value object, domain event, strongly-typed ID | `dotnet-architecture` (its `references/ddd.md`) |
+| decide which layer something belongs in, define a cross-layer port, or draw a module/service boundary | `dotnet-architecture` (the style decision + load-one rule live in its hub) |
 | enforce layer / dependency / naming / isolation boundaries as automated tests (fitness functions) that fail the build | `dotnet-architecture-tests` |
-| register services, build an `Add*` extension, or reason about DI lifetimes | `dependency-injection-patterns` |
-| bind or validate settings - `IOptions`, `IValidateOptions`, startup validation | `microsoft-extensions-configuration` |
-| set up a new project, `.slnx`, `Directory.Build.props`, or `global.json` | `dotnet-project-structure` |
-| add or upgrade a NuGet package, or edit `Directory.Packages.props` | `package-management` |
+| register services, build an `Add*` extension, or reason about DI lifetimes | `csharp` (lifetimes in the hub; `Add*` / keyed / factory composition in its `references/dependency-injection.md`) |
+| bind or validate settings - `IOptions`, `IValidateOptions`, `ValidateOnStart` | `dotnet-web-backend` (its typed-options section) |
+| set up a new solution - the layout, `.slnx`, `Directory.Build.props`, or `global.json` | `dotnet-project-setup` |
+| add or upgrade a NuGet package, or edit `Directory.Packages.props` | `dotnet-project-setup` (its `references/central-package-management.md`) |
 | set up or enforce C# formatting and analyzers - CSharpier, SDK analyzers, `.editorconfig` severity, `TreatWarningsAsErrors`, the CI quality gate | `dotnet-code-quality` |
 | run a .NET migration workflow - EF schema, .NET/SDK version upgrade, or NuGet update with preview/rollback/verify | `dotnet-migrate` |
 
@@ -61,8 +61,8 @@ The single source-of-truth index mapping a concrete .NET work area - a construct
 | You are about to... | Load |
 |---|---|
 | design or modify a schema, write SQL (raw or ORM), model a NoSQL doc, or create migrations / views / procs / indexes | `database-conventions` (data hub) |
-| write EF Core data access - `Include`/`ThenInclude`, `AsSplitQuery`, `AsNoTracking`, query shaping | `efcore-patterns` |
-| diagnose read-path performance - N+1, projection shape, change tracking, row count | `database-performance` |
+| write EF Core / NHibernate data access - `Include`/`ThenInclude`, `AsSplitQuery`, `AsNoTracking`, query shaping | `dotnet-data-access` (its `references/efcore.md` or `references/nhibernate.md`) |
+| diagnose ORM read-path performance - N+1, projection shape, change tracking, row count | `dotnet-data-access` (engine-side EXPLAIN / index / planner -> `postgres` or `sqlite`) |
 
 ## Messaging and orchestration
 
@@ -82,20 +82,20 @@ The single source-of-truth index mapping a concrete .NET work area - a construct
 | You are about to... | Load |
 |---|---|
 | write, modify, or review .NET tests, or configure coverage (per-layer strategy, AAA, xUnit/NSubstitute/FluentAssertions) | `dotnet-testing` (test hub) |
-| add container-backed integration tests | `testcontainers-integration-tests` |
-| test an Aspire-orchestrated app end-to-end | `aspire-integration-testing` |
-| add Verify / snapshot assertions | `snapshot-testing` |
-| check a diff for reward-hacking / coverage gaming, or CRAP-score risk before claiming done | `dotnet-slopwatch` + `crap-analysis` |
+| add container-backed integration tests | `dotnet-testing` (its `references/testcontainers.md`) |
+| test an Aspire-orchestrated app end-to-end | `dotnet-testing` (its `references/aspire-integration-testing.md`) |
+| add Verify / snapshot assertions | `dotnet-testing` (its `references/snapshot-testing.md`) |
+| check a diff for reward-hacking / coverage-gaming shortcuts, or CRAP-score risk before claiming done | `dotnet-code-quality` (its reward-hacking list + `references/crap-analysis.md`) |
 
 ## Diagnostics and performance
 
 | You are about to... | Load |
 |---|---|
-| add OpenTelemetry tracing / metrics instrumentation | `OpenTelemetry-NET-Instrumentation` |
-| write a microbenchmark (BenchmarkDotNet) | `microbenchmarking` |
-| capture or analyze a crash / hang dump | `dump-collect` |
+| add OpenTelemetry tracing / metrics instrumentation | `dotnet-web-backend` (wiring in the hub; manual spans / metrics in its `references/observability.md`) |
+| write a microbenchmark (BenchmarkDotNet) | `dotnet-diagnostics` (its `references/microbenchmarking.md`) |
+| capture or analyze a crash / hang dump | `dotnet-diagnostics` (its `references/dumps.md`) |
 | inspect a compiled assembly's real API or behavior | `ilspy-decompile` |
-| install or pin a .NET local tool (`dotnet tool` / manifest) | `dotnet-local-tools` |
+| install or pin a .NET local tool (`dotnet tool` / manifest) | `dotnet-project-setup` (its `references/local-tools.md`) |
 
 ## Desktop
 
@@ -106,6 +106,6 @@ The single source-of-truth index mapping a concrete .NET work area - a construct
 ## Notes
 
 - **Router, not a copy.** This lists *where to look*, not the guidance. Always load the named skill; this file never restates it.
-- **External specialists - not local skills, not typos.** Many rows route to targets that ship from third-party kits, installed live by the stack installer, not authored in this repo: `ddd`, `clean-architecture`, `vertical-slice-architecture`, `efcore-patterns`, `csharp-concurrency-patterns`, `type-design-performance`, `OpenTelemetry-NET-Instrumentation`, and more come from `aaronontheweb/dotnet-skills`, `dotnet/skills`, and `codewithmukesh/dotnet-claude-kit`. They resolve externally once the kits are installed; a name here with no matching local folder is one of these, not a dangling reference.
+- **Every target is house-owned.** This router points only to skills authored in this repo - hubs that carry a `references/` folder (`dotnet-architecture`, `dotnet-data-access`, `dotnet-project-setup`, `dotnet-performance`, `dotnet-diagnostics`) and the leaf specialists. Some rows route into a hub's reference file rather than a standalone skill: concurrency correctness lives in `dotnet-hosted-services` (`references/concurrency.md`), `Add*` / keyed / factory DI composition in `csharp` (`references/dependency-injection.md`), and manual OpenTelemetry plus API contract versioning in `dotnet-web-backend` (`references/observability.md`, `references/api-versioning.md`). Load the named skill and open that reference; nothing here installs from a third-party kit any more.
 - **Hubs vs leaves.** `csharp` is the C# baseline hub, `dotnet-web-backend` the web hub, `database-conventions` the data hub, `dotnet-testing` the test hub - a leaf specialist points UP to its hub, the hub points DOWN to its deep specialists, and this router indexes them all. Load the web hub before a web specialist; load the data hub before EF/SQL specialists.
 - **Out of this router's scope.** Web front-end work routes through `frontend` (and `mobile` for Ionic/Capacitor), not here. Cross-cutting flow that is not .NET-specific - `/security-review`, `/code-review`, `context7` library docs, git - lives in the project's `CLAUDE.md`.

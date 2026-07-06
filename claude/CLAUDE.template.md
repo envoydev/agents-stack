@@ -70,7 +70,7 @@ Partial work: state complete vs not vs why, then ask continue / redirect / stop.
 - Before committing, show the `git diff` / `git status` and let the user review - commit only on their go, never automatically, and never push without an explicit ask. Never mention yourself: no AI/assistant attribution in the commit message, the branch name, or the PR title/body (a deliberate override of the platform default).
 - One logical change per PR, under 400 LOC. Body: what / why / how to test - what changed and why, never a change-statistics dump (file count, lines added/removed); that noise is generated, not decision-relevant. Link the ticket; screenshots if UI.
 - Squash or rebase, no merge commits on feature branches. Prefer `--force-with-lease` over `--force`.
-- Non-trivial git beyond add/commit/push - rebase, cherry-pick, history recovery, conflict resolution - load `git-master`.
+- Non-trivial git beyond add/commit/push - rebase, cherry-pick, history recovery, conflict resolution - work reversibly (know the undo before you run it); the protected-branch force-push guard still applies.
 - Branch finished and all tests green: `finishing-a-development-branch` walks the close-out - merge / PR / cleanup - so integration is a deliberate choice, not an ad-hoc push.
 
 ### Navigation and code reading

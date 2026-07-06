@@ -60,6 +60,7 @@ const PLUGIN_MARKETPLACE_URLS = new Set([
     'https://github.com/anthropics/claude-plugins-official',
     'https://github.com/jarrodwatts/claude-hud',
     'https://github.com/DietrichGebert/ponytail',
+    'https://github.com/JuliusBrussee/caveman',
 ]);
 
 // Backticked kebab-case tokens that look like skill names but are not
@@ -87,6 +88,10 @@ const NON_SKILL_TOKENS = new Set([
     // built-in Claude Code agent type named in the base template's navigation
     // guidance (don't delegate single-symbol lookups to it) - not a house skill.
     'general-purpose',
+    // real .NET CLI diagnostic tools (global tools), backticked as code identifiers
+    // in dotnet-diagnostics/references/dumps.md - not house skills.
+    'dotnet-dump',
+    'dotnet-gcdump',
 ]);
 
 const findings = [];

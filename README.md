@@ -49,8 +49,8 @@ npx skills remove      # uninstall skills
   `bypassSecurityTrust*` escape hatches, CSP, CSRF via HttpClient XSRF, no secrets in the bundle, token storage, and SSR/TransferState leaks (server side → dotnet-security, native shell → mobile-security).
 - **frontend** - Web frontend router: indexes Angular, TypeScript,
   the frontend-design plugin, and Ionic/Capacitor (→ mobile).
-- **mobile** - Ionic / Capacitor router: ionic-angular, capacitor-angular,
-  capacitor-plugins over the Angular + TypeScript baselines.
+- **mobile** - Ionic / Capacitor router/index over the Angular + TypeScript
+  baselines; in-app navigation and page lifecycle owned by ionic.
 - **ionic** - House Ionic / Capacitor conventions: Ionic UI (standalone +
   signals), navigation, lifecycle/permissions, and Capacitor plugin sourcing + wrapping.
 - **capacitor-release** - House Ionic / Capacitor release pipeline: cap sync +
@@ -67,6 +67,8 @@ npx skills remove      # uninstall skills
   injection (no interpolated FromSqlRaw, sp_executesql for dynamic proc SQL), least-privilege DB accounts, row-level security + tenant isolation, connection-string secrets, encryption at rest/in transit, and audit-logging (app-layer EF → dotnet-security, primitives → dotnet-cryptography, migrations → dotnet-migrate).
 - **dotnet** - Router that points to the focused .NET/C# specialist
   skill for the area you are working in.
+- **dotnet-architecture** - Choose and hold a .NET architecture: the decision hub (topology,
+  internal style, DDD-additive) with clean-architecture / ddd / vertical-slice / modular-monolith / microservices in references/. .NET 8 floor.
 - **dotnet-architecture-tests** - Architecture fitness tests: encode layer /
   dependency / naming / isolation rules as build-failing tests with NetArchTest (default) or ArchUnitNET. .NET 8 floor.
 - **dotnet-aspire** - .NET Aspire local orchestration: AppHost,
@@ -77,6 +79,8 @@ npx skills remove      # uninstall skills
   formatter ownership, SDK analyzers (AnalysisLevel / .editorconfig severity), TreatWarningsAsErrors + legacy batch promotion, Roslynator, the dotnet build CI gate. .NET 8 floor.
 - **dotnet-cryptography** - System.Security.Cryptography: SHA-2, AES-GCM,
   RSA/ECDSA, PBKDF2/Argon2id, constant-time comparison, deprecated-algorithm matrix. .NET 8 floor.
+- **dotnet-data-access** - EF Core + NHibernate data access: DbContext/session lifetime, change
+  tracking, N+1 and loading, projection to read models, bounded results, bulk ops; per-ORM depth in references/.
 - **dotnet-error-handling** - Result pattern + ProblemDetails (RFC 9457) +
   global exception handler (IExceptionHandler) + FluentValidation. .NET 8 floor.
 - **dotnet-grpc** - gRPC: .proto/codegen, ASP.NET Core host, four streaming
@@ -105,6 +109,10 @@ npx skills remove      # uninstall skills
   conventions: HttpClientFactory, Polly, API versioning, OpenAPI, observability.
 - **dotnet-wpf** - WPF conventions: strict MVVM, binding modes, UI
   threading, list virtualization, localization.
+- **postgres** - PostgreSQL engine specialist: index-type selection, JSONB / full-text, SARGable
+  rewrites, the planner (EXPLAIN, pg_stat_statements, autovacuum), connection pooling.
+- **sqlite** - SQLite engine specialist: WAL / single-writer concurrency, PRAGMAs, type affinity vs
+  STRICT, limited ALTER TABLE, connection-per-thread, FTS5.
 - **project-quality-loop** - Autonomous review-and-fix loop pipeline: run a `loops/` folder of
   numbered prompts in order, looping each on a target to zero findings, deciding autonomously.
 - **project-scaffold** - Build a new application or major module from scratch: routes greenfield
@@ -118,6 +126,22 @@ npx skills remove      # uninstall skills
   tests, masked secrets, SHA-pinned actions, OIDC), and health-gated expand-contract deploys.
 - **typescript** - Framework-agnostic TypeScript/JavaScript baseline:
   strict typing, type modeling, modules, async, error handling, JS with JSDoc.
+- **markdown-style** - Markdown authoring and review: a syntax canon (valid,
+  portable Markdown) plus an opinionated house style overlay, applied in a
+  two-pass procedure. Form only, not prose (Vale) or spelling.
+- **ilspy-decompile** - Decompile a compiled .NET assembly with ilspycmd to
+  read its real implementation: framework internals, NuGet source, or
+  behavior confirmation before a framework upgrade.
+- **dotnet-project-setup** - Set up a new .NET solution's build spine: the
+  src / tests / .config layout, .slnx, Directory.Build.props, global.json,
+  central package management, and dotnet-tool pinning. A hub with references.
+- **dotnet-performance** - Performance-aware .NET design: allocation and type
+  layout (struct vs class, Span, ValueTask, frozen collections) plus
+  serialization-format choice (System.Text.Json source-gen, Protobuf,
+  MessagePack). A hub with references.
+- **dotnet-diagnostics** - Measure and diagnose a live .NET process: BenchmarkDotNet
+  microbenchmarks and crash / hang / OOM dump capture (dotnet-dump, dotnet-gcdump,
+  containers) with a first-look SOS pass. A hub with references.
 
 ## Repository layout
 
@@ -157,21 +181,18 @@ node scripts/lint-skills.js   # or: npm run lint
 
 ## Credits / Acknowledgements
 
-Two kinds of relationship, kept distinct:
+Every skill is house-owned - original expression of standard practice, carrying no copied
+text. Where a skill was distilled or mined from an MIT source, that source is credited here
+and an inline note marks the skill. Nothing installs from a third-party skill kit at runtime
+any more; the sources below are fork origins, not live dependencies.
 
-**Live-installed dependencies (no incorporated text).** These MIT kits are installed by
-the stack installers and pointed at by the `dotnet` / `frontend` routers; the house .NET
-skills are original expression of standard .NET practices and carry no copied text from
-them. Named voluntarily:
+.NET / Ionic - distilled and trimmed into house skills:
 
-- [`codewithmukesh/dotnet-claude-kit`](https://github.com/codewithmukesh/dotnet-claude-kit) (MIT) - .NET skill kit (`clean-architecture`, `ddd`).
-- [`aaronontheweb` (wshaddix)/`dotnet-skills`](https://github.com/wshaddix/dotnet-skills) (MIT, (c) 2025 Aaron Stannard) - .NET skill kit (`dotnet-slopwatch`, `OpenTelemetry-NET-Instrumentation`, and more).
-- [Microsoft `dotnet/skills`](https://github.com/dotnet/skills) (MIT) - the official .NET skills.
+- [`aaronontheweb` (wshaddix)/`dotnet-skills`](https://github.com/wshaddix/dotnet-skills) (MIT, (c) 2025 Aaron Stannard) - fed `dotnet-project-setup`, `dotnet-performance`, `dotnet-code-quality`, `dotnet-testing`, `dotnet-hosted-services`, `csharp`, `dotnet-web-backend`, and `ilspy-decompile`.
+- [Microsoft `dotnet/skills`](https://github.com/dotnet/skills) (MIT) - microbenchmarking + dump-collect distilled into `dotnet-diagnostics`.
+- [`capawesome-team/skills`](https://github.com/capawesome-team/skills) (MIT) - the Ionic navigation + page-lifecycle nucleus distilled into `ionic`.
 
-**Incorporated content (attribution retained per MIT).** The two Angular skills
-(`angular-conventions`, `angular-material`) fold in specific conventions mined from the
-MIT sources below; their copyright notices are kept here, and an inline note marks each
-skill:
+Angular - conventions mined into `angular-conventions` and `angular-material`:
 
 - [`alfredoperez/angular-best-practices`](https://github.com/alfredoperez/angular-best-practices) (MIT) - signal queries, host-property syntax, `NgOptimizedImage`, route input-binding + resolvers, and testing-harness conventions folded into `angular-conventions` and `angular-material`.
 - [`angular/skills`](https://github.com/angular/skills) (MIT, (c) 2026 Google LLC) - v20/v21 delta conventions folded into `angular-conventions`.

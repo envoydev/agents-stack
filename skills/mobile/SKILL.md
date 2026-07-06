@@ -12,9 +12,9 @@ Index mapping an Ionic/Capacitor mobile work area to the skill to load. Routes, 
 | You are about to... | Load |
 |---|---|
 | follow house Ionic/Capacitor conventions - structure, lifecycle, permissions, plugin sourcing + wrapping | `ionic` |
-| build Ionic Angular UI - components, theming, navigation | `ionic-angular` |
-| structure a Capacitor app - lifecycle, config, the native bridge | `capacitor-angular` |
-| install / configure / use a Capacitor plugin (official, Capawesome, community, CapGo) | `capacitor-plugins` |
+| build Ionic navigation or page lifecycle | `ionic` (its `references/navigation-and-lifecycle.md`); component APIs / theming fetched live |
+| wire the Angular+Capacitor bridge - lifecycle listeners, zone glue, back button, deep links | `ionic` |
+| install / configure a Capacitor plugin (official, Capawesome, community, CapGo) | `ionic` for sourcing + wrapping; per-plugin config fetched live (context7 / plugin README) |
 | build / sign / submit a release, wire OTA + the release CI pipeline | `capacitor-release` |
 | write the Angular framework code underneath | `angular-conventions` |
 | write the TypeScript / JavaScript baseline | `typescript` |
@@ -22,6 +22,6 @@ Index mapping an Ionic/Capacitor mobile work area to the skill to load. Routes, 
 
 ## Notes
 - Ionic/Capacitor apps are Angular apps in a native shell: the framework rules (`angular-conventions`) and language baseline (`typescript`) still apply - this router adds the mobile-specific layer on top.
-- `ionic-angular`, `capacitor-angular`, and `capacitor-plugins` are external siblings installed live from capawesome-team/skills, not this repo - a dangling name here is that external skill, available only once the full installer has run.
+- Ionic in-app navigation and the page lifecycle are house-owned in `ionic` (its `references/navigation-and-lifecycle.md`); broader Ionic component APIs and theming are fetched live (context7 / the Ionic docs). Per-plugin install/config is fetched live; the house plugin-sourcing and wrapping guidance lives in `ionic`.
 - Native Swift / Kotlin platform code and custom-plugin authoring are deliberately out of scope here - Capacitor generates the native shell, so reach for the platform native docs for that, not this router.
 - Backend / .NET work routes through `dotnet`.
