@@ -4,7 +4,7 @@ Durable ledger for the skills audit. Rubric: 6 dimensions scored 0-10; grade = l
 
 Stop reasons: SATISFIED (grade A, all gates) | PLATEAU (2 identical open-con passes) | OSCILLATION (cleared con set reappeared) | CAPPED (5 passes).
 
-Branch: `skills-audit-2026-07`. Started 2026-07-07.
+Branch: `skills-audit-2026-07`. Started and completed 2026-07-07. **Result: 51/51 at grade A.**
 
 ## Scoreboard
 
@@ -55,12 +55,12 @@ Branch: `skills-audit-2026-07`. Started 2026-07-07.
 | 43 | markdown-style | B | **A** | 2 | SATISFIED | none (verifier caught double-quote emphasis in refs, remediated) |
 | 44 | mobile | B | **A** | 1 | SATISFIED | none (added mobile-security route mirroring dotnet->dotnet-security) |
 | 45 | mobile-security | B | **A** | 1 | SATISFIED | none (cut restated ionic lane, added version floor) |
-| 46 | postgres | - | pending | - | - | - |
-| 47 | project-quality-loop | - | pending | - | - | - |
-| 48 | project-scaffold | - | pending | - | - | - |
-| 49 | sqlite | - | pending | - | - | - |
-| 50 | subagent-flow | - | pending | - | - | - |
-| 51 | typescript | - | pending | - | - | - |
+| 46 | postgres | B | **A** | 2 | SATISFIED | none (nearest-neighbour->neighbor; jsonb_path_ops covers @>/@?/@@ not ?/?&/?|) |
+| 47 | project-quality-loop | B | **A** | 1 | SATISFIED | none (routed flat-fan-out policy to subagent-flow) |
+| 48 | project-scaffold | B | **A** | 2 | SATISFIED | none (verifier scored correctness 6: false 'ng new via angular-cli MCP'; removed in 3 places) |
+| 49 | sqlite | B | **A** | 1 | SATISFIED | none (ALTER TABLE DROP COLUMN since 3.35 was omitted) |
+| 50 | subagent-flow | B | **A** | 1 | SATISFIED | none (model-routing 'pins ARE defaults' contradiction; 'licence'->'license') |
+| 51 | typescript | A | **A** | 1 | SATISFIED | none (backticked angular-conventions; removed unfulfilled 'optional below' promise) |
 
 ## Notes
 
@@ -69,3 +69,10 @@ Branch: `skills-audit-2026-07`. Started 2026-07-07.
 - **Batch 3** (2026-07-07): 9/9 reached A, lint clean, house voice clean. Best verifier catch of the run: dotnet-code-quality's CRAP formula was wrong (verifier scored correctness 5/10), remediated to complexity^2 x (1-coverage)^3 + complexity with recomputed examples. Plus dotnet-cryptography PQC type/platform fixes, dotnet-data-access EF identity-resolution correctness, dotnet-error-handling false won't-compile claim, dotnet-migrate EF-bundle flag fixes. 'cancelled' in dotnet-grpc left as-is (within repo's mixed norm). No fabrications, no renames. 14 files changed.
 - **Batch 4** (2026-07-07): 9/9 reached A, lint clean, house voice clean. Caught a hallucinated API in the skill itself: dotnet-security cited a fabricated `AddPackageSourceMapping` method (removed), plus a wrong BinaryFormatter timeline and OWASP 2021->2025 staleness. dotnet-mvc-controllers claimed `[AsParameters]` works on controllers (minimal-API only). dotnet-realtime had a phantom r3-reactive-extensions route (prose, so lint couldn't catch it). dotnet-openapi Scalar route, dotnet-project-setup CPM flag conflation. dotnet-source-generators already A, zero edits. No fabricated cons, no renames. 10 files changed.
 - **Batch 5** (2026-07-07): 9/9 reached A, lint clean. Real fixes: dotnet-web-backend HybridCache was falsely gated to .NET 9+ (it's GA and targets netstandard2.0, so runs on the .NET 8 floor); ionic Capacitor 7->8; explain-code-tutor a non-compiling `await` in a sync `ngOnInit()` example; ilspy-decompile a misleading `allowed-tools` grant removed + dnx SDK-only clarification; frontend/mobile/mobile-security routing completeness. Orchestrator caught one British 'labelled'->'labeled' in explain-code-tutor that audit+verify missed. No fabrications, no renames. 12 files changed.
+- **Batch 6** (2026-07-07): 6/6 reached A, lint clean. Real fixes: project-scaffold falsely attributed `ng new` to the angular-cli MCP (which has no project-creation tool - verifier scored correctness 6, remediated in 3 places); sqlite omitted ALTER TABLE DROP COLUMN (supported since 3.35); subagent-flow model-routing.md had an internal contradiction ('pins ARE the defaults' vs a table showing task-analyzer default sonnet-high / pin opus-high); postgres jsonb_path_ops operator-coverage correctness. Plus routing (project-quality-loop, typescript) and 'licence'->'license'. No fabrications, no renames. 7 files changed.
+
+## Final result
+
+**51/51 skills at grade A (SATISFIED).** Zero PLATEAU, zero CAPPED, zero OSCILLATION. Objective gates all hold: `node scripts/lint-skills.js` clean (51 skills, 4 manifests + HTML in sync, no over-length description warnings), full-corpus house-voice sweep clean (no em/en-dashes or entities, no clear British spellings), every backticked skill reference resolves. No skill needed a rename/split/delete. The independent adversarial verifier flagged **zero fabricated pros/cons** across all 51 skills, and forced remediation on the cases where the audit pass had missed something (angular-conventions aria floor, database-conventions/dotnet/dotnet-hosted-services/dotnet-testing/markdown-style double-quote emphasis, dotnet-code-quality CRAP formula, postgres, project-scaffold).
+
+Cross-skill routing changes (net new backticked cross-links, all resolving): data-security now routes N+1/change-tracking to `dotnet-data-access` (was mis-routed to `dotnet-security`); dotnet-architecture routes api-versioning to `dotnet-web-backend` (was a dangling local ref); dotnet-performance routes to `dotnet-diagnostics`; frontend adds an `angular-security` route; mobile adds a `mobile-security` route; project-quality-loop and domain-build route the flat-fan-out policy to `subagent-flow`; csharp-design-patterns/typescript/ilspy-decompile/dotnet-migrate backticked previously-plain sibling names. dotnet-realtime dropped a phantom `r3-reactive-extensions` route and dotnet-security dropped a fabricated `AddPackageSourceMapping` API.

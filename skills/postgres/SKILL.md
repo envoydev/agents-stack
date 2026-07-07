@@ -1,6 +1,6 @@
 ---
 name: postgres
-description: "PostgreSQL engine specialist - the Postgres-specific delta on top of the cross-engine database-conventions hub: identifier folding and idempotent DDL, index-type selection (B-tree/GIN/GiST/BRIN/hash), JSONB and full-text indexing, SARGable predicate rewrites, the planner (EXPLAIN ANALYZE, pg_stat_statements, autovacuum/ANALYZE, work_mem), connection pooling modes, and array-batching/ON CONFLICT/COPY. Load for any hand-written Postgres SQL, an .sql file on a Postgres project, an EXPLAIN plan, a slow query, or an index/pooling decision. Companions: database-conventions (cross-engine hub - load first), data-security (RLS/privileges), dotnet-data-access (the EF Core / ORM side)."
+description: "PostgreSQL engine specialist - the Postgres-specific delta on top of the cross-engine database-conventions hub: identifier folding and idempotent DDL, index-type selection (B-tree/GIN/GiST/BRIN/hash), JSONB and full-text indexing, SARGable predicate rewrites, the planner (EXPLAIN ANALYZE, pg_stat_statements, autovacuum/ANALYZE, work_mem), connection pooling modes, and array-batching/ON CONFLICT/COPY. Load for any hand-written Postgres SQL, an .sql file on a Postgres project, an EXPLAIN plan, a slow query, or an index/pooling decision. Not the cross-engine schema/transaction rules (-> database-conventions), the ORM side (-> dotnet-data-access), or another engine's SQL. Companions: database-conventions (cross-engine hub - load first), data-security (RLS/privileges), dotnet-data-access (the EF Core / ORM side)."
 metadata:
   type: reference
   sources: "Distilled 2026-07 from supabase/agent-skills (supabase-postgres-best-practices), josiahsiegel/claude-plugin-marketplace (index-strategies, query-optimization). Engine-neutral principles owned by database-conventions; this holds the Postgres-specific delta only."
@@ -34,13 +34,13 @@ end $$;
 |---|---|
 | `=`, `<`, `>`, `between`, `in`, `is null`, `order by` | B-tree (default) |
 | `jsonb` containment, arrays, full-text `tsvector` | GIN |
-| geometric / range types, nearest-neighbour (KNN) | GiST |
+| geometric / range types, nearest-neighbor (KNN) | GiST |
 | huge naturally-ordered / append-only (e.g. `created_at`) | BRIN (10-100x smaller than B-tree) |
 | pure equality, marginal win over B-tree | Hash |
 
 - Composite leftmost-prefix: an index on `(a, b)` serves `where a` and `where a and b`, never `where b` alone. (Equality-first / range-last ordering is owned by `database-conventions`.)
 - A partial index is used only when the planner proves the query predicate implies the index `WHERE` - keep that predicate identical to the query's own condition, and beware parameterized queries that can't match a literal-based filter.
-- JSONB: a B-tree cannot serve `@>`. Use `gin`; default `jsonb_ops` covers all operators, `jsonb_path_ops` covers only `@>` at ~half the size. For scalar-key equality use an expression index, not GIN:
+- JSONB: a B-tree cannot serve `@>`. Use `gin`; default `jsonb_ops` covers all operators, `jsonb_path_ops` covers only `@>`, `@?`, `@@` (not the key-existence `?`/`?&`/`?|`) at ~half the size. For scalar-key equality use an expression index, not GIN:
 
 ```sql
 create index products_attrs_gin on products using gin (attributes);         -- @>, ?, ?&, ?|
@@ -57,7 +57,7 @@ create index products_brand_idx on products ((attributes->>'brand'));       -- a
 | `date_trunc('day', ts) = :d` | `ts >= :d and ts < :d + interval '1 day'` |
 | `left(name,3) = 'ABC'` | `name like 'ABC%'` |
 | `amount * 1.1 > 1000` | `amount > 1000 / 1.1` |
-| `varchar_col = 123` (implicit cast) | `varchar_col = '123'` |
+| `id::text = '42'` (cast on the column) | `id = 42` |
 
 - Must filter on a function (e.g. case-insensitive email)? The escape hatch is a matching expression index: `create index on users ((lower(email)))` then `where lower(email) = :v`.
 - When only existence matters, use `exists` (semi-join) not a join - a join on a non-unique key multiplies rows, and a predicate on the right table's columns in `WHERE` silently turns a `LEFT JOIN` into an inner join.
@@ -98,7 +98,7 @@ analyze orders;
 - Each backend is a real process (~1-3MB) - always pool (PgBouncer or built-in). Rule of thumb `pool_size ~= cores*2`; a few dozen real connections serve hundreds of clients.
 - Transaction-mode pooling is the default. Session mode is required only for features bound to one backend: server-side prepared statements, temp tables, session GUCs, session advisory locks.
 - Size `max_connections` to RAM (100-200), not to peak client count - that is the pooler's job, and `work_mem * max_connections` must stay bounded.
-- Behind a transaction pooler, disable driver-side prepared statements: Npgsql `Max Auto Prepare=0` (see `dotnet-data-access`), node-postgres `{ prepare: false }`, JDBC `prepareThreshold=0`.
+- Behind a transaction pooler, disable driver-side prepared statements: Npgsql `Max Auto Prepare=0` (see `dotnet-data-access`), postgres.js `{ prepare: false }`, JDBC `prepareThreshold=0`.
 
 ## Full-text search
 

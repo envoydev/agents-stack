@@ -74,4 +74,4 @@ token_reduction_policy:
     MCP_descriptions: enabled_when_large
 ```
 
-Never let Ponytail minimalism or Caveman terseness cut a security check, validation, authorization safeguard, audit log, migration safety, or data-loss protection. Smaller is a means, not a licence.
+Never let Ponytail minimalism or Caveman terseness cut a security check, validation, authorization safeguard, audit log, migration safety, or data-loss protection. Smaller is a means, not a license.

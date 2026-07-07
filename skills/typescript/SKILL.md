@@ -1,11 +1,11 @@
 ---
 name: typescript
-description: "Personal TypeScript and JavaScript conventions, framework-agnostic - lean on the compiler (full strict plus the extra safety flags), model data with types instead of comments, narrow unknown rather than reach for any, keep the two failure channels apart (typed result for expected, thrown Error for unexpected), default to immutability, and treat plain JS as checked JS via JSDoc and checkJs. Covers tsconfig, ESLint/Prettier, modules, and async. Baseline is TypeScript 5+. Load before writing or editing any .ts, .tsx, .js, .jsx, .mjs, or .cjs file in any runtime - browser, Node, build script, service worker, extension. In an Angular project also load angular-conventions; this skill owns the language, that one the framework. Not for C#/.NET or other languages."
+description: "Personal TypeScript and JavaScript conventions, framework-agnostic - lean on the compiler (full strict plus the extra safety flags), model data with types instead of comments, narrow unknown rather than reach for any, keep the two failure channels apart (typed result for expected, thrown Error for unexpected), default to immutability, and treat plain JS as checked JS via JSDoc and checkJs. Covers tsconfig, ESLint/Prettier, modules, and async. Baseline is TypeScript 5+. Load before writing or editing any .ts, .tsx, .js, .jsx, .mjs, or .cjs file in any runtime - browser, Node, build script, service worker, extension. In an Angular project also load `angular-conventions`; this skill owns the language, that one the framework. Not for C#/.NET or other languages."
 ---
 
 # TypeScript and JavaScript conventions
 
-These are the language rules for every piece of TS/JS in a codebase, independent of where it runs - browser, Node, bundler script, service worker, browser extension. A framework adds its own layer on top (`angular-conventions` for Angular); this skill is purely the language. Baseline is TypeScript 5+; anything newer is called out as optional below.
+These are the language rules for every piece of TS/JS in a codebase, independent of where it runs - browser, Node, bundler script, service worker, browser extension. A framework adds its own layer on top (`angular-conventions` for Angular); this skill is purely the language. Baseline is TypeScript 5+.
 
 The single organizing idea: the compiler is the cheapest test you have. Configure it to be strict, describe your data so it can check the data, and never quietly disable it.
 
@@ -35,7 +35,7 @@ A worked case that bites people: removing nulls from an array. `list.filter((x) 
 
 A precise type is documentation the compiler enforces. Reach for the type system to make illegal states unrepresentable:
 
-- **Discriminated unions** over a bag of optionals. Give each variant a literal tag (`kind` / `type`) and let a `switch` branch on it; a `never`-typed `default` makes the switch exhaustive, so adding a variant forces every consumer to handle it. This is the workhorse - prefer it to inheritance and to "some of these fields are set together" objects.
+- **Discriminated unions** over a bag of optionals. Give each variant a literal tag (`kind` / `type`) and let a `switch` branch on it; a `never`-typed `default` makes the switch exhaustive, so adding a variant forces every consumer to handle it. This is the workhorse - prefer it to inheritance and to 'some of these fields are set together' objects.
 - **Utility types** instead of re-typing shapes: `Pick`, `Omit`, `Partial`, `Required`, `Readonly`, `Record`, `ReturnType`, `Parameters`, `Awaited`. A derived type stays correct when its source changes.
 - **String-literal unions** over `enum` for any closed set that crosses a runtime boundary - JSON, storage, a wire message. A union is just strings at runtime, so it round-trips cleanly; an `enum` is a runtime object with its own quirks. Keep `const enum` only for values that stay inside one bundle and never cross a package edge.
 - **`interface` vs `type`**: `interface` for object shapes that are implemented or extended; `type` for unions, intersections, tuples, and anything mapped or conditional. Be consistent within a file rather than mixing both for the same job.
@@ -43,7 +43,7 @@ A precise type is documentation the compiler enforces. Reach for the type system
 - **`readonly` by default.** `readonly` properties, `readonly T[]` / `ReadonlyArray<T>` for collections, `as const` for literal config and tuples. Mutation is the exception you opt into, not the default you forget to prevent.
 - **Brand primitives that share a representation but not a meaning** - a `UserId` and a `PostId` are both `string`, and mixing them is a real bug. `type UserId = string & { readonly __brand: 'UserId' }`, constructed only through a single validating guard, never a bare `as` at call sites. It is compile-time only - zero runtime cost - and it makes the type system reject a `PostId` where a `UserId` is required.
 
-The mental model underneath all of this: a type is a set of values. Assignability is "is a subset of"; `extends` and intersection shrink the set; `never` is the empty set and `unknown` the set of everything. That is why a `never` default proves exhaustiveness and why `unknown` is the safe top type to narrow down from.
+The mental model underneath all of this: a type is a set of values. Assignability is 'is a subset of'; `extends` and intersection shrink the set; `never` is the empty set and `unknown` the set of everything. That is why a `never` default proves exhaustiveness and why `unknown` is the safe top type to narrow down from.
 
 Library-grade type work - conditional types with `infer`, mapped types, template-literal types - is worth it behind a published API surface, verified with `tsc --noEmit`. It is not worth it when a plain type or a utility type already says the shape. Type-level cleverness is a cost; spend it only where the surface is wide enough to repay it.
 

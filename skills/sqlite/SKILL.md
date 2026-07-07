@@ -29,7 +29,7 @@ The SQLite-specific layer. **Cross-engine conventions live in `database-conventi
 
 ## Schema changes
 
-- `ALTER TABLE` supports only `ADD COLUMN` and `RENAME` (dropping/altering a column is limited even post-3.35). Other changes need the 12-step rebuild: create the new table, `INSERT INTO ... SELECT`, drop the old, rename.
+- `ALTER TABLE` is limited to `RENAME`, `ADD COLUMN`, `DROP COLUMN` (3.35+, but blocked on a column that is a PK / unique / indexed / in an FK / CHECK / generated expression), and toggling a column's `NOT NULL` (3.53+). Any other change - retype a column, reorder, add other constraints - needs the 12-step rebuild: create the new table, `INSERT INTO ... SELECT`, drop the old, rename.
 - EF Core migrations on SQLite rebuild tables for many operations - can be slow and occasionally lossy. Review the generated SQL before applying.
 
 ## Queries and indexes

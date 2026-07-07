@@ -1,6 +1,6 @@
 # Model Routing
 
-The Team Lead does not pick arbitrary model names. It classifies the task; this policy maps task class and risk to the seat and effort. In this stack every seat already carries a static model/effort pin in its frontmatter - those pins ARE the defaults below. This policy is the rationale for the pins and the guide for when the orchestrator escalates, by choosing a heavier seat (task-analyzer -> architecture-analyzer, a domain verifier -> integration-reviewer) or by classifying the work into a higher mode.
+The Team Lead does not pick arbitrary model names. It classifies the task; this policy maps task class and risk to the seat and effort. In this stack every seat already carries a static model/effort pin in its frontmatter; the table below is the floor and the rationale behind those pins, several of which sit a shade above their floor (reconciled in the note after the table). This policy is the guide for when the orchestrator escalates, by choosing a heavier seat (task-analyzer -> architecture-analyzer, a domain verifier -> integration-reviewer) or by classifying the work into a higher mode.
 
 Team Lead output stays compact:
 
@@ -31,7 +31,7 @@ routing:
 | Repair Agents | sonnet high | opus only for hard root-cause diagnosis, not routine compile/test failures |
 | Evidence Gatherer | haiku or sonnet low | sonnet medium when evidence collection needs repo understanding |
 
-The house pins land a shade above several of these floors where the seat's job justifies it: the domain designers are opus/xhigh (design mistakes are the most expensive to unwind), the domain verifiers sonnet/xhigh, the implementers sonnet/medium, the integration-reviewer opus/xhigh (the last gate before a cross-domain commit), and the evidence-gatherer sonnet/low.
+The house pins land a shade above several of these floors where the seat's job justifies it: the domain designers are opus/xhigh (design mistakes are the most expensive to unwind), the domain verifiers sonnet/xhigh, the implementers sonnet/medium, the task-analyzer opus/high, the integration-reviewer opus/xhigh (the last gate before a cross-domain commit), and the evidence-gatherer sonnet/low.
 
 ## Strict cost rules
 

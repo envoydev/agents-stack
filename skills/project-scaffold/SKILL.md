@@ -1,6 +1,6 @@
 ---
 name: project-scaffold
-description: Build a new application or major module from scratch - greenfield scaffolding and orchestration. Routes a new project to the right architecture skill (dotnet-architecture, dotnet-project-structure) and scaffolding command (dotnet new, ng new via the angular-cli MCP), then in a stack-installed Claude Code project drives the build from the main session - greenfield-solution-designer designs, and each vertical slice runs the `domain-build` skill for its stack. Triggers on build from scratch, new project, greenfield, scaffold, start a new app.
+description: "Build a new application or major module from scratch - greenfield scaffolding and orchestration, before code exists. Routes a new project to the right architecture skill (`dotnet-architecture`) and build-spine setup (`dotnet-project-setup`), plus the scaffolding command (dotnet new, ng new), then in a stack-installed Claude Code project drives the build from the main session - greenfield-solution-designer designs, and each vertical slice runs the `domain-build` skill for its stack. Not for changing an existing codebase - a feature inside a live app is `domain-build`, cross-stack routing is `subagent-flow`. Triggers on build from scratch, new project, greenfield, scaffold, start a new app."
 ---
 
 # Project Scaffold - Greenfield Build Orchestration
@@ -17,14 +17,14 @@ Detection keys on dispatch capability, not file presence - a project can carry t
 
 ## Steps
 1. **DESIGN** - DELEGATED: dispatch greenfield-solution-designer to turn the spec into architecture options. INLINE: brainstorming and writing-plans in-session, to the same end. Either way, get the user's approval on the architecture and the stack before scaffolding anything - greenfield tech choices are the user's, never silently picked.
-2. **SCAFFOLD** - once approved, run the named new-project command (dotnet new <template>; ng new via the angular-cli MCP; ionic start for Ionic), establish the structure from the chosen architecture skill, and wire the baseline: DI, config, a test project, and formatter/analyzer config for the stack.
+2. **SCAFFOLD** - once approved, run the named new-project command (dotnet new <template>; ng new; ionic start for Ionic), establish the structure from the chosen architecture skill, and wire the baseline - DI, config, a test project, formatter/analyzer config - via the stack's setup skills (`dotnet-project-setup` + `dotnet-code-quality` on .NET).
 3. **BUILD** - slice by slice: for each vertical slice, run the `domain-build` skill for that slice's stack (it fans out that stack's designer, implementer, and verifier in turn). Loop until the spec's first milestone is met.
 
 ## Per-stack scaffolding
 
 | Stack | new-project command | Architecture + convention skills |
 |---|---|---|
-| Angular web | ng new (angular-cli MCP) | `angular-conventions` + `angular-styling` |
+| Angular web | ng new | `angular-conventions` + `angular-styling` |
 | Ionic/Capacitor mobile | ionic start + cap add | `ionic` + `mobile` |
 | ASP.NET Core backend | dotnet new webapi/web | `dotnet-architecture` + `dotnet-web-backend` / `dotnet-minimal-api` |
 | WPF desktop | dotnet new wpf | `dotnet-wpf` (strict MVVM) |
