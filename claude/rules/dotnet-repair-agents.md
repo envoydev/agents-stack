@@ -8,4 +8,6 @@ serena, rebuilds until clean (5-cycle cap); **`dotnet-test-failure-resolver`** d
 test red->green fixing the correct side, never gaming a test; use after the build is green.
 Default to delegating fix-the-build / make-the-tests-pass to the matching resolver rather
 than looping in-session - the subagent absorbs the repeated output and returns only a
-diagnosis. Both pinned sonnet/high.
+diagnosis. Both pinned sonnet/high. A fix that would need a shared-contract change
+is outside a resolver's bounded scope - it stops as BLOCKED_CONTRACT_CHANGE for
+`subagent-flow` to route, never edits the contract to go green.

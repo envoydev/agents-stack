@@ -1,0 +1,129 @@
+# Issue Investigation Flow
+
+Bugs, CI failures, incidents, runtime errors, flaky tests, and unclear behavior use a different flow from feature work. Do NOT start them on the feature path (BA -> Team Lead -> solution designers -> implementers). Start with evidence and diagnosis.
+
+```text
+Issue / failure report
+  -> triage
+  -> issue-diagnoser or ci-failure-diagnoser
+  -> parallel evidence-gatherer agents
+  -> diagnosis report
+  -> fix decision gate: stop | resolver loop | single-domain fix | cross-domain fix
+```
+
+The strict rule:
+
+```text
+Diagnose before coding.
+Evidence-gatherers may run in parallel (read-only).
+Implementers do not start until the diagnosis is proven or the fix route is explicitly approved.
+```
+
+issue-diagnoser is the bug-side equivalent of a solution designer - it plans and routes the fix once it has evidence; it does not write the fix.
+
+## Issue-flow seats
+
+| Seat | Responsibility | Writes code |
+|---|---|---|
+| issue-diagnoser | reproduce/isolate root cause from logs, errors, screenshots, code paths; produce diagnosis + fix plan | no |
+| ci-failure-diagnoser | read failing CI/build/test output; identify the broken domain and fix route | no |
+| evidence-gatherer | cheap read-only helper for repro, log extraction, stack traces, code refs, recent diffs, env facts | no |
+| repair resolvers | bounded red-to-green loops for compile/test failures | yes |
+| domain implementers | implement the approved fix once root cause is known | yes |
+| domain verifiers | verify the fix against diagnosis, reproduction, tests, and contract | no / read-only preferred |
+| integration-reviewer | check cross-domain issue fixes; block merging a partial fix | no / read-only preferred |
+
+The two diagnosers dispatching a read-only evidence-gatherer is the stack's one sanctioned nested dispatch. Gathering is observation, not a fix, so parallel gather-tasks do not break the one-change-at-a-time debugging discipline.
+
+## Investigation-only mode
+
+Use when the user asks to investigate, find root cause, explain what is broken, or check why CI failed. Diagnose, then STOP - do not implement unless the user or policy asks for a fix.
+
+```yaml
+status: DIAGNOSED | NOT_REPRODUCED | NEEDS_MORE_EVIDENCE | LIKELY_FLAKE | INCONCLUSIVE
+confidence: high | medium | low
+root_cause:
+  summary:
+  files: [{ path:, symbol:, reason: }]
+evidence:
+  - { type: log | stack_trace | failing_command | screenshot | code_reference | repro_step, detail: }
+affected_domains: [backend | data | angular | wpf | mobile | devops]
+fix_recommendation:
+  route: no_fix_needed | resolver | single_domain_implementer | cross_domain_contract_change | user_decision_needed
+fix_plan: [{ step: }]
+risk: [regression, migration/data-loss, security]
+open_questions: [{ question: }]
+```
+
+## Investigation + optional fix mode
+
+Use when the user asks to investigate and fix if obvious/safe. Diagnose, then pass an EXPLICIT fix decision gate - never slide silently from diagnosis into implementation.
+
+```text
+If safe/local:  domain implementer or resolver -> domain verifier -> final report.
+If risky/cross-domain:  contract/fix plan -> affected domain pipelines -> integration-reviewer.
+```
+
+## Fix routing rules
+
+```text
+Build failure:  ci-failure-diagnoser -> dotnet-build-error-resolver or ng-build-error-resolver -> re-run build -> domain verifier
+Test failure:   issue-diagnoser/ci-failure-diagnoser -> dotnet-test-failure-resolver or angular-test-resolver -> re-run focused tests -> domain verifier
+Runtime bug, single domain:  issue-diagnoser -> domain implementer -> domain verifier   (the diagnosis replaces the designer step for a small proven bug - do not over-plan)
+Runtime bug, multi domain:   issue-diagnoser (+ parallel evidence-gatherers) -> contract/fix plan -> per-domain implementer+verifier -> integration-reviewer
+Security issue:  security-auditor -> OWASP/CWE punch-list -> affected domain implementers -> affected domain verifiers -> security re-check -> integration-reviewer if cross-domain
+```
+
+If a fix changes a shared contract, the issue flow uses the same BLOCKED_CONTRACT_CHANGE protocol as feature work (`references/contract-protocol.md`).
+
+## Issue execution modes
+
+| Mode | Use when | Flow |
+|---|---|---|
+| `investigation_only` | root cause / report only | issue-diagnoser -> evidence-gatherer(s) -> report |
+| `investigation_safe_fix` | root cause likely local, fix allowed if obvious | diagnose -> implementer/resolver -> verifier |
+| `ci_repair_loop` | a build/test failure is the whole issue | ci-failure-diagnoser -> resolver -> verifier |
+| `cross_domain_issue_fix` | bug spans DB/backend/frontend/mobile/devops or changes the contract | diagnose -> contract/fix plan -> affected domain flows -> integration-reviewer |
+| `security_issue_fix` | a security finding or suspicious auth/data-exposure issue | security-auditor -> punch-list -> domain fixes -> security re-check |
+
+## Parallelism
+
+Parallel is encouraged in the evidence-gathering phase (reproduce, logs/traces, backend path, frontend path, DB schema, CI/runtime) - all read-only. Parallel CODING before diagnosis is forbidden: no backend, frontend, and data implementer all fixing at once before the root cause is known. Independent fix experiments are allowed only when explicitly sandboxed and not committed.
+
+## Final report
+
+```yaml
+status: FIXED | DIAGNOSED_ONLY | NOT_REPRODUCED | PARTIALLY_FIXED | BLOCKED | INCONCLUSIVE
+root_cause: { summary:, evidence: }
+fix_applied: { changed_files:, summary:, contract_version: }
+verification: { commands_run:, results:, reproduction_retested: true | false }
+remaining_risk: [{ risk: }]
+follow_up: [{ task: }]
+```
+
+## Task card
+
+```yaml
+task_id:
+mode: investigation_only | investigation_safe_fix | ci_repair_loop | cross_domain_issue_fix | security_issue_fix
+issue_summary:
+source: { type: user_report | CI | log | screenshot | production_alert | test_failure }
+reproduction: { known_steps:, expected:, actual: }
+constraints: { can_modify_code:, require_user_approval_before_fix:, max_repair_iterations: }
+affected_domains_guess: [data | backend | angular | wpf | mobile | devops]
+allowed_agents: [issue-diagnoser, evidence-gatherer, ci-failure-diagnoser, domain implementers if fix approved]
+stop_conditions: [diagnosis DIAGNOSED and fix not approved, diagnosis NOT_REPRODUCED, repair_iterations exceeded]
+required_output: [diagnosis_report, evidence_list, fix_route, tests_or_repro_commands]
+```
+
+## Anti-patterns
+
+```text
+Do not code before root cause is known. Do not let evidence-gatherers write code.
+Do not let issue-diagnoser implement the fix. Do not run full feature planning for a
+tiny proven bug. Do not treat a test snapshot as truth without checking product behavior.
+Do not silence or delete a failing test to make CI green. Do not change a shared
+contract without a Contract Change Request. Do not keep all lanes running when one
+finds a contract-breaking root cause. Do not merge after a resolver says green - a
+domain verifier or the integration-reviewer must verify the fix route.
+```

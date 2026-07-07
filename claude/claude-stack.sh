@@ -253,6 +253,7 @@ SKILLS=(
   "envoydev/agents-stack|project-quality-loop"             # autonomous review-and-fix loop pipeline over a loops/ folder of numbered prompts
   "envoydev/agents-stack|project-scaffold" # greenfield scaffolding + design->scaffold->slice-by-slice build orchestration over the pipeline
   "envoydev/agents-stack|domain-build"     # domain-build orchestration - designer decomposes, implementers fan out, verifier gates
+  "envoydev/agents-stack|subagent-flow"    # entry-point router: classify -> smallest execution mode -> cross-domain contract freeze + integration gate; home of the shared subagent policies
   "envoydev/agents-stack|devops"           # DevOps for the .NET/Angular house: Docker multi-stage/digest-pinned/non-root, GitHub Actions CI/CD, safe expand-contract deploys, secrets/OIDC, Aspire AppHost
   "envoydev/agents-stack|database-conventions" # cross-engine DB conventions + per-engine skill routing
   "envoydev/agents-stack|data-security"    # SQL/data-layer security: parameterized-only injection, least-privilege DB accounts, row-level security, connection-string secrets, encryption, audit
@@ -442,6 +443,7 @@ AGENTS=(
   "cross-stack-contract-designer.md" # analysis phase (opus/xhigh): read-only - freezes the shared backend/frontend contract before the per-stack designers
   "framework-upgrade-planner.md"     # analysis phase (opus/xhigh): read-only - turns a version/deprecation event into an ordered, contracted upgrade plan
   "security-auditor.md"              # analysis phase (opus/xhigh): read-only cross-stack security posture audit - OWASP/CWE punch-list routed to implementers, complements /security-review
+  "integration-reviewer.md"          # final gate (opus/xhigh): read-only cross-domain integration review - contract consistency, assembled build/test/migration, the commit gate no single-stack verifier is
   # Per-domain specialist team (6 stacks x designer/implementer/verifier) + architect analysis agents above; model/effort pinned in frontmatter
   "aspnet-solution-designer.md"      # design phase (opus/xhigh): ASP.NET Core architecture + plan + test strategy, decomposes into parallel tasks
   "aspnet-implementer.md"            # build phase (sonnet/medium): builds one ASP.NET task - code + tests

@@ -121,6 +121,11 @@ npx skills remove      # uninstall skills
 - **domain-build** - Build a feature through a stack specialist team: the domain designer
   decomposes into parallel tasks, implementers build them at once, the verifier gates and loops
   back.
+- **subagent-flow** - Entry-point router for multi-agent engineering work: classify a feature or
+  bug, pick the smallest safe execution mode, and for cross-domain work freeze the shared contract,
+  run each stack's domain-build in parallel, then gate the assembled whole through the
+  integration-reviewer before commit. Home of the shared subagent policies (contract change,
+  structured output, model and token routing).
 - **devops** - Containers, CI/CD, and safe deploys for the .NET/Angular house: multi-stage
   digest-pinned non-root Docker, GitHub Actions CI/CD (lockfile-hash caching, service-container
   tests, masked secrets, SHA-pinned actions, OIDC), and health-gated expand-contract deploys.

@@ -1,0 +1,81 @@
+---
+name: subagent-flow
+description: "The entry-point router for multi-agent engineering work - classify a feature or bug, then run the smallest safe execution mode instead of always paying for the full team. Picks single-chat, one-implementer, a single-stack design-build-verify trio, or a cross-domain contract-frozen fan-out, and for cross-domain work owns the whole lifecycle: freeze the shared contract first, run each stack's vertical in parallel, then gate the assembled feature through the integration-reviewer before commit. Also the home of the shared subagent policies - contract change, structured output, progress ledger, model routing, token reduction, repo separation - that every seat references instead of restating. Triggers on how should I build or route this work, plan the agents for this, this spans backend and frontend and data, or investigate-and-fix a bug across the stack. A task that lives inside one stack hands off to domain-build; this skill routes and owns the cross-domain seams, it does not itself design or write code."
+---
+
+# Subagent Flow - Team-Lead Router for the Multi-Agent Engineering Flow
+
+You are the Team Lead. You own the whole lifecycle: classify the work, pick the smallest safe execution mode, freeze the shared contract before any parallel domain work, keep the progress ledger, pause affected lanes when a contract changes, and drive the final integration gate before commit. You route and orchestrate from the main session; you never do a seat's design, build, or verify work yourself.
+
+The two things that must never be violated:
+
+```text
+Parallel across domains. Sequential inside one domain.
+Never commit on domain sign-off alone - the integration gate is mandatory for cross-domain work.
+```
+
+## Two routing families
+
+Decide the family from the ask first, because they start differently:
+
+- **Feature / change** - the task builds or changes expected behavior. Route through classify -> mode -> (contract freeze) -> domain pipelines -> integration gate.
+- **Issue / bug / incident** - the task asks why something is broken, failing, flaky, slow, or crashing. Route through `references/issue-investigation.md`: diagnose before coding, always. Do not start a bug on the feature path.
+
+## Execution modes - pick the smallest that is safe
+
+Do not run the full team for every task. Classify size, risk, and how many domains the work touches, then pick the smallest mode from `references/execution-modes.md`:
+
+| Mode | Flow |
+|---|---|
+| single_chat | main session only - tiny, clear, one-domain, no contract impact |
+| implementer_only | main session -> one domain implementer -> main session verifies |
+| domain_trio | one stack's designer -> implementer -> verifier (this is `domain-build`) |
+| fanout_domain_trio | one stack's designer -> 2-4 implementers -> verifier (also `domain-build`) |
+| cross_domain_light | light contract -> per-domain implement + verify -> integration-reviewer - 2+ domains, stable obvious contract |
+| full_cross_domain | contract designer -> domain pipelines -> integration-reviewer - DB + API + UI, auth, migrations, devops, or production-critical |
+
+For any single-stack mode, hand off to `domain-build` - it owns the design-build-verify vertical for one stack. This skill owns everything above one stack: mode selection, the contract lifecycle, and the final gate. Escalate a mode the moment the guardrails in `references/execution-modes.md` trip (a hidden cross-domain contract impact, an auth or migration or data-loss risk, a large refactor surface).
+
+## Cross-domain orchestration
+
+When the mode is cross_domain_light or full_cross_domain:
+
+```text
+Requirements / BA
+  -> task-analyzer or architecture-analyzer classify size, risk, affected domains
+  -> cross-stack-contract-designer freezes Contract v1  (see references/contract-protocol.md)
+  -> parallel per-stack domain-build runs, each against the frozen contract:
+       data / aspnet / angular / wpf / mobile / devops
+  -> integration-reviewer gates the assembled whole  (final gate, mandatory)
+  -> optional security-auditor if the risk requires
+  -> commit only after the integration gate signs off
+```
+
+Freeze the contract before any parallel domain work starts. Each domain pipeline runs `domain-build` for its stack against the frozen contract; the pipelines run in parallel, each internally sequential (designer -> implementers -> verifier). When every affected domain verifier has signed off, dispatch integration-reviewer over the assembled feature - it is independent of you and checks the seams the single-stack verifiers cannot see. Loop its punch-list back to the owning domains until it signs off, then commit.
+
+## The contract is law
+
+No seat may silently change a shared contract. A local implementation detail can change and continue; a shared-contract change (a route, a DTO, an error code, an auth policy, a schema/index semantic, a migration order, an env var, or frontend/WPF/mobile-visible behavior) must stop and emit BLOCKED_CONTRACT_CHANGE with a Contract Change Request. On a contract change: pause only the affected lanes, re-freeze to v2, broadcast v2, rebase the affected seats, and verify against v2 only. Full protocol and templates in `references/contract-protocol.md`.
+
+## Progress ledger
+
+Keep a durable ledger - a short file, not just in-context notes - so a mid-run compaction resumes without re-deriving what landed: the current contract version, each lane's phase and task statuses, the contract-change history, and the final-gate status. Format and the structured status vocabulary every seat returns are in `references/agent-output-protocol.md`.
+
+## Policies - the shared home every seat references
+
+Route to these rather than restating them in each agent:
+
+- `references/execution-modes.md` - the mode ladder and escalation guardrails for both families.
+- `references/model-routing.md` - how task class and risk map to the seat and effort to dispatch; the static frontmatter pins are the defaults, this is when to escalate.
+- `references/contract-protocol.md` - contract freeze, versioning, the change protocol and BLOCKED_CONTRACT_CHANGE, the contract and change-request templates.
+- `references/agent-output-protocol.md` - the structured status vocabulary per role, the progress-ledger format, the task-card and verification-report templates.
+- `references/token-reduction.md` - the Ponytail and Caveman policy: which discipline each role runs.
+- `references/issue-investigation.md` - the bug/incident family: diagnose-before-coding, the fix-routing rules, the diagnosis and final-report templates.
+- `references/repo-separation.md` - one flow per repo plus a shared contract when frontend and backend live in different repos.
+
+## Rules
+
+- The main session is the only orchestrator. Domain seats carry no Agent tool, so the fan-out stays flat; the only sanctioned nested dispatch is the two diagnosers calling a read-only evidence-gatherer (see `references/issue-investigation.md`).
+- Do not duplicate agents to vary task size or model effort. One durable seat per role; `references/execution-modes.md` picks the mode and `references/model-routing.md` picks the effort.
+- Never verify against a stale contract version, and never commit on a domain verifier's sign-off alone - the integration gate is the only thing that authorizes a cross-domain commit.
+- Keep this skill routing and orchestration only. Stack knowledge lives in the domain agents and the skills they load; single-stack execution lives in `domain-build`.

@@ -245,8 +245,8 @@
     there.
   </p>
   <div class="stat-row">
-    <div class="stat"><b>31</b><span>subagents</span></div>
-    <div class="stat"><b>45</b><span>house skills</span></div>
+    <div class="stat"><b>32</b><span>subagents</span></div>
+    <div class="stat"><b>46</b><span>house skills</span></div>
     <div class="stat"><b>7</b><span>MCP servers</span></div>
     <div class="stat"><b>8</b><span>plugins</span></div>
     <div class="stat"><b>3</b><span>hooks</span></div>
@@ -634,7 +634,8 @@
         <li><b>Cross-cutting <code>security-auditor</code> added - roster 27 &rarr; 28.</b> A read-only, opus/xhigh security seat that audits the posture of a feature or codebase across all five stacks - auth, authorization, input/injection, secrets, config, data exposure - and returns an OWASP/CWE punch-list that routes to the domain implementers to fix and the verifier to confirm. It complements <code>/security-review</code> (diff/PR-scoped) and the <code>security-guidance</code> commit hook by being the deep, posture-scoped, routed audit; it finds and reports, never writes the fix. Claude-only.</li>
         <li><b>DevOps vertical added - roster 28 &rarr; 31.</b> A sixth per-domain stack: <code>devops-solution-designer</code> (opus/xhigh, read-only) settles the container build, CI job graph, deploy/release strategy and secret seam, then decomposes into parallel tasks; <code>devops-implementer</code> (sonnet/medium) writes the Dockerfiles, GitHub Actions workflows, and deploy pipelines and validates them locally (docker build, actionlint, dotnet build); <code>devops-verifier</code> (sonnet/xhigh, read-only) gates reproducible digest-pinned builds, secret hygiene, safe migration-in-deploy, and non-root healthy containers. Backed by a new house <code>devops</code> skill; <code>domain-build</code> gained the sixth vertical. No new MCP - the seats never open PRs. Claude-only.</li>
         <li><b>Skill forking completed - repository tier now empty.</b> The last nine remote skills folded into house skills: a new <code>dotnet-diagnostics</code> hub (BenchmarkDotNet + dump capture, from <code>dotnet/skills</code>) plus eight references distilled from <code>aaronontheweb/dotnet-skills</code> and <code>capawesome-team/skills</code> - manual OpenTelemetry and API versioning into <code>dotnet-web-backend</code>, Testcontainers into <code>dotnet-testing</code>, CRAP hotspots into <code>dotnet-code-quality</code>, concurrency into <code>dotnet-hosted-services</code>, DI composition into <code>csharp</code>, and Ionic navigation / lifecycle into <code>ionic</code>. Every stack skill is now house-owned - zero runtime dependency on a remote kit. Skills 49 &rarr; 50.</li>
-        <li><b>Verified</b> - <code>npm run lint</code> clean, all 31 frontmatters valid, 4-way parity held.</li>
+        <li><b>Subagent-flow orchestration layer added - roster 31 &rarr; 32, Skills 50 &rarr; 51.</b> A new house <code>subagent-flow</code> skill is the entry-point router: it classifies a feature or bug, picks the smallest safe execution mode, and for cross-domain work freezes the shared contract, runs each stack's <code>domain-build</code> in parallel, and gates the assembled whole through a new read-only <code>integration-reviewer</code> (opus/xhigh) - the mandatory final gate no single-stack verifier is. Its references carry the shared subagent policies - execution modes, contract change + <code>BLOCKED_CONTRACT_CHANGE</code>, structured output, progress ledger, model and token routing - that the domain seats now reference instead of restating.</li>
+        <li><b>Verified</b> - <code>npm run lint</code> clean, all 32 frontmatters valid, 4-way parity held.</li>
       </ul>
     </div>
   </section>
@@ -649,9 +650,9 @@
     </p>
 
     <div class="counts">
-      <div><strong id="c-total">124</strong> total</div>
+      <div><strong id="c-total">125</strong> total</div>
       <div><strong id="c-bi">14</strong> built-in</div>
-      <div><strong id="c-personal">50</strong> personal</div>
+      <div><strong id="c-personal">51</strong> personal</div>
       <div><strong id="c-plugins">20</strong> plugins</div>
       <div><strong id="c-repo">0</strong> repository</div>
       <div><strong id="c-other">40</strong> tools / MCP</div>
@@ -671,7 +672,7 @@
 
   <footer>
     <span>envoydev/agents-stack &middot; agent roster + full stack inventory</span>
-    <span>6 domains &middot; 18 seats &middot; 8 cross-cutting &middot; 4 resolvers &middot; 1 gatherer &middot; 31 total</span>
+    <span>6 domains &middot; 18 seats &middot; 9 cross-cutting &middot; 4 resolvers &middot; 1 gatherer &middot; 32 total</span>
   </footer>
 </div>
 <script>
@@ -746,6 +747,7 @@ const personal = {
     ["project-quality-loop","Review / automation","Autonomous review-and-fix loop over a loops/ folder of numbered prompts: runs each in numeric order, loops it on the target until its bar (default zero findings at every severity) is met, then advances - deciding and logging judgment calls, never pausing. Per-module on large codebases."],
     ["project-scaffold","Greenfield / scaffolding","Build a new application or major module from scratch: routes to the right architecture skill (dotnet-architecture, dotnet-project-structure) and scaffolding command (dotnet new, ng new via the angular-cli MCP), then in a stack-installed project drives the build from the main session - greenfield-solution-designer designs, and each vertical slice runs the domain-build skill for its stack."],
     ["domain-build","Build / orchestration","Build a feature through a stack specialist team: the domain solution-designer decomposes it into independent parallel tasks, several implementers build them at once, and the domain verifier gates the assembled result against the plan and quality, looping punch-lists back until it signs off. Dispatches the per-domain agent trio (ASP.NET / Angular / WPF / mobile / data / DevOps) - pick the skill by the stack under change."],
+    ["subagent-flow","Build / orchestration","Entry-point router for multi-agent engineering work: classify a feature or bug, then run the smallest safe execution mode - single chat, one implementer, a single-stack domain-build trio, or a cross-domain contract-frozen fan-out. For cross-domain work it freezes the shared contract first (via cross-stack-contract-designer), runs each stack's domain-build in parallel, then gates the assembled whole through the integration-reviewer before commit. Home of the shared subagent policies: execution modes, contract change, structured output, progress ledger, model and token routing."],
     ["devops","Build / DevOps","Containers, CI/CD, and safe deploys for the .NET/Angular house: multi-stage, cache-ordered, digest-pinned, non-root Docker images; GitHub Actions CI/CD (lint/test/build graph, lockfile-hash cache keys, real service-container integration tests, masked secrets, SHA-pinned actions, least-privilege permissions, OIDC over stored creds); safe deploy (environments + approvals, expand-contract migrations gated before the roll, health-gated blue-green/rolling cutover with rollback). Points at dotnet-aspire, dotnet-migrate, dotnet-security/data-security."],
     ["postgres","Database / Postgres","PostgreSQL engine delta over database-conventions: index-type selection (B-tree/GIN/GiST/BRIN), JSONB + full-text, SARGable rewrites, the planner (EXPLAIN ANALYZE, pg_stat_statements, autovacuum, work_mem), connection pooling modes. Original house skill."],
     ["sqlite","Database / SQLite","SQLite engine delta over database-conventions: WAL / single-writer concurrency + busy_timeout, PRAGMAs (foreign_keys, journal_mode, synchronous), type affinity vs STRICT tables, limited ALTER TABLE + table-rebuild, connection-per-thread, FTS5. Original house skill."],
@@ -944,6 +946,7 @@ const otherTools = [
   ["evidence-gatherer", "subagent", "Diagnosis / support", "fetched into .claude/agents/", "https://github.com/envoydev/agents-stack", "Read-only gather-task runner a diagnoser dispatches: reproduces a failure, pulls a run log via gh, greps to the failing frames, or locates a symbol, then returns a compact quoted digest - keeping the raw log volume off the opus diagnoser. Never diagnoses or fixes. Pinned sonnet/low."],
   ["greenfield-solution-designer", "subagent", "Greenfield / design", "fetched into .claude/agents/", "https://github.com/envoydev/agents-stack", "Read-only greenfield design pass: turns a spec into concrete architecture options - stack fit, architecture style (clean / vertical-slice / minimal-API / strict-MVVM), project structure, and the first vertical slice to build. Best as the first delegation on a new project; feeds project-scaffold, which then runs domain-build per slice. Pinned opus/xhigh."],
   ["security-auditor", "subagent", "Security / audit", "fetched into .claude/agents/", "https://github.com/envoydev/agents-stack", "Read-only cross-stack security posture audit: sweeps auth, authorization, input/injection, secrets, config, and data exposure across ASP.NET/Angular/WPF/mobile/SQL, proves each finding against the code, and returns an OWASP/CWE punch-list routed to the domain implementers to fix and the verifier to confirm. Complements /security-review (diff/PR-scoped) and the security-guidance commit hook; finds and reports, never fixes. Pinned opus/xhigh."],
+  ["integration-reviewer", "subagent", "Review / integration gate", "fetched into .claude/agents/", "https://github.com/envoydev/agents-stack", "Read-only cross-domain final gate: after every affected domain verifier signs off, checks the assembled feature as a whole - the frozen contract honored end to end and the current contract_version used everywhere, the full solution builds, unit/integration/E2E pass, DB migrations apply from a clean DB and from the previous version, the API matches every Angular/mobile/WPF consumer, auth and the error envelope match the contract, deploy order safe - then returns a commit-or-punch-list verdict. Independent of the Team Lead; the mandatory gate before a cross-domain commit that no single-stack verifier is. Pinned opus/xhigh."],
   // Per-domain specialist team (6 stacks x solution-designer/implementer/verifier), dispatched by the domain-build skill:
   ["aspnet-solution-designer", "subagent", "ASP.NET / design", "fetched into .claude/agents/", "https://github.com/envoydev/agents-stack", "Read-only ASP.NET Core backend/API design pass: fixes architecture, plan, and test strategy for the C# stack, then decomposes the work into independent parallel tasks with clear contracts so several implementers can build them at once. Feeds the aspnet-implementer fan-out and the aspnet-verifier. Pinned opus/xhigh."],
   ["aspnet-implementer", "subagent", "ASP.NET / build", "fetched into .claude/agents/", "https://github.com/envoydev/agents-stack", "Builds ONE task from an aspnet-solution-designer decomposition: writes the code AND its tests for its assigned part, inside the task contract. Several run in parallel, one task each. Pinned sonnet/medium."],
