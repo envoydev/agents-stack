@@ -45,13 +45,13 @@ Standard added to each seat's `## Conventions` (plus `mcp__memory__*` in `tools`
 | 19 | evidence-gatherer | C | **A** | 1 | SATISFIED | 4/4 | none (ISOLATED: memory omitted w/ justification; also removed unused context7 tool) |
 | 20 | framework-upgrade-planner | D | **A** | 1 | SATISFIED | 4/4 | none (memory: upgrade-plan payload) |
 | 21 | greenfield-solution-designer | D | **A** | 1 | SATISFIED | 4/4 | none (memory: frozen contract payload) |
-| 22 | integration-reviewer | - | pending | - | - | - | - |
-| 23 | issue-diagnoser | - | pending | - | - | - | - |
-| 24 | mobile-implementer | - | pending | - | - | - | - |
-| 25 | mobile-solution-designer | - | pending | - | - | - | - |
-| 26 | mobile-verifier | - | pending | - | - | - | - |
-| 27 | ng-build-error-resolver | - | pending | - | - | - | - |
-| 28 | security-auditor | - | pending | - | - | - | - |
+| 22 | integration-reviewer | D | **A** | 1 | SATISFIED | 4/4 | none (memory: punch-list+verdict payload) |
+| 23 | issue-diagnoser | D | **A** | 1 | SATISFIED | 4/4 | none (memory: root-cause+fix-pattern payload) |
+| 24 | mobile-implementer | F | **A** | 1 | SATISFIED | 4/4 | none (memory: findings+deviations payload) |
+| 25 | mobile-solution-designer | B | **A** | 1 | SATISFIED | 4/4 | none (memory: frozen contract payload) |
+| 26 | mobile-verifier | F | **A** | 1 | SATISFIED | 4/4 | none (memory: punch-list+verdict payload) |
+| 27 | ng-build-error-resolver | D | **A** | 1 | SATISFIED | 4/4 | none (memory: error-sig->fix payload) |
+| 28 | security-auditor | D | **A** | 2 | SATISFIED | 4/4 | none (memory: OWASP punch-list payload; verifier-flagged con remediated) |
 | 29 | task-analyzer | - | pending | - | - | - | - |
 | 30 | wpf-implementer | - | pending | - | - | - | - |
 | 31 | wpf-solution-designer | - | pending | - | - | - | - |
@@ -62,3 +62,4 @@ Standard added to each seat's `## Conventions` (plus `mcp__memory__*` in `tools`
 - **Batch 1** (2026-07-07): 7/7 reached A, all 4/4 hard reqs, lint clean, house voice clean. Dominant change was the net-new memory handoff (none had it): all 7 gained `mcp__memory__*` + a seat-specific Conventions bullet - designer payload (frozen contract + decisions + seam owners), implementer payload (findings + deviations), resolver payload (failure-signature -> fix), analyzer payload (structural map). A couple also gained the structured status vocabulary in ## Report. First-pass grades F/D/B reflect how each auditor scored the missing-memory gate. No fabrications, no renames. 7 files changed.
 - **Batch 2** (2026-07-07): 7/7 reached A, all 4/4 hard reqs, lint clean, house voice clean, all confirmed on first verify (no remediation). Memory handoff added to all 7 with the right per-seat payload. Bonus consistency fixes the audit surfaced: ci-failure-diagnoser gained a diagnosis-status vocabulary matching issue-diagnoser; aspnet-verifier gained a NEEDS_CONTEXT stop-and-report path; cross-stack-contract-designer gained the missing never-whole-file-Read clause + PLAN_READY vocab. No fabrications, no renames. 7 files changed.
 - **Batch 3** (2026-07-07): 7/7 reached A, all 4/4 hard reqs, lint clean, house voice clean, all confirmed on first verify. The isolated exception `evidence-gatherer` was handled correctly: memory MCP omitted with an explicit one-line justification (single-run, diagnoser owns the handoff), hard req 2 satisfied by justification. The audit also right-sized it - removed a declared-but-unused `mcp__context7__*` tool (dim 2) and filled the house-form skill-preload slot with a 'no house skill' note. The two resolvers gained memory (error/failure-signature -> fix) + the structured status vocabulary. No fabrications, no renames. 7 files changed.
+- **Batch 4** (2026-07-07): 7/7 reached A, all 4/4 hard reqs, lint clean, house voice clean. Memory handoff added to all 7 with the right per-seat payload (integration-reviewer/mobile-verifier punch-list, issue-diagnoser root-cause+fix, mobile-implementer findings, mobile/greenfield-designer contract, security-auditor OWASP-CWE punch-list). security-auditor needed one remediation pass; the rest confirmed on first verify. No fabrications, no renames. 7 files changed.
