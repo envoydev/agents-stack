@@ -68,6 +68,8 @@ angular_large:   # multiple areas, auth-sensitive UI, complex state, or a cross-
   model: { designer: opus-xhigh, implementers: sonnet-high, verifier: sonnet-xhigh }
 ```
 
+These values illustrate the per-mode floor and rationale; they are not a per-dispatch dial. A dispatched subagent runs at its static frontmatter effort - effort is fixed per seat, not re-tunable per call - and the orchestrator can vary only the model (dispatch a genuinely small design at a lighter model than its pin). So the primary cost lever is the MODE / seat-count, not a re-dialed seat: `single_chat` and `implementer_only` skip the designer and the verifier entirely, which saves far more than running any dispatched seat a shade cheaper. A heavier need escalates to a higher mode or a heavier seat (task-analyzer -> architecture-analyzer, a domain verifier -> integration-reviewer), per `references/model-routing.md`. Capability wiring - context7 before a library API, a memory note read instead of a re-derivation - is the other lever the mode carries; see `references/capability-reuse.md`.
+
 ## Team Lead routing output
 
 Emit compact metadata, not repeated prompts:
