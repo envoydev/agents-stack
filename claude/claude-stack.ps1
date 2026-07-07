@@ -286,7 +286,7 @@ $Skills = @(
   'envoydev/agents-stack|angular-material'   # Angular Material + CDK: selective imports, M3 theming, CDK primitives, harnesses
   'envoydev/agents-stack|angular-styling'    # Angular CSS/styling: ViewEncapsulation, :host, ::ng-deep ways-out, design tokens, responsive, a11y styling
   'envoydev/agents-stack|angular-security'   # Angular/web frontend security: XSS/DomSanitizer bypass, CSP, CSRF, no-secrets-in-bundle, token storage, SSR/TransferState
-  'envoydev/agents-stack|frontend'         # web frontend router: Angular/TS/frontend-design + -> mobile
+  'envoydev/agents-stack|frontend'         # web frontend router: Angular/TS + in-skill design-quality guidance -> mobile
   'envoydev/agents-stack|mobile'           # Ionic/Capacitor router/index over the Angular (angular-conventions) + TypeScript baselines
   'envoydev/agents-stack|ionic'            # house Ionic/Capacitor conventions: UI, nav, lifecycle, permissions, plugin sourcing + wrapping
   'envoydev/agents-stack|capacitor-release' # Ionic/Capacitor release pipeline: cap sync/build, iOS+Android signing, store submission, OTA, versioning, CI, symbols
@@ -336,7 +336,6 @@ $Plugins = @(
   'csharp-lsp@claude-plugins-official'      # inline Roslyn diagnostics on edit (complements serena nav); needs csharp-ls (dotnet tool install -g csharp-ls)
   'typescript-lsp@claude-plugins-official'  # same for Angular/TS work
   'security-guidance@claude-plugins-official' # security hooks: pattern warnings + LLM diff review on Stop/commit
-  'frontend-design@claude-plugins-official'   # distinctive, production-grade frontend UI; polished code that avoids generic AI aesthetics
   'claude-hud@claude-hud'                       # statusline HUD (global/user scope)
   'ponytail@ponytail'                           # 'lazy senior dev' decision ladder: minimal-code default, cuts generated code/latency/cost
   'caveman@caveman'                             # terse-output token reducer (~65% fewer output tokens); code/commands/errors kept byte-exact; MIT, needs Node >=18

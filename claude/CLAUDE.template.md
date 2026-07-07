@@ -140,7 +140,7 @@ compiler-accurate intelligence: inline diagnostics on edit and, where supported,
 navigation (go-to-definition, find-references, resolved types, call-hierarchy). It **complements**
 serena and does **not** edit; serena stays the default navigator, symbol-level editor, and memory.
 The other shipped plugins are language-agnostic (`superpowers`, `claude-md-management`,
-`security-guidance`, `frontend-design`, `claude-hud`, `ponytail`) and apply regardless of language.
+`security-guidance`, `claude-hud`, `ponytail`) and apply regardless of language.
 
 Name the enabled plugin(s) under `## Per-project additions`.
 

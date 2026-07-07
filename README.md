@@ -48,7 +48,7 @@ npx skills remove      # uninstall skills
 - **angular-security** - Angular / web frontend security hardening: XSS and the DomSanitizer
   `bypassSecurityTrust*` escape hatches, CSP, CSRF via HttpClient XSRF, no secrets in the bundle, token storage, and SSR/TransferState leaks (server side → dotnet-security, native shell → mobile-security).
 - **frontend** - Web frontend router: indexes Angular, TypeScript,
-  the frontend-design plugin, and Ionic/Capacitor (→ mobile).
+  distinctive production-grade UI (in-skill design-quality guidance), and Ionic/Capacitor (→ mobile).
 - **mobile** - Ionic / Capacitor router/index over the Angular + TypeScript
   baselines; in-app navigation and page lifecycle owned by ionic.
 - **ionic** - House Ionic / Capacitor conventions: Ionic UI (standalone +

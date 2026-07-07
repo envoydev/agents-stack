@@ -86,6 +86,7 @@
     }
     table {
       width: 100%;
+      table-layout: fixed;
       border-collapse: collapse;
       font-size: 13.5px;
       background: var(--panel);
@@ -99,16 +100,18 @@
       text-align: left;
       border-bottom: 1px solid var(--border);
       vertical-align: top;
+      overflow-wrap: anywhere;
     }
     th { font-weight: 600; font-size: 12.5px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; }
     tbody tr:last-child td { border-bottom: none; }
     tbody tr:hover { background: var(--panel-2); }
     code, .name { font-family: "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace; font-size: 13px; }
+    td code { overflow-wrap: anywhere; }
     .name { color: var(--text); font-weight: 600; }
     .src { color: var(--muted); font-size: 12.5px; }
     .src a { color: var(--accent); text-decoration: none; }
     .src a:hover { text-decoration: underline; }
-    .desc { color: var(--text); }
+    .desc { color: var(--text); line-height: 1.55; }
     .tag { font-family: "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace; font-size: 11.5px; padding: 1px 6px; border-radius: 4px; border: 1px solid var(--border); background: var(--panel-2); color: var(--muted); }
     .yes { color: #3fb950; }
     .no { color: #f85149; }
@@ -174,7 +177,7 @@ const personal = {
     ["angular-material","Frontend / Angular","Angular Material (@angular/material) + CDK: selective component-module imports (tree-shaking), M3 mat.theme() theming + CSS custom properties, CDK primitives (Overlay, virtual scroll, FocusTrap/LiveAnnouncer), Material test harnesses. Framework baseline -> angular-conventions."],
     ["angular-styling","Frontend / Angular","Angular CSS/SCSS architecture (Material or not): ViewEncapsulation choice, :host / :host-context, the discouraged ::ng-deep and its sanctioned ways out, design tokens as CSS custom properties, mobile-first + container queries + fluid type, global vs scoped styles, utility-first vs scoped SCSS, a11y-affecting styling. Material token work -> angular-material; framework -> angular-conventions."],
     ["angular-security","Security / Angular","Angular / web frontend security hardening: XSS and the DomSanitizer bypassSecurityTrust* escape hatches, [innerHTML] injection, CSP (nonce-based, no unsafe-inline), CSRF via HttpClient XSRF, no secrets in the bundle (environment.ts, source maps), token storage (httpOnly cookie over localStorage an XSS drains), SSR/TransferState leaks, open-redirect + window.opener, vulnerable npm deps. API side -> dotnet-security; Capacitor native shell -> mobile-security."],
-    ["frontend","Frontend / router","Web frontend router/index: Angular (-> angular-conventions), TS/JS baseline (-> typescript), distinctive UI (frontend-design plugin), Ionic/Capacitor (-> mobile)."],
+    ["frontend","Frontend / router","Web frontend router/index: Angular (-> angular-conventions), TS/JS baseline (-> typescript), distinctive production-grade UI (in-skill design-quality guidance), Ionic/Capacitor (-> mobile)."],
     ["mobile","Mobile / router","Ionic/Capacitor router/index over the Angular (angular-conventions) + TypeScript (typescript) baselines; in-app navigation + page lifecycle owned by ionic (references/navigation-and-lifecycle.md)."],
     ["ionic","Mobile / Ionic","House Ionic/Capacitor conventions: standalone+signals Ionic UI, IonRouterOutlet + lazy routes, CSS-variable theming, Capacitor lifecycle + isNativePlatform guards, runtime permissions, Capacitor plugin sourcing (official -> Capawesome -> capacitor-community) + typed-service wrapping. Mechanics -> capacitor-plugins."],
     ["capacitor-release","Mobile / release","House Ionic/Capacitor release pipeline: cap sync + native build (.ipa/.aab), iOS signing (cert + profile, App Store Connect API key, Fastlane match) + Android signing (upload key vs Play app-signing key), store submission (TestFlight + Play tracks), OTA / live updates and the native-binary boundary, marketing-version vs build-number sync, Fastlane / GitHub Actions CI with secrets, dSYM + sourcemap upload. App under release -> ionic; native plugin mechanics -> capacitor-plugins."],
@@ -276,6 +279,16 @@ const equivalents = [
 
 function matchRow(arr, q) { return q ? arr.filter(r => r.join(" ").toLowerCase().includes(q)) : arr; }
 
+// Compact source link: a GitHub URL shows as owner/repo, anything else as its hostname.
+// The full URL stays in the href, so a narrow column no longer costs the description its width.
+function shortSource(url) {
+  const gh = url.match(/^https?:\/\/github\.com\/([^\/]+\/[^\/]+?)(?:\.git)?\/?$/);
+  let label;
+  if (gh) label = gh[1];
+  else { try { label = new URL(url).hostname.replace(/^www\./, ""); } catch (e) { label = url; } }
+  return `<a href="${url}" target="_blank" rel="noopener">${label}</a>`;
+}
+
 function renderPersonal(filtered) {
   let html = `<h2>${personal.title}</h2><div class="group-meta">${personal.meta} Install: <code>${personal.install}</code></div>`;
   html += `<table><thead><tr><th style="width:20%">Skill</th><th style="width:16%">Area</th><th>Description</th></tr></thead><tbody>`;
@@ -298,9 +311,9 @@ function renderRepository(filtered) {
 
   let html = `<h2>Repository skills</h2><div class="group-meta">Installed via <code>npx skills add &lt;owner/repo&gt; --agent cursor</code> (run as Cursor Skills). ${filtered.length} skills. Claude plugin-marketplace skills are excluded - see the plugin-mapping table.</div>`;
   const tableFor = (rows) => {
-    let t = `<table><thead><tr><th style="width:20%">Skill</th><th style="width:14%">Area</th><th style="width:22%">Install</th><th style="width:20%">Source</th><th>Description</th></tr></thead><tbody>`;
+    let t = `<table><thead><tr><th style="width:16%">Skill</th><th style="width:12%">Area</th><th style="width:24%">Install</th><th style="width:12%">Source</th><th>Description</th></tr></thead><tbody>`;
     for (const [name, area, u, desc] of rows.sort((a, b) => a[0].localeCompare(b[0]))) {
-      t += `<tr><td><span class="name">${name}</span></td><td><code>${area}</code></td><td><code>${repoInstall(u)}</code></td><td><a href="${u}" target="_blank" rel="noopener">${u}</a></td><td class="desc">${desc}</td></tr>`;
+      t += `<tr><td><span class="name">${name}</span></td><td><code>${area}</code></td><td><code>${repoInstall(u)}</code></td><td class="src">${shortSource(u)}</td><td class="desc">${desc}</td></tr>`;
     }
     return t + `</tbody></table>`;
   };
@@ -315,9 +328,9 @@ function renderRepository(filtered) {
 
 function renderMcp(filtered) {
   let html = `<h2>MCP servers</h2><div class="group-meta">Written to <code>.cursor/mcp.json</code> by the installer; Cursor supports MCP natively. ${filtered.length} servers.</div>`;
-  html += `<table><thead><tr><th style="width:14%">Name</th><th style="width:16%">Area</th><th style="width:26%">Install</th><th style="width:16%">Source</th><th>Description</th></tr></thead><tbody>`;
+  html += `<table><thead><tr><th style="width:14%">Name</th><th style="width:14%">Area</th><th style="width:24%">Install</th><th style="width:12%">Source</th><th>Description</th></tr></thead><tbody>`;
   for (const [name, area, install, url, desc] of filtered) {
-    html += `<tr><td><span class="name">${name}</span></td><td><code>${area}</code></td><td><code>${install}</code></td><td><a href="${url}" target="_blank" rel="noopener">${url}</a></td><td class="desc">${desc}</td></tr>`;
+    html += `<tr><td><span class="name">${name}</span></td><td><code>${area}</code></td><td><code>${install}</code></td><td class="src">${shortSource(url)}</td><td class="desc">${desc}</td></tr>`;
   }
   return html + `</tbody></table>`;
 }
@@ -333,9 +346,26 @@ function renderHooks(filtered) {
 
 function renderAgents(filtered) {
   let html = `<h2>Subagents</h2><div class="group-meta">Cursor-native specialist subagents, fetched into the project's <code>.cursor/agents/</code> tree. The same four resolvers the Claude stack ships, in Cursor's contract (a <code>readonly</code> bool rather than a per-tool allowlist; both stacks lean on the same soft convention rules). ${filtered.length} agents.</div>`;
-  html += `<table><thead><tr><th style="width:22%">Name</th><th style="width:14%">Area</th><th style="width:18%">Lands in</th><th style="width:14%">Source</th><th>Description</th></tr></thead><tbody>`;
-  for (const [name, area, where, url, desc] of filtered) {
-    html += `<tr><td><span class="name">${name}</span></td><td><code>${area}</code></td><td><code>${where}</code></td><td><a href="${url}" target="_blank" rel="noopener">${url}</a></td><td class="desc">${desc}</td></tr>`;
+  const rows = filtered;
+  // All four resolvers share the same 'lands in' and source; lift whatever is uniform into
+  // the header so it does not repeat down a column and squeeze the description.
+  const same = i => rows.length && rows.every(r => r[i] === rows[0][i]);
+  const showWhere = rows.length && !same(2), showSource = rows.length && !same(3);
+  const lifted = [];
+  if (rows.length && !showWhere)  lifted.push(`Lands in <code>${rows[0][2]}</code>`);
+  if (rows.length && !showSource) lifted.push(`Source ${shortSource(rows[0][3])}`);
+  if (lifted.length) html += `<div class="group-meta">${lifted.join(" &middot; ")}</div>`;
+  let head = `<th style="width:24%">Name</th><th style="width:16%">Area</th>`;
+  if (showWhere)  head += `<th style="width:20%">Lands in</th>`;
+  if (showSource) head += `<th style="width:16%">Source</th>`;
+  head += `<th>Description</th>`;
+  html += `<table><thead><tr>${head}</tr></thead><tbody>`;
+  for (const [name, area, where, url, desc] of rows) {
+    let cells = `<td><span class="name">${name}</span></td><td><code>${area}</code></td>`;
+    if (showWhere)  cells += `<td><code>${where}</code></td>`;
+    if (showSource) cells += `<td class="src">${shortSource(url)}</td>`;
+    cells += `<td class="desc">${desc}</td>`;
+    html += `<tr>${cells}</tr>`;
   }
   return html + `</tbody></table>`;
 }

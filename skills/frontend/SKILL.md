@@ -15,16 +15,26 @@ Index mapping a web-frontend work area to the skill to load. It routes, it does 
 |---|---|
 | write or edit Angular components, services, signals, templates, routing, forms, a11y | `angular-conventions` |
 | write any TypeScript / JavaScript (the framework-agnostic language baseline) | `typescript` (always) |
-| build distinctive, production-grade UI that avoids generic AI aesthetics | the frontend-design plugin |
+| build distinctive, production-grade UI that avoids generic AI aesthetics | the Design quality notes below (in-skill) |
 | build UI with Angular Material (`@angular/material`) + CDK components | `angular-material` |
 | write or edit CSS / SCSS in an Angular app - scoping, ViewEncapsulation, design tokens, responsive, a11y styling | `angular-styling` |
 | build an Ionic / Capacitor mobile or hybrid app | `mobile` |
 | look up current framework / library API docs | the context7 MCP |
 
+## Design quality (distinctive, production-grade UI)
+
+House guidance for UI that looks intentional, not generic-AI-default. This lives in-skill now (it was a separate plugin before); apply it on greenfield or visual work, and skip it when you are reproducing a fixed design or Figma handoff faithfully. It owns the *taste*; the mechanism routes to `angular-styling` (CSS, tokens, responsive) and `angular-material` (theming).
+
+- **A real design system, not defaults.** Commit to a deliberate type scale, a spacing rhythm, and a genuine color system (surfaces, accents, states) - not the framework's out-of-the-box palette and default margins.
+- **Layout with intent.** Build hierarchy from scale, weight, and whitespace; align to a grid; give content room. Avoid the evenly-spaced, center-everything, single-column default.
+- **Motion with purpose.** Transitions and micro-interactions that clarify a state change, not decoration - and respect prefers-reduced-motion.
+- **Design every state.** Empty, loading, error, and success are part of the UI, not afterthoughts.
+- **Responsive by construction, accessible by default.** Contrast, focus-visible, and keyboard paths are not optional; the a11y rules themselves stay in `angular-conventions` / `angular-styling`.
+
 ## Notes
 - Router, not a copy: load the named skill for the actual guidance; this file only points.
 - Angular is the house web framework: `angular-conventions` owns the framework rules, `typescript` the language. The web-conventions rule auto-attaches `typescript` + `angular-conventions` on `.ts` edits (soft guidance), so this router is for *navigation*.
-- Not every route target is a skill: the frontend-design plugin is a Claude plugin and context7 is an MCP server (load via the plugin / MCP, not `npx skills add`); the rest of the column are skills.
+- Not every route target is a skill: context7 is an MCP server (load via the MCP, not `npx skills add`) and the Design quality notes below are in-skill guidance; the rest of the column are skills.
 - Angular CSS/styling architecture has its own skill now (`angular-styling`); cross-framework state management is still intentionally out of scope - no house skill, so this router routes only what it owns. Web accessibility is not a separate row because `angular-conventions` owns the a11y rules (and ships the `axe-core` / `jest-axe` checks) while `angular-styling` carries the styling-side a11y (focus-visible, prefers-reduced-motion, contrast); for non-Angular a11y reach for the framework's own docs via context7.
 - Two routers on purpose: `frontend` and `mobile` stay split because an Ionic/Capacitor app pulls a distinct native layer (Capacitor lifecycle, plugins, permissions) that plain web work never touches - folding them would bury the mobile rows behind web ones.
 - Backend / .NET work routes through `dotnet`, not here.

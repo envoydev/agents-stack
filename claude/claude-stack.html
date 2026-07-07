@@ -215,18 +215,29 @@
   #content h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--brass); border: 0; border-bottom: 1px solid var(--line); padding: 0 0 7px; margin: 30px 0 4px; font-weight: 700; }
   #content h2 .src { color: var(--faint); font-weight: 400; }
   .group-meta { color: var(--muted); font-size: 12.5px; margin-bottom: 10px; line-height: 1.5; }
-  table { width: 100%; border-collapse: collapse; font-size: 13px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; margin-bottom: 6px; }
+  table { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: 13px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; margin-bottom: 6px; }
   thead { background: var(--panel-2); }
-  th, td { padding: 9px 13px; text-align: left; border-bottom: 1px solid var(--line-soft); vertical-align: top; }
+  th, td { padding: 9px 13px; text-align: left; border-bottom: 1px solid var(--line-soft); vertical-align: top; overflow-wrap: anywhere; }
   th { font-weight: 600; font-size: 11px; color: var(--faint); text-transform: uppercase; letter-spacing: 0.05em; font-family: var(--mono); }
   tbody tr:last-child td { border-bottom: none; }
   tbody tr:hover { background: var(--panel-2); }
   .name { font-family: var(--mono); font-size: 12px; color: var(--ink); font-weight: 600; }
-  td code { font-family: var(--mono); font-size: 11.5px; color: #c7cdd8; }
+  td code { font-family: var(--mono); font-size: 11.5px; color: #c7cdd8; overflow-wrap: anywhere; }
   .src { color: var(--muted); font-size: 12px; }
   td a { color: var(--brass); text-decoration: none; }
   td a:hover { text-decoration: underline; }
-  .desc { color: var(--muted); }
+  .desc { color: var(--muted); line-height: 1.55; }
+  details.skills { margin-top: 7px; }
+  details.skills > summary { cursor: pointer; list-style: none; display: inline-flex; align-items: center; gap: 6px; font-family: var(--mono); font-size: 11px; letter-spacing: 0.02em; color: var(--design); user-select: none; }
+  details.skills > summary::-webkit-details-marker { display: none; }
+  details.skills > summary::before { content: "\25B8"; color: var(--faint); font-size: 10px; }
+  details.skills[open] > summary::before { content: "\25BE"; }
+  details.skills > summary:hover { color: var(--brass); }
+  .skills-list { list-style: none; margin: 8px 0 2px; padding: 0; border-left: 1px solid var(--line); }
+  .skills-list li { padding: 3px 0 3px 12px; line-height: 1.5; }
+  .skills-list li .sk { font-family: var(--mono); font-size: 11.5px; color: var(--ink); font-weight: 600; }
+  .skills-list li .sk-area { font-family: var(--mono); font-size: 10.5px; color: var(--muted); margin-left: 6px; }
+  .skills-list li .sk-desc { display: block; color: var(--muted); font-size: 12px; margin-top: 1px; }
   .inv-sources { color: var(--faint); font-size: 12px; margin-top: 18px; font-family: var(--mono); line-height: 1.6; }
   .inv-sources code { color: var(--muted); }
 </style>
@@ -246,7 +257,7 @@
   </p>
   <div class="stat-row">
     <div class="stat"><b>32</b><span>subagents</span></div>
-    <div class="stat"><b>46</b><span>house skills</span></div>
+    <div class="stat"><b>51</b><span>house skills</span></div>
     <div class="stat"><b>7</b><span>MCP servers</span></div>
     <div class="stat"><b>8</b><span>plugins</span></div>
     <div class="stat"><b>3</b><span>hooks</span></div>
@@ -382,6 +393,17 @@
           </div>
         </div>
 
+        <!-- Integration gate band -->
+        <div class="band">
+          <div class="tier-label" style="--tier:var(--qa)">
+            <span class="t">Integration gate</span>
+            <span class="d">cross-domain final check before commit</span>
+          </div>
+          <div class="spanning">
+            <span class="agent qa">integration-reviewer<span class="role">gates the assembled cross-domain build vs the frozen contract - the mandatory gate no single-stack verifier is</span><span class="mdl opus">opus · xhigh</span></span>
+          </div>
+        </div>
+
         <!-- Repair row -->
         <div class="band">
           <div class="tier-label" style="--tier:var(--repair)">
@@ -483,7 +505,7 @@
           <span class="chip test">CDK harnesses</span><span class="chip test">HttpTestingController</span>
         </div></div>
         <div class="serve">
-          <span class="chip plugin">typescript-lsp</span><span class="chip plugin">frontend-design</span>
+          <span class="chip plugin">typescript-lsp</span>
           <span class="chip mcp">angular-cli</span><span class="chip mcp">playwright</span>
           <span class="chip mcp">chrome-devtools</span><span class="chip">scss rule</span>
         </div>
@@ -646,16 +668,16 @@
   <section>
     <div class="sec-head"><span class="sec-num">04</span><h2>The full inventory</h2></div>
     <p class="sec-sub">
-      Everything the installer lays down, live-filterable: <b>skills</b> (built-in, personal, plugin; the repository tier is now empty - every stack skill is house-owned), the <b>tools / MCP servers</b> and stack subagents, the <b>hooks</b>, and the path-scoped <b>rules</b>. Type to filter across name, source, and description.
+      Everything the installer lays down, live-filterable: the <b>subagents</b>, the <b>skills</b> (built-in and personal - the repository tier is empty, every stack skill is house-owned), the <b>plugins</b> (one row each, expand to see the skills / commands / hooks a pack ships), the <b>MCP servers</b>, the <b>hooks</b>, and the path-scoped <b>rules</b>. Type to filter across name, source, and description.
     </p>
 
     <div class="counts">
-      <div><strong id="c-total">125</strong> total</div>
+      <div><strong id="c-total">112</strong> total</div>
+      <div><strong id="c-subagents">32</strong> subagents</div>
       <div><strong id="c-bi">14</strong> built-in</div>
       <div><strong id="c-personal">51</strong> personal</div>
-      <div><strong id="c-plugins">20</strong> plugins</div>
-      <div><strong id="c-repo">0</strong> repository</div>
-      <div><strong id="c-other">40</strong> tools / MCP</div>
+      <div><strong id="c-plugins">8</strong> plugins</div>
+      <div><strong id="c-mcp">7</strong> MCP</div>
       <div><strong id="c-hooks">3</strong> hooks</div>
     </div>
 
@@ -678,7 +700,7 @@
 <script>
 // rows: [name, description]
 const builtin = {
-  title: "Built-in",
+  title: "Skills (Built-in)",
   meta: "Ships with Claude Code CLI. No install needed.",
   source: "built-in (Claude Code CLI)",
   install: "ships with CLI",
@@ -701,7 +723,7 @@ const builtin = {
 };
 
 const personal = {
-  title: "Personal",
+  title: "Skills (Personal)",
   meta: "Personal convention skills, authored locally and published to envoydev/agents-stack. Installed via the skills CLI.",
   source: "https://github.com/envoydev/agents-stack",
   install: "npx skills add envoydev/agents-stack",
@@ -713,7 +735,7 @@ const personal = {
     ["angular-material","Frontend / Angular","Angular Material (@angular/material) + CDK: selective component-module imports (tree-shaking), M3 mat.theme() theming + CSS custom properties, CDK primitives (Overlay, virtual scroll, FocusTrap/LiveAnnouncer), Material test harnesses. Framework baseline -> angular-conventions."],
     ["angular-styling","Frontend / Angular","Angular CSS/SCSS architecture (Material or not): ViewEncapsulation choice, :host / :host-context, the discouraged ::ng-deep and its sanctioned ways out, design tokens as CSS custom properties, mobile-first + container queries + fluid type, global vs scoped styles, utility-first vs scoped SCSS, a11y-affecting styling. Material token work -> angular-material; framework -> angular-conventions."],
     ["angular-security","Security / Angular","Angular / web frontend security hardening: XSS and the DomSanitizer bypassSecurityTrust* escape hatches, [innerHTML] injection, CSP (nonce-based, no unsafe-inline), CSRF via HttpClient XSRF, no secrets in the bundle (environment.ts, source maps), token storage (httpOnly cookie over localStorage an XSS drains), SSR/TransferState leaks, open-redirect + window.opener, vulnerable npm deps. API side -> dotnet-security; Capacitor native shell -> mobile-security."],
-    ["frontend","Frontend / router","Web frontend router/index: Angular (-> angular-conventions), TS/JS baseline (-> typescript), distinctive UI (frontend-design plugin), Ionic/Capacitor (-> mobile)."],
+    ["frontend","Frontend / router","Web frontend router/index: Angular (-> angular-conventions), TS/JS baseline (-> typescript), distinctive production-grade UI (in-skill design-quality guidance), Ionic/Capacitor (-> mobile)."],
     ["mobile","Mobile / router","Ionic/Capacitor router/index over the Angular (angular-conventions) + TypeScript (typescript) baselines; in-app navigation + page lifecycle owned by ionic (references/navigation-and-lifecycle.md)."],
     ["ionic","Mobile / Ionic","House Ionic/Capacitor conventions: standalone+signals Ionic UI, IonRouterOutlet + lazy routes, CSS-variable theming, Capacitor lifecycle + isNativePlatform guards, runtime permissions, Capacitor plugin sourcing (official -> Capawesome -> capacitor-community) + typed-service wrapping. Mechanics -> capacitor-plugins."],
     ["capacitor-release","Mobile / release","House Ionic/Capacitor release pipeline: cap sync + native build (.ipa/.aab), iOS signing (cert + profile, App Store Connect API key, Fastlane match) + Android signing (upload key vs Play app-signing key), store submission (TestFlight + Play tracks), OTA / live updates and the native-binary boundary, marketing-version vs build-number sync, Fastlane / GitHub Actions CI with secrets, dSYM + sourcemap upload. App under release -> ionic; native plugin mechanics -> capacitor-plugins."],
@@ -789,11 +811,13 @@ function renderFixedSource(g, filtered) {
   const srcCell = isUrl
     ? `<a href="${g.source}" target="_blank" rel="noopener">${g.source}</a>`
     : `<span class="src">${g.source}</span>`;
-  const installCell = `<code>${g.install}</code>`;
-  let html = `<h2>${g.title}</h2>` + (g.meta ? `<div class="group-meta">${g.meta}</div>` : "");
-  html += `<table><thead><tr><th style="width:18%">Skill</th><th style="width:14%">Area</th><th style="width:20%">Install</th><th style="width:20%">Source</th><th>Description</th></tr></thead><tbody>`;
+  // Source is identical for every row here (a fixed-source group), so state it once in the
+  // header; Install stays a per-row column by request (uniform within the group).
+  const meta = (g.meta ? g.meta + " &middot; " : "") + `Source ${srcCell}`;
+  let html = `<h2>${g.title}</h2><div class="group-meta">${meta}</div>`;
+  html += `<table><thead><tr><th style="width:15%">Skill</th><th style="width:13%">Area</th><th style="width:26%">Install</th><th>Description</th></tr></thead><tbody>`;
   for (const [name, area, desc] of filtered) {
-    html += `<tr><td><span class="name">${name}</span></td><td><code>${area}</code></td><td>${installCell}</td><td>${srcCell}</td><td class="desc">${desc}</td></tr>`;
+    html += `<tr><td><span class="name">${name}</span></td><td><code>${area}</code></td><td><code>${g.install}</code></td><td class="desc">${desc}</td></tr>`;
   }
   html += `</tbody></table>`;
   return html;
@@ -818,38 +842,122 @@ function installCmdFor(url) {
   return m ? `npx skills add ${m[1]}` : "manual";
 }
 
-// Plugins: rows whose source URL is a known plugin marketplace.
-function renderPlugins(filtered) {
-  // Plugin marketplace ordering: claude-plugins-official, claude-hud, ponytail, caveman.
-  const fixedOrder = [
-    "https://github.com/anthropics/claude-plugins-official",
-    "https://github.com/jarrodwatts/claude-hud",
-    "https://github.com/DietrichGebert/ponytail",
-    "https://github.com/JuliusBrussee/caveman",
-  ];
+// Compact source link: a GitHub URL shows as owner/repo, anything else as its hostname.
+// The full URL stays in the href, so a narrow column no longer costs the description its width.
+function shortSource(url) {
+  const gh = url.match(/^https?:\/\/github\.com\/([^\/]+\/[^\/]+?)(?:\.git)?\/?$/);
+  let label;
+  if (gh) label = gh[1];
+  else { try { label = new URL(url).hostname.replace(/^www\./, ""); } catch (e) { label = url; } }
+  return `<a href="${url}" target="_blank" rel="noopener">${label}</a>`;
+}
 
-  // Bucket by url.
-  const grouped = {};
-  for (const row of filtered) (grouped[row[2]] ||= []).push(row);
+// One PLUGIN is the unit, not one skill. All installable plugins - the marketplace
+// skill packs (superpowers etc.) AND the LSP / hook / UI plugins - share a single section
+// instead of being split by marketplace across several tables. A pack that ships many
+// skills lists them under an expandable toggle rather than giving each skill its own row.
+// The underlying `repository` / `otherTools` data arrays stay untouched (the parity lint
+// reads them); this is a render-only regrouping. pluginMeta carries the editorial per-plugin
+// line and kind; install + source are derived from the data, so nothing is duplicated.
+// `provides` names what the expandable toggle lists (skills / commands / hooks); a plugin that
+// ships hooks or commands rather than skills (e.g. security-guidance) still lists them here,
+// like the skill packs do, rather than in the Hooks section.
+const pluginMeta = {
+  "superpowers":          { kind: "workflow",        provides: "skills",   blurb: "Anthropic's engineering-discipline pack: brainstorming, TDD, systematic debugging, plan writing/execution, code review, git worktrees, and subagent dispatch - the process skills the house flow builds on." },
+  "claude-md-management": { kind: "project memory",   provides: "commands", blurb: "Keeps CLAUDE.md honest - an audit-and-improve pass plus a session-learning revision command." },
+  "claude-hud":           { kind: "statusline",       provides: "commands", blurb: "A live session heads-up display for the statusline - configure layout, presets, and manual overrides." },
+  "ponytail":             { kind: "quality / tokens", blurb: "'Lazy senior dev' decision ladder - skip code, prefer stdlib/native, avoid over-engineering; cuts AI-generated code, latency, and cost while keeping validation, security, a11y." },
+  "caveman":              { kind: "tokens / output",  blurb: "Terse-output token reducer - replies in compressed 'caveman' fragments (levels lite/full/ultra/wenyan) for ~65% fewer output tokens, code/commands/errors kept byte-exact. Commands /caveman-stats, /caveman-compress." },
+  "csharp-lsp":           { kind: "C# / diagnostics", blurb: "Roslyn language server - inline diagnostics after each edit without a full dotnet build round-trip. Complements serena (navigation)." },
+  "typescript-lsp":       { kind: "TS / diagnostics", blurb: "TypeScript language server - inline diagnostics on edit for Angular/TS work." },
+  "security-guidance":    { kind: "security / hooks", provides: "hooks", blurb: "Security review for Claude-generated code - warns on risky edits, reviews the diff on Stop, and reviews the commit. No skills or commands; it runs as hooks.", items: [
+    { label: "edit-time warnings", area: "PostToolUse", desc: "Pattern-based warnings on risky edits as they land." },
+    { label: "diff review",        area: "Stop",        desc: "LLM review of the session diff when you stop." },
+    { label: "commit reviewer",    area: "commit",      desc: "Agentic reviewer catching injection, XSS, SSRF, hardcoded secrets, and 25+ vulnerability classes." },
+  ] },
+};
+const pluginOrder = ["superpowers", "claude-md-management", "claude-hud", "ponytail", "caveman", "csharp-lsp", "typescript-lsp", "security-guidance"];
 
-  const orderedUrls = [
-    ...fixedOrder.filter(u => grouped[u]),
-    ...Object.keys(grouped).filter(u => !fixedOrder.includes(u)).sort(),
-  ];
+// Marketplace slug per URL, so a plugin's own install line reads `/plugin install <plugin>@<marketplace>`.
+const marketplaceByUrl = {
+  "https://github.com/anthropics/claude-plugins-official": "claude-plugins-official",
+  "https://github.com/jarrodwatts/claude-hud":             "claude-hud",
+  "https://github.com/DietrichGebert/ponytail":            "ponytail",
+  "https://github.com/JuliusBrussee/caveman":              "caveman",
+};
 
-  let html = `<h2>Plugins</h2><div class="group-meta">Installed via <code>/plugin install &lt;name&gt;@&lt;marketplace&gt;</code>. ${filtered.length} skills exposed by enabled plugins.</div>`;
+// Route an otherTools row to its section by type - shared by collectPlugins (which claims
+// the plugin rows) and render() (which splits the rest into renderSubagents / renderMcps).
+const bucketOfType = type =>
+  type === "subagent"            ? "agents"  :
+  type.startsWith("MCP server")  ? "mcps"    :
+  type.startsWith("plugin")      ? "plugins" : "tools";
 
-  for (const url of orderedUrls) {
-    const rows = grouped[url];
-    html += `<h2 style="font-size:13px;margin-top:18px">${url} <span class="src" style="font-weight:400">(${rows.length} skills)</span></h2>`;
-    html += `<table><thead><tr><th style="width:18%">Plugin</th><th style="width:14%">Area</th><th style="width:20%">Install</th><th style="width:20%">Source</th><th>Description</th></tr></thead><tbody>`;
-    for (const [name, area, u, desc] of rows.sort((a, b) => a[0].localeCompare(b[0]))) {
-      const install = pluginInstallByUrl[u](name);
-      html += `<tr><td><span class="name">${name}</span></td><td><code>${area}</code></td><td><code>${install}</code></td><td><a href="${u}" target="_blank" rel="noopener">${u}</a></td><td class="desc">${desc}</td></tr>`;
-    }
-    html += `</tbody></table>`;
+// Fold both data arrays into the plugin descriptors: marketplace skill rows aggregate
+// into their plugin and become its expandable items; each otherTools plugin row is a single
+// plugin. Returns them in pluginOrder.
+function collectPlugins() {
+  const byName = {};
+  const ensure = name => (byName[name] ||= { name, source: "", install: "", items: [] });
+
+  for (const [name, area, url, desc] of repository) {
+    if (!pluginInstallByUrl[url]) continue;
+    const plugin = name.split(":")[0];
+    const p = ensure(plugin);
+    p.source = url;
+    p.install = "/plugin install " + plugin + "@" + (marketplaceByUrl[url] || plugin);
+    if (name.includes(":")) p.items.push({ label: name.split(":")[1], area, desc });
+    else p.soloDesc = desc;   // ponytail / caveman - the row IS the plugin
   }
 
+  for (const [name, type, area, install, url, desc] of otherTools) {
+    if (bucketOfType(type) !== "plugins") continue;
+    const p = ensure(name);
+    p.source = url;
+    p.install = install;
+    p.soloDesc = desc;
+    p.area = area;
+  }
+
+  return pluginOrder.filter(n => byName[n]).map(n => {
+    const p = byName[n];
+    const meta = pluginMeta[n] || {};
+    return {
+      name: n,
+      kind: meta.kind || p.area || "plugin",
+      blurb: meta.blurb || p.soloDesc || "",
+      install: p.install,
+      source: p.source,
+      provides: meta.provides || "skills",
+      items: p.items.length ? p.items.sort((a, b) => a.label.localeCompare(b.label)) : (meta.items || []),
+    };
+  });
+}
+
+// A plugin matches the filter on any of its own fields OR any nested skill.
+function filterPlugins(plugins, query) {
+  if (!query) return plugins;
+  return plugins.filter(p => {
+    const hay = [p.name, p.kind, p.blurb, p.install, p.source,
+      ...p.items.flatMap(i => [i.label, i.area, i.desc])].join(" ").toLowerCase();
+    return hay.includes(query);
+  });
+}
+
+function renderPlugins(plugins) {
+  let html = `<h2>Plugins</h2><div class="group-meta">Every installable plugin, one row each - the marketplace skill packs and the LSP / hook / UI plugins together. Installed via <code>/plugin install &lt;name&gt;@&lt;marketplace&gt;</code>; a pack that ships several skills, commands, or hooks lists them under an expandable toggle. ${plugins.length} plugins.</div>`;
+  html += `<table><thead><tr><th style="width:15%">Plugin</th><th style="width:13%">Kind</th><th style="width:27%">Install</th><th>Description</th></tr></thead><tbody>`;
+  for (const p of plugins) {
+    const src = p.source ? `<div class="src" style="margin-top:4px">${shortSource(p.source)}</div>` : "";
+    let desc = `<span class="desc">${p.blurb}</span>`;
+    if (p.items.length) {
+      const lis = p.items.map(i =>
+        `<li><span class="sk">${i.label}</span><span class="sk-area">${i.area}</span><span class="sk-desc">${i.desc}</span></li>`).join("");
+      desc += `<details class="skills"><summary>${p.items.length} ${p.provides}</summary><ul class="skills-list">${lis}</ul></details>`;
+    }
+    html += `<tr><td><span class="name">${p.name}</span></td><td><code>${p.kind}</code></td><td><code>${p.install}</code>${src}</td><td>${desc}</td></tr>`;
+  }
+  html += `</tbody></table>`;
   return html;
 }
 
@@ -881,19 +989,20 @@ function renderRepository(filtered) {
     const rows = multi[url];
     const groupInstall = installCmdFor(url);
     html += `<h2 style="font-size:13px;margin-top:18px">${url} <span class="src" style="font-weight:400">(${rows.length} skills)</span></h2>`;
-    html += `<table><thead><tr><th style="width:18%">Skill</th><th style="width:14%">Area</th><th style="width:20%">Install</th><th style="width:20%">Source</th><th>Description</th></tr></thead><tbody>`;
+    html += `<div class="group-meta">Install <code>${groupInstall}</code></div>`;
+    html += `<table><thead><tr><th style="width:16%">Skill</th><th style="width:13%">Area</th><th>Description</th></tr></thead><tbody>`;
     for (const [name, area, u, desc] of rows.sort((a, b) => a[0].localeCompare(b[0]))) {
-      html += `<tr><td><span class="name">${name}</span></td><td><code>${area}</code></td><td><code>${groupInstall}</code></td><td><a href="${u}" target="_blank" rel="noopener">${u}</a></td><td class="desc">${desc}</td></tr>`;
+      html += `<tr><td><span class="name">${name}</span></td><td><code>${area}</code></td><td class="desc">${desc}</td></tr>`;
     }
     html += `</tbody></table>`;
   }
 
   if (others.length) {
     html += `<h2 style="font-size:13px;margin-top:18px">Other (single-skill repos) <span class="src" style="font-weight:400">(${others.length} skills)</span></h2>`;
-    html += `<table><thead><tr><th style="width:18%">Skill</th><th style="width:14%">Area</th><th style="width:20%">Install</th><th style="width:20%">Source</th><th>Description</th></tr></thead><tbody>`;
+    html += `<table><thead><tr><th style="width:15%">Skill</th><th style="width:12%">Area</th><th style="width:24%">Install</th><th style="width:14%">Source</th><th>Description</th></tr></thead><tbody>`;
     for (const [name, area, u, desc] of others.sort((a, b) => a[0].localeCompare(b[0]))) {
       const install = installCmdFor(u) ?? "manual";
-      html += `<tr><td><span class="name">${name}</span></td><td><code>${area}</code></td><td><code>${install}</code></td><td><a href="${u}" target="_blank" rel="noopener">${u}</a></td><td class="desc">${desc}</td></tr>`;
+      html += `<tr><td><span class="name">${name}</span></td><td><code>${area}</code></td><td><code>${install}</code></td><td>${shortSource(u)}</td><td class="desc">${desc}</td></tr>`;
     }
     html += `</tbody></table>`;
   }
@@ -904,30 +1013,40 @@ function renderRepository(filtered) {
 function render(query) {
   const root = document.getElementById("content");
   root.innerHTML = "";
+  const q = query;
+  const has = (...parts) => !q || parts.join(" ").toLowerCase().includes(q);
 
-  const biFiltered = query
-    ? builtin.rows.filter(([n, a, d]) => (n + " " + a + " " + d + " " + builtin.source).toLowerCase().includes(query))
-    : builtin.rows;
-  const personalFiltered = query
-    ? personal.rows.filter(([n, a, d]) => (n + " " + a + " " + d + " " + personal.source).toLowerCase().includes(query))
-    : personal.rows;
-  const repoFiltered = query
-    ? repository.filter(([n, a, u, d]) => (n + " " + a + " " + u + " " + d).toLowerCase().includes(query))
-    : repository;
+  // Subagents and MCP servers get their own top-level sections (subagents first).
+  const otherF     = otherTools.filter(([n, t, a, i, u, d]) => has(n, t, a, u, d));
+  const subagentsF = otherF.filter(r => bucketOfType(r[1]) === "agents");
+  const mcpsF      = otherF.filter(r => bucketOfType(r[1]) === "mcps");
 
-  const pluginsFiltered = repoFiltered.filter(r => pluginInstallByUrl[r[2]]);
-  const skillsRepoFiltered = repoFiltered.filter(r => !pluginInstallByUrl[r[2]]);
+  const biF       = builtin.rows.filter(([n, a, d]) => has(n, a, d, builtin.source));
+  const personalF = personal.rows.filter(([n, a, d]) => has(n, a, d, personal.source));
+  const plugins   = filterPlugins(collectPlugins(), q);
+  const repoF     = (q ? repository.filter(([n, a, u, d]) => has(n, a, u, d)) : repository)
+                      .filter(r => !pluginInstallByUrl[r[2]]);
+  const hooksF    = hooks.filter(([n, m, d]) => has(n, m, d));
+  const rulesF    = rules.filter(([n, p, d]) => has(n, p, d));
 
-  if (biFiltered.length)         root.insertAdjacentHTML("beforeend", renderFixedSource(builtin, biFiltered));
-  if (personalFiltered.length)   root.insertAdjacentHTML("beforeend", renderFixedSource(personal, personalFiltered));
-  if (pluginsFiltered.length)    root.insertAdjacentHTML("beforeend", renderPlugins(pluginsFiltered));
-  if (skillsRepoFiltered.length) root.insertAdjacentHTML("beforeend", renderRepository(skillsRepoFiltered));
+  const add = h => root.insertAdjacentHTML("beforeend", h);
+  if (subagentsF.length) add(renderSubagents(subagentsF));
+  if (biF.length)        add(renderFixedSource(builtin, biF));
+  if (personalF.length)  add(renderFixedSource(personal, personalF));
+  if (plugins.length)    add(renderPlugins(plugins));
+  if (repoF.length)      add(renderRepository(repoF));
+  if (mcpsF.length)      add(renderMcps(mcpsF));
+  if (hooksF.length)     add(renderHooks(hooksF));
+  if (rulesF.length)     add(renderRules(rulesF));
 
-  document.getElementById("c-bi").textContent       = biFiltered.length;
-  document.getElementById("c-personal").textContent = personalFiltered.length;
-  document.getElementById("c-plugins").textContent  = pluginsFiltered.length;
-  document.getElementById("c-repo").textContent     = skillsRepoFiltered.length;
-  document.getElementById("c-total").textContent    = biFiltered.length + personalFiltered.length + repoFiltered.length;
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  set("c-subagents", subagentsF.length);
+  set("c-bi", biF.length);
+  set("c-personal", personalF.length);
+  set("c-plugins", plugins.length);
+  set("c-mcp", mcpsF.length);
+  set("c-hooks", hooksF.length);   // hooks tallied separately, never folded into c-total
+  set("c-total", subagentsF.length + biF.length + personalF.length + plugins.length + repoF.length + mcpsF.length);
 }
 
 // Non-skill capabilities: plugins providing only agents/LSPs/commands, plus top-level MCP servers.
@@ -947,6 +1066,8 @@ const otherTools = [
   ["greenfield-solution-designer", "subagent", "Greenfield / design", "fetched into .claude/agents/", "https://github.com/envoydev/agents-stack", "Read-only greenfield design pass: turns a spec into concrete architecture options - stack fit, architecture style (clean / vertical-slice / minimal-API / strict-MVVM), project structure, and the first vertical slice to build. Best as the first delegation on a new project; feeds project-scaffold, which then runs domain-build per slice. Pinned opus/xhigh."],
   ["security-auditor", "subagent", "Security / audit", "fetched into .claude/agents/", "https://github.com/envoydev/agents-stack", "Read-only cross-stack security posture audit: sweeps auth, authorization, input/injection, secrets, config, and data exposure across ASP.NET/Angular/WPF/mobile/SQL, proves each finding against the code, and returns an OWASP/CWE punch-list routed to the domain implementers to fix and the verifier to confirm. Complements /security-review (diff/PR-scoped) and the security-guidance commit hook; finds and reports, never fixes. Pinned opus/xhigh."],
   ["integration-reviewer", "subagent", "Review / integration gate", "fetched into .claude/agents/", "https://github.com/envoydev/agents-stack", "Read-only cross-domain final gate: after every affected domain verifier signs off, checks the assembled feature as a whole - the frozen contract honored end to end and the current contract_version used everywhere, the full solution builds, unit/integration/E2E pass, DB migrations apply from a clean DB and from the previous version, the API matches every Angular/mobile/WPF consumer, auth and the error envelope match the contract, deploy order safe - then returns a commit-or-punch-list verdict. Independent of the Team Lead; the mandatory gate before a cross-domain commit that no single-stack verifier is. Pinned opus/xhigh."],
+  ["cross-stack-contract-designer", "subagent", "Contract / design", "fetched into .claude/agents/", "https://github.com/envoydev/agents-stack", "Read-only cross-stack contract freeze: before the per-stack designers, settles the shared backend<->frontend seam - DTOs, routes, error envelope, auth, pagination, versioning - and emits a versioned contract so a full-stack feature builds to one agreed interface instead of drifting into a runtime bug. Pinned opus/xhigh."],
+  ["framework-upgrade-planner", "subagent", "Upgrade / plan", "fetched into .claude/agents/", "https://github.com/envoydev/agents-stack", "Read-only upgrade planner: turns a version/deprecation event (a .NET or Angular major, an EOL) into an ordered, contracted upgrade plan - impact map, sequencing, checkpoints - that the implementers and resolvers execute. Pinned opus/xhigh."],
   // Per-domain specialist team (6 stacks x solution-designer/implementer/verifier), dispatched by the domain-build skill:
   ["aspnet-solution-designer", "subagent", "ASP.NET / design", "fetched into .claude/agents/", "https://github.com/envoydev/agents-stack", "Read-only ASP.NET Core backend/API design pass: fixes architecture, plan, and test strategy for the C# stack, then decomposes the work into independent parallel tasks with clear contracts so several implementers can build them at once. Feeds the aspnet-implementer fan-out and the aspnet-verifier. Pinned opus/xhigh."],
   ["aspnet-implementer", "subagent", "ASP.NET / build", "fetched into .claude/agents/", "https://github.com/envoydev/agents-stack", "Builds ONE task from an aspnet-solution-designer decomposition: writes the code AND its tests for its assigned part, inside the task contract. Several run in parallel, one task each. Pinned sonnet/medium."],
@@ -969,7 +1090,6 @@ const otherTools = [
   ["security-guidance", "plugin (hooks)", "Security", "/plugin install security-guidance@claude-plugins-official", "https://github.com/anthropics/claude-plugins-official", "Security review for Claude-generated code: pattern-based warnings on edits, LLM diff review on Stop, and an agentic commit reviewer catching injection, XSS, SSRF, hardcoded secrets, and 25+ vulnerability classes. Hooks-based (no skills/commands); writes warning state under ~/.claude/security/."],
   ["csharp-lsp", "plugin (LSP)", "C# / diagnostics", "/plugin install csharp-lsp@claude-plugins-official", "https://github.com/anthropics/claude-plugins-official", "Roslyn language server: inline diagnostics after each edit without a full dotnet build round-trip. Complements serena (navigation)."],
   ["typescript-lsp", "plugin (LSP)", "TypeScript / diagnostics", "/plugin install typescript-lsp@claude-plugins-official", "https://github.com/anthropics/claude-plugins-official", "TypeScript language server: inline diagnostics on edit for Angular/TS work."],
-  ["frontend-design", "plugin", "Frontend / UI", "/plugin install frontend-design@claude-plugins-official", "https://github.com/anthropics/claude-plugins-official", "Distinctive, production-grade frontend interfaces with high design quality; generates creative, polished UI code that avoids generic AI aesthetics."],
   ["angular-cli", "MCP server", "Angular / workspace", "claude mcp add angular-cli -- npx -y @angular/cli mcp", "https://angular.dev/ai/mcp", "Official Angular CLI MCP (experimental): workspace-aware docs, best practices, migrations, generation. Complements context7's generic docs. Angular workspaces only."],
   ["context7", "MCP server", "Library docs", "claude mcp add --transport http --scope project -> <repo>/.mcp.json (remote; pass --context7 local for the local npx server)", "https://github.com/upstash/context7", "Fetch current library/framework/SDK docs (React, Next.js, Prisma, etc.). Remote hosted server by default - key via ${CONTEXT7_API_KEY} in settings env. Tools: mcp__context7__resolve-library-id, query-docs."],
   ["memory", "MCP server", "Memory / recall", "claude mcp add --scope project -> <repo>/.mcp.json (mcp-memory-service, shared ~/.memory-mcp)", "https://codeberg.org/doobidoo/mcp-memory-service", "Cross-project semantic memory store. Tools: mcp__memory__memory_store, memory_search, memory_list, etc. SQLite + vec backend."],
@@ -979,32 +1099,29 @@ const otherTools = [
   ["appium-mcp", "MCP server (active, heavy)", "Mobile / native E2E", "claude mcp add appium-mcp -- npx -y appium-mcp@latest", "https://github.com/appium/appium-mcp", "Official Appium MCP (maintained by the Appium core team): drive iOS simulators + Android emulators/devices - 40+ tools across session mgmt, element finding (incl. vision-based appium_ai), gestures, app lifecycle, permissions, screenshots, test generation. Embedded UiAutomator2/XCUITest drivers (no separate Appium server). Active by default (heavy - comment out where not needed) - needs Xcode and/or Android SDK + Java; needed mainly for Capacitor/Ionic mobile projects. Pairs with ionic / mobile."],
 ];
 
-function renderOther(filtered) {
-  // Split the non-skill capabilities by type into sub-groups.
-  const bucketOf = type =>
-    type === "subagent"            ? "agents"  :
-    type.startsWith("MCP server")  ? "mcps"    :
-    type.startsWith("plugin")      ? "plugins" : "tools";
-  const groups = {
-    agents:  { title: "Subagents",   meta: "Stack-native Claude subagents fetched into <code>.claude/agents/</code>, all model/effort-pinned. Not skills.", rows: [] },
-    mcps:    { title: "MCP servers", meta: "Top-level MCP servers, wired per project into the repo's <code>.mcp.json</code>.", rows: [] },
-    plugins: { title: "Plugins",     meta: "Installed via <code>/plugin install &lt;name&gt;@&lt;marketplace&gt;</code>; expose LSPs, hooks, or commands rather than skills.", rows: [] },
-    tools:   { title: "Other tools", meta: "Non-skill capabilities that fit none of the above.", rows: [] },
-  };
-  for (const row of filtered) groups[bucketOf(row[1])].rows.push(row);
-
-  let html = `<h2>Other tools / MCP servers</h2><div class="group-meta">Non-skill capabilities, split by type - subagents, MCP servers, and plugins. ${filtered.length} entries.</div>`;
-  for (const key of ["agents", "mcps", "plugins", "tools"]) {
-    const g = groups[key];
-    if (!g.rows.length) continue;
-    html += `<h2 style="font-size:13px;margin-top:18px">${g.title} <span class="src" style="font-weight:400">(${g.rows.length})</span></h2>`;
-    html += `<div class="group-meta">${g.meta}</div>`;
-    html += `<table><thead><tr><th style="width:16%">Name</th><th style="width:12%">Type</th><th style="width:14%">Area</th><th style="width:22%">Install</th><th style="width:18%">Source</th><th>Description</th></tr></thead><tbody>`;
-    for (const [name, type, area, install, url, desc] of g.rows) {
-      html += `<tr><td><span class="name">${name}</span></td><td><code>${type}</code></td><td><code>${area}</code></td><td><code>${install}</code></td><td><a href="${url}" target="_blank" rel="noopener">${url}</a></td><td class="desc">${desc}</td></tr>`;
-    }
-    html += `</tbody></table>`;
+// Subagents: their own top-level section (rendered first). Install + source are uniform, so
+// source lifts to the header; Install stays a column by request.
+function renderSubagents(rows) {
+  const src = rows.length ? shortSource(rows[0][4]) : "";
+  let html = `<h2>Subagents</h2><div class="group-meta">Stack-native Claude subagents fetched into <code>.claude/agents/</code>, all model/effort-pinned - not skills. Source ${src}. ${rows.length} entries.</div>`;
+  html += `<table><thead><tr><th style="width:16%">Subagent</th><th style="width:14%">Area</th><th style="width:22%">Install</th><th>Description</th></tr></thead><tbody>`;
+  for (const [name, type, area, install, url, desc] of rows) {
+    html += `<tr><td><span class="name">${name}</span></td><td><code>${area}</code></td><td><code>${install}</code></td><td class="desc">${desc}</td></tr>`;
   }
+  html += `</tbody></table>`;
+  return html;
+}
+
+// MCP servers: their own section, no Type column. The 'heavy' flag (was in the type) rides
+// inline next to the name so dropping the column loses no signal.
+function renderMcps(rows) {
+  let html = `<h2>MCP servers</h2><div class="group-meta">Top-level MCP servers, wired per project into the repo's <code>.mcp.json</code>. ${rows.length} entries.</div>`;
+  html += `<table><thead><tr><th style="width:13%">Server</th><th style="width:15%">Area</th><th style="width:30%">Install</th><th style="width:10%">Source</th><th>Description</th></tr></thead><tbody>`;
+  for (const [name, type, area, install, url, desc] of rows) {
+    const heavy = type.includes("heavy") ? ` <span class="src">(heavy)</span>` : "";
+    html += `<tr><td><span class="name">${name}</span>${heavy}</td><td><code>${area}</code></td><td><code>${install}</code></td><td>${shortSource(url)}</td><td class="desc">${desc}</td></tr>`;
+  }
+  html += `</tbody></table>`;
   return html;
 }
 
@@ -1019,10 +1136,10 @@ const hooks = [
 ];
 
 function renderHooks(filtered) {
-  let html = `<h2>Stack hooks</h2><div class="group-meta">PreToolUse guards fetched into <code>.claude/hooks/</code> and wired into <code>.claude/settings.json</code> by the installer (Claude-only; not skills). ${filtered.length} entries. The installer also writes a <code>permissions.deny</code> secret-read block into <code>settings.json</code> (<code>.env</code>, <code>.env.*</code>, <code>*.pem</code>, <code>*.pfx</code>, <code>*.p12</code>, <code>*.key</code>) - hard-blocking the Read tool and recognized Bash reads (<code>cat</code>/<code>head</code>/<code>tail</code>/<code>sed</code>) at any depth. It also writes an <code>enabledMcpjsonServers</code> allow-list naming the registered MCP servers, so the project <code>.mcp.json</code> is pre-approved without a per-launch trust prompt (never a blanket <code>enableAllProjectMcpServers</code>).</div>`;
-  html += `<table><thead><tr><th style="width:20%">Hook</th><th style="width:22%">PreToolUse matcher</th><th>Description</th></tr></thead><tbody>`;
+  let html = `<h2>Hooks</h2><div class="group-meta">PreToolUse guards fetched into <code>.claude/hooks/</code> and wired into <code>.claude/settings.json</code> by the installer (Claude-only; not skills). ${filtered.length} entries. The installer also writes a <code>permissions.deny</code> secret-read block into <code>settings.json</code> (<code>.env</code>, <code>.env.*</code>, <code>*.pem</code>, <code>*.pfx</code>, <code>*.p12</code>, <code>*.key</code>) - hard-blocking the Read tool and recognized Bash reads (<code>cat</code>/<code>head</code>/<code>tail</code>/<code>sed</code>) at any depth. It also writes an <code>enabledMcpjsonServers</code> allow-list naming the registered MCP servers, so the project <code>.mcp.json</code> is pre-approved without a per-launch trust prompt (never a blanket <code>enableAllProjectMcpServers</code>).</div>`;
+  html += `<table><thead><tr><th style="width:19%">Hook</th><th style="width:13%">Matcher</th><th style="width:22%">Install</th><th>Description</th></tr></thead><tbody>`;
   for (const [name, matcher, desc] of filtered) {
-    html += `<tr><td><span class="name">${name}</span></td><td><code>${matcher}</code></td><td class="desc">${desc}</td></tr>`;
+    html += `<tr><td><span class="name">${name}</span></td><td><code>${matcher}</code></td><td><code>fetched into .claude/hooks/</code></td><td class="desc">${desc}</td></tr>`;
   }
   html += `</tbody></table>`;
   return html;
@@ -1044,7 +1161,7 @@ const rules = [
 ];
 
 function renderRules(filtered) {
-  let html = `<h2>Stack rules</h2><div class="group-meta">Path-scoped rules fetched into <code>.claude/rules/</code> (Claude-only; not skills). ${filtered.length} entries.</div>`;
+  let html = `<h2>Rules</h2><div class="group-meta">Path-scoped rules fetched into <code>.claude/rules/</code> (Claude-only; not skills). ${filtered.length} entries.</div>`;
   html += `<table><thead><tr><th style="width:20%">Rule</th><th style="width:32%">Paths</th><th>Description</th></tr></thead><tbody>`;
   for (const [name, paths, desc] of filtered) {
     html += `<tr><td><span class="name">${name}</span></td><td><code>${paths}</code></td><td class="desc">${desc}</td></tr>`;
@@ -1052,42 +1169,6 @@ function renderRules(filtered) {
   html += `</tbody></table>`;
   return html;
 }
-
-// Override render to include the Other + Stack hooks sections.
-const _originalRender = render;
-render = function(query) {
-  _originalRender(query);
-  const otherFiltered = query
-    ? otherTools.filter(([n, t, a, i, u, d]) => (n + " " + t + " " + a + " " + u + " " + d).toLowerCase().includes(query))
-    : otherTools;
-  if (otherFiltered.length) {
-    document.getElementById("content").insertAdjacentHTML("beforeend", renderOther(otherFiltered));
-  }
-  document.getElementById("c-other").textContent = otherFiltered.length;
-  document.getElementById("c-total").textContent =
-    Number(document.getElementById("c-bi").textContent) +
-    Number(document.getElementById("c-personal").textContent) +
-    Number(document.getElementById("c-plugins").textContent) +
-    Number(document.getElementById("c-repo").textContent) +
-    otherFiltered.length;
-
-  // Hooks are infra, not skills - rendered + counted separately, never folded into c-total.
-  const hooksFiltered = query
-    ? hooks.filter(([n, m, d]) => (n + " " + m + " " + d).toLowerCase().includes(query))
-    : hooks;
-  if (hooksFiltered.length) {
-    document.getElementById("content").insertAdjacentHTML("beforeend", renderHooks(hooksFiltered));
-  }
-  document.getElementById("c-hooks").textContent = hooksFiltered.length;
-
-  // Rules are infra, not skills - rendered separately, same as hooks; no counts-block entry.
-  const rulesFiltered = query
-    ? rules.filter(([n, p, d]) => (n + " " + p + " " + d).toLowerCase().includes(query))
-    : rules;
-  if (rulesFiltered.length) {
-    document.getElementById("content").insertAdjacentHTML("beforeend", renderRules(rulesFiltered));
-  }
-};
 
 document.getElementById("q").addEventListener("input", e => {
   render(e.target.value.trim().toLowerCase());
