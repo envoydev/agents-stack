@@ -1,6 +1,6 @@
 ---
 name: csharp
-description: Personal C# conventions - style/structure (file layout, naming, member/ctor ordering, methods, types, visibility, design-pattern (GoF) awareness, modern C# 11/12/13 syntax, forbidden patterns, XML doc) and runtime behavior (DateTime/IClock, async, dispose, exceptions + Result, structured logging, secrets/config, LINQ, System.Text.Json, decoupling + DI lifetimes). Load before creating or editing any `.cs` file - writing, reviewing, or refactoring C#; do not lean on recalled conventions.
+description: Personal C# conventions (.NET 8 / C# 12 floor) - style/structure (file layout, naming, member/ctor ordering, methods, types, visibility, design-pattern (GoF) awareness, modern C# 11/12/13 syntax, forbidden patterns, XML doc) and runtime behavior (DateTime/IClock, async, dispose, exceptions + Result, structured logging, secrets/config, LINQ, System.Text.Json, decoupling + DI lifetimes). Load before creating or editing any `.cs` file - writing, reviewing, or refactoring C#; do not lean on recalled conventions. The always-load baseline; specialist areas (concurrency, performance, EF, web, messaging) route out through the `dotnet` companion router, not here.
 ---
 
 # C# Conventions
@@ -115,7 +115,7 @@ Per-case braces give each case its own scope (no accidental variable leak); blan
 ## Modern C# syntax preferences (11+/12+/13)
 - **Primary constructors** - default for constructor injection and simple parameter capture: `public sealed class OrderService(IOrderRepository repository, ILogger<OrderService> logger)`. Reference captured parameters directly (`camelCase`, no underscore); do not mirror them into `_fields` unless the value is transformed first or needs `readonly` protection on a mutation-prone type. Fall back to an explicit ctor when construction has logic (guard clauses beyond `?? throw`, validation, multiple constructors, conditional base calls).
 - **Collection expressions `[a, b, c]`, spread `[..first, last]`** - default for literal construction. Use `new List<T>()` only when items are added conditionally. Do not write `new[] { ... }` in new code.
-- **`params ReadOnlySpan<T>`** - default for new internal APIs (zero-alloc). Use `params T[]` only when the caller already owns an array.
+- **`params ReadOnlySpan<T>`** (C# 13) - default for new internal APIs (zero-alloc). Use `params T[]` only when the caller already owns an array.
 - **Raw strings `"""..."""` / `$$"""..."""`** - use for multi-line literals and for any string containing `"`. Drop `@"..."` for new code unless single-line and short.
 - **`required` members** (C# 11) - use for properties that must be set during initialization but cannot be enforced by a constructor (e.g. records or DTOs with many properties).
 - **`field` keyword in accessors** (preview in C# 13, stable in C# 14) - allowed only for trivial guards. Anything richer keeps an explicit backing field.
@@ -197,7 +197,7 @@ Typed options binding (`IOptions<T>` / `IOptionsSnapshot<T>` / `IOptionsMonitor<
 - `System.Text.Json` is the default. Newtonsoft.Json only for legacy compatibility or features missing from STJ (e.g. polymorphic serialization in older runtimes).
 - Configure `JsonSerializerOptions` once and reuse - never construct per call.
 - Naming policy: `JsonNamingPolicy.CamelCase` for external APIs unless a contract requires otherwise.
-- Use source-generated `JsonSerializerContext` for hot paths and AOT compatibility.
+- Reach for source-generated `JsonSerializerContext` on hot paths and under AOT - the source-gen mechanics and the wire-format choice (Protobuf / MessagePack vs JSON) are `dotnet-performance`.
 - Never deserialize untrusted JSON without size and depth limits.
 
 ## Decoupling and DI lifetimes

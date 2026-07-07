@@ -42,4 +42,4 @@ The database is the crown jewels and the last line of defense - by the time a re
 
 ## Where the rest lives
 
-The app-layer EF surface - change-tracking, over-posting, N+1, entity-across-the-boundary - and the HTTP access-control checks are `dotnet-security`. Crypto primitive choice (KDF, AES-GCM, constant-time compare) is `dotnet-cryptography`. Reversible, data-loss-safe migration workflow is `dotnet-migrate`.
+The app-layer EF security surface - over-posting, entity-across-the-boundary - and the HTTP access-control checks are `dotnet-security`; the ORM mechanics behind them (change-tracking, N+1) are `dotnet-data-access`. Crypto primitive choice (KDF, AES-GCM, constant-time compare) is `dotnet-cryptography`. Reversible, data-loss-safe migration workflow is `dotnet-migrate`.

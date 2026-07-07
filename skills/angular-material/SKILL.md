@@ -1,13 +1,13 @@
 ---
 name: angular-material
-description: "Personal Angular Material and CDK conventions - import only the component modules a standalone component uses (no shared barrel), theme through the M3 mat.theme API and its generated CSS custom properties rather than hand-edited .mat-* rules, reach for CDK primitives (Overlay, drag-drop, virtual scroll, FocusTrap, LiveAnnouncer) before rolling your own, and test through the official harnesses, not DOM queries on internals. Targets @angular/material 17+. Load when building UI with @angular/material or @angular/cdk. Companions: angular-conventions for the framework, typescript for the language. This is the @angular/material library specifically, not generic Material Design 3 or @material/web. Skip for PrimeNG, Spartan UI, Ionic, or apps not using Angular Material."
+description: "Personal Angular Material and CDK conventions - import only the component modules a standalone component uses (no shared barrel), theme through the M3 mat.theme API and its generated CSS custom properties rather than hand-edited .mat-* rules, reach for CDK primitives (Overlay, drag-drop, virtual scroll, FocusTrap, LiveAnnouncer) before rolling your own, and test through the official harnesses, not DOM queries on internals. Targets @angular/material 17+. Load when building UI with @angular/material or @angular/cdk. Companions: angular-conventions for the framework, typescript for the language, angular-styling for general CSS outside Material tokens. This is the @angular/material library specifically, not generic Material Design 3 or @material/web. Skip for PrimeNG, Spartan UI, Ionic, or apps not using Angular Material."
 ---
 
 # Angular Material and CDK
 
 This is the component-library layer: `@angular/material` (the Material 3 components) sitting on top of `@angular/cdk` (the unstyled behavior primitives). The framework itself - signals, change detection, standalone components, the testing setup - belongs to `angular-conventions`, and the language to `typescript`; load both alongside this. The general CSS/styling layer that holds Material or not - `ViewEncapsulation`, `:host`, the `::ng-deep` ways out, the app's own design tokens, responsive strategy - is `angular-styling`; this skill owns only the Material-specific `mat.theme` and `--mat-sys-*` token work.
 
-Floor is `@angular/material` 17+ (standalone components are the default, the M3 theming API is stable). Anything that landed later is flagged as optional.
+Floor is `@angular/material` 17+ - standalone components are the default there. The single-mixin M3 theming API this skill teaches (`mat.theme`, the `--mat-sys-*` system tokens, the `mat.<component>-overrides` mixins) landed in v19; v17-v18 used the experimental `mat.define-theme` predecessor, so upgrade to v19+ to apply the theming section as written. Later additions are flagged optional below.
 
 ## Import what you use, nothing more
 
@@ -95,13 +95,13 @@ expect(await select.getValueText()).toBe('Berlin');
 
 Harnesses (`MatSelectHarness`, `MatInputHarness`, `MatButtonHarness`, ...) are maintained by the Angular team and expose a stable, intent-level API - open the select, click the option, read the value - independent of the internal markup. Query the harness; never assert against `.mat-mdc-*` classes or the component's private DOM, because those tests shatter on the next Material release. The broader testing discipline (TestBed setup, fixtures, async handling) lives in `angular-conventions`; this is only the Material-specific harness rule.
 
-## Newer versions (v20 / v21, optional)
+## Newer versions (v20 / v21 / v22, optional)
 
 Floor is v17; reach for these where the installed version ships them.
 - **Button directive (v20):** the `mat-button` family is now the `matButton` attribute - bare `matButton` for text, and `matButton="elevated" | "filled" | "outlined" | "tonal"`. The M3 `tonal` variant sits between filled and outlined; `matIconButton` gains `filled` / `tonal` too, and cards take `appearance="filled"`. Update the old `mat-raised-button` / `mat-flat-button` / `mat-stroked-button` selectors when you touch them.
 - **Reduced motion (v20):** Material honors the prefers-reduced-motion media query on its own animations - do not hand-gate motion you got from a component.
 - **FocusTrap (v21, breaking):** the programmatic constructor / factory changed (see the CDK accessibility note); the `cdkTrapFocus` directive is unaffected, so prefer it.
-- **Angular Aria (v21, developer preview):** `@angular/aria` is a new headless, unstyled a11y primitive set (Accordion, Combobox, Listbox, Menu, Tabs, Tree) that overlaps parts of the CDK; combobox graduated to a stable un-prefixed component. Name it, but stay on the CDK / Material components until it leaves preview rather than building on a moving API.
+- **Angular Aria (v21 preview, stable in v22):** `@angular/aria` is a headless, unstyled a11y primitive set (Accordion, Combobox, Listbox, Menu, Tabs, Tree) that overlaps parts of the CDK; it shipped as developer preview in v21 and lost the preview tag in v22. Reach for it when you need unstyled a11y primitives to build your own component; keep the styled Material / CDK components as the default for standard UI.
 - **CDK overlays (v21):** the `Overlay` service now builds on the browser-native Popover API with per-side viewport margins; the service API you call is unchanged.
 
 ## Anti-patterns

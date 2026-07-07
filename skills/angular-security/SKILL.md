@@ -18,6 +18,7 @@ Angular escapes interpolated values by output context by default, so the classic
 
 - Ship a strict CSP - a nonce-based script-src with no unsafe-inline and no unsafe-eval. Angular supports a build/runtime nonce (`CSP_NONCE`) so its inline styles/scripts carry the nonce. A good CSP turns a landed XSS from code execution into a blocked console error.
 - The style-src directive needs a nonce or hash for Angular component styles; do not fall back to unsafe-inline to make it work.
+- Add Trusted Types where the browser supports it (the require-trusted-types-for 'script' CSP directive): it makes raw string-to-DOM-sink writes throw at the browser layer, so a stray `innerHTML` or a slipped `bypassSecurityTrust*` becomes a hard error instead of a payload. Angular's sanitizer is Trusted Types-aware, so idiomatic bindings keep working.
 
 ## CSRF
 

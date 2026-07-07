@@ -188,7 +188,7 @@ public static class GlyphStyleFactory
 }
 ```
 
-**.NET-native examples**: string interning, `Array.Empty<T>()`, boxed small integers in the runtime, `EqualityComparer<T>.Default`.
+**.NET-native examples**: string interning, `Array.Empty<T>()`, `Enumerable.Empty<T>()`, `EqualityComparer<T>.Default`.
 
 **Pros**: real memory wins at scale.
 **Cons**: complexity for a problem most apps do not have; shared state must be strictly immutable or it becomes a concurrency bug factory.

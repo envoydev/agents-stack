@@ -18,7 +18,7 @@ The four modes (`ViewEncapsulation` enum):
 - **`Emulated`** (default) - attribute-scoped, no native shadow tree. Styles stay in the component; globals still penetrate inward. Use this everywhere unless you have a specific reason not to.
 - **`None`** - no encapsulation at all; every selector in the file becomes global and applies app-wide. The component's styles now leak into the entire app. Reserve it for a deliberate global leaf (see ::ng-deep below) and write defensively scoped selectors when you do.
 - **`ShadowDom`** - real browser Shadow DOM. True bidirectional-ish isolation, but it changes event retargeting and slotting, breaks `:host-context()`, and global app styles no longer reach inside - so a global theme stops at the boundary. Only choose it for a genuinely self-contained widget (a distributable web component), never as a default.
-- **`ExperimentalIsolatedShadowDom`** (experimental, v20+) - ShadowDom plus a hard block on external styles leaking in. Same trade-offs, stricter. Treat as experimental; flag the version and confirm on angular.dev before using.
+- **`ExperimentalIsolatedShadowDom`** (experimental, added v21) - ShadowDom plus a hard block on external styles leaking in. Same trade-offs, stricter. Treat as experimental; flag the version and confirm on angular.dev before using.
 
 Angular itself notes that even in `Emulated` and `ShadowDom` it does not 100% guarantee a component's styles win over outside styles - so do not lean on encapsulation as a specificity weapon.
 
@@ -58,7 +58,7 @@ Beyond Material's `--mat-sys-*` tokens (owned by `angular-material`), define the
 
 The house default is **scoped component SCSS plus the CSS-custom-property token system above** - it keeps the look beside the component, leans on Angular's encapsulation, and avoids markup cluttered with dozens of classes. Adopt utility-first (Tailwind) only when a team explicitly opts in for a design-system-driven app where consistency-by-constraint outweighs the template noise; do not mix both ad hoc.
 
-If the project does use Tailwind, install it the Angular way - `ng add tailwindcss` (Angular ships an official integration) - and wire it through PostCSS with a single `@import "tailwindcss";` in the global stylesheet. Note Tailwind v4 is CSS-first and is not meant to be processed through Sass; do not pipe Tailwind directives through SCSS. Utilities are global by nature, so they coexist with emulated component styles but bypass scoping - treat them as the global layer, and keep genuinely component-local one-offs in the scoped sheet.
+If the project does use Tailwind, install it the Angular way - `ng add tailwindcss` (Angular ships an official integration) - which wires PostCSS and adds a single `@import "tailwindcss";` to `styles.css`, or `@use "tailwindcss";` if the global entry is `styles.scss` (the guide sanctions both). Tailwind v4 is CSS-first, so keep that one import at the global entry rather than threading its utilities through per-component Sass. Utilities are global by nature, so they coexist with emulated component styles but bypass scoping - treat them as the global layer, and keep genuinely component-local one-offs in the scoped sheet.
 
 ## Accessibility-affecting styling
 

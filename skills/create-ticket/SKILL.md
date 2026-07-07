@@ -39,7 +39,7 @@ Use the template in the type's reference file. Write in clear, professional Engl
 ## Rules (all types)
 
 - **Language**: Always output in English, regardless of input language.
-- **Tracker dialect**: Output Markdown by default - it pastes natively into Azure DevOps, GitHub, GitLab, and YouTrack, and Jira Cloud converts it on paste. If the user names a specific tracker, adapt to its conventions (e.g. drop the `[Area]` title prefix when the tracker has a Component field that carries it).
+- **Tracker dialect**: Output Markdown by default - it pastes natively into GitHub, GitLab, and YouTrack, Jira Cloud converts it on paste, and Azure DevOps renders it once the large-text field is switched to Markdown. If the user names a specific tracker, adapt to its conventions (e.g. drop the `[Area]` title prefix when the tracker has a Component field that carries it).
 - **Filing**: if an issue-tracker MCP is connected (e.g. Atlassian), offer to create the ticket directly after presenting it - title and description map 1:1. Never file without explicit confirmation.
 - **Tone**: Neutral and factual. No emotional language, no blame. (For tasks, also technical and specific - no vague goals like "improve performance" without numbers.)
 - **Assumptions**: If the description is vague, make reasonable assumptions and note them briefly - in the Problem section for bugs, the Notes section otherwise.
