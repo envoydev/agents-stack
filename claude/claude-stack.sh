@@ -435,7 +435,7 @@ AGENTS=(
   "dotnet-test-failure-resolver.md"  # implement phase (sonnet/high): dotnet test -> red->green repair loop, anti-reward-hacking guard, capped
   "ng-build-error-resolver.md"       # implement phase (sonnet/high): ng build -> minimal fix loop (serena/LSP), capped
   "angular-test-resolver.md"         # implement phase (sonnet/high): ng test/Jest -> red->green repair loop, anti-reward-hacking, capped
-  "architecture-analyzer.md"         # analysis phase (opus/xhigh): owns docs/ARCHITECTURE.md + docs/architecture/ (durable project map) + change-fit verdict; read-only over code
+  "architecture-analyzer.md"         # analysis phase (opus/xhigh): owns docs/architecture/ARCHITECTURE.md + docs/architecture/references/ (durable project map) + change-fit verdict; read-only over code
   "task-analyzer.md"                 # analysis phase (opus/high): read-only deep task analysis - impact, coupling, open questions
   "ci-failure-diagnoser.md"          # analysis phase (opus/high): read-only CI red-run diagnosis via gh - categorize, local repro, route
   "issue-diagnoser.md"               # analysis phase (opus/xhigh): read-only bug diagnosis from logs/errors/screenshots - root cause + route, no fix
@@ -626,11 +626,16 @@ enabled = data.setdefault("enabledMcpjsonServers", [])
 for name in mcp_names:
     if name not in enabled:
         enabled.append(name); changed = True
+# env: project-default auto-compact trigger (compact at ~40% of the context window). Set only when
+# absent, so a project that pins its own value - or holds CONTEXT7_API_KEY here - is never clobbered.
+env = data.setdefault("env", {})
+if "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE" not in env:
+    env["CLAUDE_AUTOCOMPACT_PCT_OVERRIDE"] = "40"; changed = True
 if changed:
     json.dump(data, open(path, "w"), indent=2); open(path, "a").write("\n")
-    print("  settings.json: hooks + secret deny-list + mcp allow-list ensured")
+    print("  settings.json: hooks + secret deny-list + mcp allow-list + compact default ensured")
 else:
-    print("  settings.json: hooks + secret deny-list + mcp allow-list already present - unchanged")
+    print("  settings.json: hooks + secret deny-list + mcp allow-list + compact default already present - unchanged")
 PY
 )
   local -a mcp_names; mcp_names=("${MCPS[@]%%|*}")   # server name = the token before the first '|'
@@ -754,4 +759,5 @@ Add these stack-generated, machine-local artifacts to the project's .gitignore (
   .playwright      playwright MCP user-data-dir + screenshots
   .mcp.json        generated MCP server config (machine-local)
   skill-lock.json  skills CLI lock file
+  docs/superpowers superpowers / brainstorming scratch specs (docs/ itself - the committed architecture map - stays tracked)
 GITIGNORE

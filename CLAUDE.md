@@ -115,8 +115,8 @@ because the platforms differ:
   *structure* - which repos are related and where they live - lives in each repo's `## Related
   projects` CLAUDE.md section, not in memory.
 - **Two stores, split by durability** - the second hard rule (peer of the read-whole-file rule
-  below). The committed architecture docs - a lean `docs/ARCHITECTURE.md` core map plus the deep-dive
-  files under `docs/architecture/` it links to - are the DURABLE truth: every seat READS them at start
+  below). The committed architecture docs - a lean `docs/architecture/ARCHITECTURE.md` core map plus the deep-dive
+  files under `docs/architecture/references/` it links to - are the DURABLE truth: every seat READS them at start
   to orient (the structure, patterns, boundaries and packages already in place) instead of re-deriving
   the project, and `architecture-analyzer` owns them and updates them after each change lands. serena's
   per-project memory (`write_memory` / `read_memory` / `list_memories`, named

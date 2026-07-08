@@ -468,7 +468,7 @@ $Agents = @(
   'dotnet-test-failure-resolver.md'  # implement phase (sonnet/high): dotnet test -> red->green repair loop, anti-reward-hacking, capped
   'ng-build-error-resolver.md'       # implement phase (sonnet/high): ng build -> minimal fix loop (serena/LSP), capped
   'angular-test-resolver.md'         # implement phase (sonnet/high): ng test/Jest -> red->green repair loop, anti-reward-hacking, capped
-  'architecture-analyzer.md'         # analysis phase (opus/xhigh): owns docs/ARCHITECTURE.md + docs/architecture/ (durable project map) + change-fit verdict; read-only over code
+  'architecture-analyzer.md'         # analysis phase (opus/xhigh): owns docs/architecture/ARCHITECTURE.md + docs/architecture/references/ (durable project map) + change-fit verdict; read-only over code
   'task-analyzer.md'                 # analysis phase (opus/high): read-only deep task analysis - impact, coupling, open questions
   'ci-failure-diagnoser.md'          # analysis phase (opus/high): read-only CI red-run diagnosis via gh - categorize, local repro, route
   'issue-diagnoser.md'               # analysis phase (opus/xhigh): read-only bug diagnosis from logs/errors/screenshots - root cause + route, no fix
@@ -692,10 +692,17 @@ function Set-HookSettings {
     if ($enabled -notcontains $mcpName) { $enabled += $mcpName; $changed = $true }
   }
   $data.enabledMcpjsonServers = $enabled
+  # env: project-default auto-compact trigger (compact at ~40% of the context window). Set only when
+  # absent, so a project that pins its own value - or holds CONTEXT7_API_KEY here - is never clobbered.
+  if (-not $data.PSObject.Properties['env']) { $data | Add-Member -NotePropertyName env -NotePropertyValue ([pscustomobject]@{}) }
+  if (-not $data.env.PSObject.Properties['CLAUDE_AUTOCOMPACT_PCT_OVERRIDE']) {
+    $data.env | Add-Member -NotePropertyName CLAUDE_AUTOCOMPACT_PCT_OVERRIDE -NotePropertyValue '40'
+    $changed = $true
+  }
   if ($changed) {
     try {
       Write-JsonFile $data $settings
-      Log '  settings.json: hooks + secret deny-list + mcp allow-list ensured'
+      Log '  settings.json: hooks + secret deny-list + mcp allow-list + compact default ensured'
     }
     catch {
       # Mirror the .sh twin's `|| log "settings.json wiring failed"`: a single unwritable file must
@@ -707,7 +714,7 @@ function Set-HookSettings {
     }
   }
   else {
-    Log '  settings.json: hooks + secret deny-list + mcp allow-list already present - unchanged'
+    Log '  settings.json: hooks + secret deny-list + mcp allow-list + compact default already present - unchanged'
   }
 }
 
@@ -857,3 +864,4 @@ Write-Host '  .slopwatch       dotnet-slopwatch output'
 Write-Host '  .playwright      playwright MCP user-data-dir + screenshots'
 Write-Host '  .mcp.json        generated MCP server config (machine-local)'
 Write-Host '  skill-lock.json  skills CLI lock file'
+Write-Host '  docs/superpowers superpowers / brainstorming scratch specs (docs/ itself - the committed architecture map - stays tracked)'

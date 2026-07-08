@@ -44,3 +44,7 @@ examples/*-test-prompt.md
 examples/RUN-*PHASES*.md
 examples/**/RETEST-REPORT.md
 examples/**/VERIFY-REPORT.md
+
+# docs: the committed architecture map (docs/architecture/) + repo docs stay tracked; only the
+# superpowers / brainstorming scratch specs are local-only.
+**/docs/superpowers/
