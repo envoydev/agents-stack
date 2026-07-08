@@ -1,0 +1,14 @@
+<Project>
+
+  <PropertyGroup Label="Language baseline">
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <PropertyGroup Label="Target frameworks">
+    <NetLibVersion>net10.0</NetLibVersion>
+    <NetTestVersion>net10.0</NetTestVersion>
+  </PropertyGroup>
+
+</Project>

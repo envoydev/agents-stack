@@ -1,3 +1,5 @@
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { Priority, TaskStatus } from '../models/task.model';
 import { TaskStore } from './task-store.service';
@@ -7,7 +9,11 @@ describe('TaskStore', () => {
 
   beforeEach(() => {
     if (typeof localStorage !== 'undefined') localStorage.clear();
-    TestBed.configureTestingModule({});
+    // The store persists through TaskApiService (HttpClient); the testing backend captures those calls.
+    // These tests assert the synchronous optimistic state, so the outbound requests are left unflushed.
+    TestBed.configureTestingModule({
+      providers: [provideHttpClient(), provideHttpClientTesting()],
+    });
     store = TestBed.inject(TaskStore);
   });
 

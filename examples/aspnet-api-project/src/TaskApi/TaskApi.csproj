@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>$(NetLibVersion)</TargetFramework>
+    <!-- Emit the XML doc file so endpoint summaries flow into the OpenAPI document. -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!-- Doc comments are the convention on the public wire contract; do not fail the host/generated members that lack them. -->
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- The test project unit-tests internal handlers and substitutes the internal ITaskStore. -->
+    <InternalsVisibleTo Include="TaskApi.Tests" />
+    <!-- NSubstitute/Castle DynamicProxy generates mocks of the internal ITaskStore in this dynamic assembly. -->
+    <InternalsVisibleTo Include="DynamicProxyGenAssembly2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="FluentValidation" />
+    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" />
+    <PackageReference Include="Scalar.AspNetCore" />
+  </ItemGroup>
+
+</Project>

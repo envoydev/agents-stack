@@ -1,47 +1,42 @@
-import { Injectable } from '@angular/core';
-import { Observable, of } from 'rxjs';
-import { delay } from 'rxjs/operators';
-import { Priority, Task, TaskStatus } from '../models/task.model';
+import { HttpClient } from '@angular/common/http';
+import { inject, Injectable } from '@angular/core';
+import { Observable } from 'rxjs';
+import { environment } from '../../environments/environment';
+import { NewTask, Task, TaskStats } from '../models/task.model';
 
 /**
- * Stand-in for a real HTTP backend. Returns seed data as an Observable so the
- * store exercises the async-load path exactly as it would against a REST API.
+ * The HTTP client for the Task API backend (examples/aspnet-api-project). This is the seam the store
+ * loads and persists through - the same `load()` contract the in-memory stand-in used to expose, now
+ * backed by real REST calls. Kept as the single injection point, so a semantic caller lookup on
+ * `TaskApiService` resolves the one binding the store holds.
  */
 @Injectable({ providedIn: 'root' })
 export class TaskApiService {
-  private readonly seed: Task[] = [
-    this.make('Set up CI pipeline', 'GitHub Actions build + test', TaskStatus.Active, Priority.High, '2026-06-20', ['devops']),
-    this.make('Write onboarding docs', 'README + first-run guide', TaskStatus.Todo, Priority.Medium, '2026-08-01', ['docs']),
-    this.make('Fix flaky login test', 'Race in the auth spec', TaskStatus.Blocked, Priority.Critical, '2026-06-10', ['bug', 'auth']),
-    this.make('Design dashboard', 'Stats + charts', TaskStatus.Done, Priority.Low, null, ['ui']),
-    this.make('Upgrade Angular', 'Bump to latest, check breaking changes', TaskStatus.Todo, Priority.High, '2026-09-15', ['chore']),
-    this.make('Add dark mode', 'Theme tokens + toggle', TaskStatus.Active, Priority.Low, null, ['ui']),
-  ];
+  private readonly http = inject(HttpClient);
+  private readonly base = `${environment.apiUrl}/tasks`;
 
-  /** Emits the seed set once, after a short delay, mimicking a network round-trip. */
+  /** GET /api/tasks - the full task list. */
   load(): Observable<Task[]> {
-    return of(this.seed.map((t) => ({ ...t }))).pipe(delay(0));
+    return this.http.get<Task[]>(this.base);
   }
 
-  private make(
-    title: string,
-    description: string,
-    status: TaskStatus,
-    priority: Priority,
-    dueDate: string | null,
-    tags: string[],
-  ): Task {
-    const stamp = '2026-06-01T00:00:00.000Z';
-    return {
-      id: `seed-${title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
-      title,
-      description,
-      status,
-      priority,
-      dueDate,
-      createdAt: stamp,
-      updatedAt: stamp,
-      tags,
-    };
+  /** POST /api/tasks - create a task; the server assigns the id and timestamps. */
+  create(task: NewTask): Observable<Task> {
+    return this.http.post<Task>(this.base, task);
+  }
+
+  /** PUT /api/tasks/:id - replace a task's editable fields; returns the server copy. */
+  update(id: string, task: Task): Observable<Task> {
+    return this.http.put<Task>(`${this.base}/${id}`, task);
+  }
+
+  /** DELETE /api/tasks/:id. */
+  remove(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.base}/${id}`);
+  }
+
+  /** GET /api/tasks/stats - the dashboard aggregate. */
+  stats(): Observable<TaskStats> {
+    return this.http.get<TaskStats>(`${this.base}/stats`);
   }
 }

@@ -89,18 +89,26 @@ export class TaskStore {
 
   // ---- Lifecycle ----------------------------------------------------------
 
-  /** Loads from localStorage if present, otherwise from the API seed. */
+  /**
+   * Renders the localStorage cache instantly (if any), then refreshes from the API - the server is the
+   * source of truth. localStorage stays a write-through cache via the persist effect.
+   */
   load(): void {
     const cached = this.readStorage();
     if (cached && cached.length > 0) {
       this._tasks.set(cached);
-      return;
     }
     this._loading.set(true);
-    this.api.load().subscribe((tasks) => {
-      this._tasks.set(tasks);
-      this._loading.set(false);
-      this.notify.push(`Loaded ${tasks.length} tasks`, 'success');
+    this.api.load().subscribe({
+      next: (tasks) => {
+        this._tasks.set(tasks);
+        this._loading.set(false);
+        this.notify.push(`Loaded ${tasks.length} tasks`, 'success');
+      },
+      error: () => {
+        this._loading.set(false);
+        this.notify.push('Could not reach the server', 'error');
+      },
     });
   }
 
@@ -108,7 +116,7 @@ export class TaskStore {
 
   add(input: NewTask): Task {
     const now = new Date().toISOString();
-    const task: Task = {
+    const optimistic: Task = {
       id: this.nextId(),
       title: input.title.trim(),
       description: input.description?.trim() ?? '',
@@ -119,21 +127,53 @@ export class TaskStore {
       updatedAt: now,
       tags: input.tags ?? [],
     };
-    this.mutate((list) => [...list, task]);
-    this.notify.push(`Added "${task.title}"`, 'success');
-    return task;
+    this.mutate((list) => [...list, optimistic]);
+    this.notify.push(`Added "${optimistic.title}"`, 'success');
+    // Persist to the server, then swap the optimistic row for the server's authoritative copy.
+    this.api.create(input).subscribe({
+      next: (saved) =>
+        this._tasks.update((list) => list.map((t) => (t.id === optimistic.id ? saved : t))),
+      error: () => {
+        this._tasks.update((list) => list.filter((t) => t.id !== optimistic.id));
+        this.notify.push(`Could not save "${optimistic.title}"`, 'error');
+      },
+    });
+    return optimistic;
   }
 
   update(id: string, patch: Partial<Omit<Task, 'id' | 'createdAt'>>): void {
+    const previous = this._tasks();
+    let next: Task | undefined;
     this.mutate((list) =>
-      list.map((t) => (t.id === id ? { ...t, ...patch, updatedAt: new Date().toISOString() } : t)),
+      list.map((t) => {
+        if (t.id !== id) return t;
+        next = { ...t, ...patch, updatedAt: new Date().toISOString() };
+        return next;
+      }),
     );
+    if (!next) return;
+    // Persist the full replacement; reconcile with the server echo, roll back on failure.
+    this.api.update(id, next).subscribe({
+      next: (saved) => this._tasks.update((list) => list.map((t) => (t.id === id ? saved : t))),
+      error: () => {
+        this._tasks.set(previous);
+        this.notify.push('Update failed - reverted', 'error');
+      },
+    });
   }
 
   remove(id: string): void {
     const victim = this.byId(id);
+    const previous = this._tasks();
     this.mutate((list) => list.filter((t) => t.id !== id));
     if (victim) this.notify.push(`Removed "${victim.title}"`, 'info');
+    // Delete on the server; restore the pre-delete snapshot if the call fails.
+    this.api.remove(id).subscribe({
+      error: () => {
+        this._tasks.set(previous);
+        this.notify.push(`Could not remove "${victim?.title}"`, 'error');
+      },
+    });
   }
 
   toggleDone(id: string): void {
