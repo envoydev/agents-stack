@@ -58,10 +58,29 @@ the source repo:
    = 21 passing), commit, and `git tag baseline`.
 3. Install the stack into each: run `<STACK>/claude/claude-stack.sh install` from inside the project
    (skills via `npx skills add`, MCPs into `.mcp.json`, hooks/rules/agents fetched, plugins installed).
-   Enable the `angular-cli` MCP for `angular-project`; comment it out for `aspnet-api-project`.
-4. **Record the installed inventory per project** (MEASURED): count of agents in `.claude/agents/`,
+   Enable the `angular-cli` MCP for `angular-project` and comment it out for `aspnet-api-project`;
+   comment out the `memory` MCP in **both** - it is not needed here (the static cross-project map lives
+   in `docs/RELATED-PROJECTS.md`, step 4, and serena's per-repo local memory carries the per-feature
+   handoff).
+4. **Create each project's `CLAUDE.md` from the template.** The installer lays down skills / MCPs /
+   hooks / rules / agents / plugins but does NOT write the project instructions - fill those in from
+   `<STACK>/claude/CLAUDE.template.md`, the stack-neutral base with `<placeholders>`. Copy it to the
+   project's `CLAUDE.md` and resolve every placeholder for that project's stack:
+   - `aspnet-api-project` = .NET 10, Minimal API + vertical slice, EF Core + SQLite (the `aspnet` + `data`
+     domains); point the convention and secret/config-glob placeholders at the real stack.
+   - `angular-project` = Angular 18 standalone task playground (the `angular` domain), consuming the API.
+   Also give each project a committed `docs/RELATED-PROJECTS.md` naming the sibling edge (the API
+   `provides-to` the SPA; the SPA `consumes` the API) with its location, `read_first` docs, and the
+   `/api` seam as the interface - and keep the one-line pointer to it in the CLAUDE.md `## Related
+   projects` section (the pointer stays in `CLAUDE.md`, always loaded, so the agent knows the sibling
+   exists; the file is tracked, never gitignored). This static cross-project map is what replaces the
+   `memory` MCP here. Without a filled `CLAUDE.md` the agents run with no project instructions and the
+   run is not representative of the stack.
+5. **Record the installed inventory per project** (MEASURED): count of agents in `.claude/agents/`,
    skills in `.claude/skills/`, rules in `.claude/rules/`, hooks wired in `.claude/settings.json`, MCP
-   servers in `.mcp.json`, plugins enabled. Confirm serena/context7/memory connect.
+   servers in `.mcp.json`, plugins enabled, and confirm `CLAUDE.md` + `docs/RELATED-PROJECTS.md` exist
+   and are filled from the template. Confirm serena + context7 connect (the `memory` MCP is intentionally
+   off here).
 
 You will run the benchmark from a session whose cwd is the relevant project (or, for cross-project
 cases, launched so both project roots are reachable and both dev servers can run).
@@ -108,7 +127,7 @@ Fill every field from observation; mark any estimate `ASSESSED`.
   "actual_mode": "fanout_domain_trio",     // MEASURED from what actually ran
   "agents": { "aspnet-solution-designer": 1, "aspnet-implementer": 2, "aspnet-verifier": 1 },
   "skills_invoked": ["csharp", "dotnet-web-backend", "dotnet-testing"],
-  "mcps_used": { "serena": 14, "context7": 2, "memory": 3 },
+  "mcps_used": { "serena": 14, "context7": 2 },
   "hooks_fired": ["guard-read-whole-file"],
   "rules_attached": ["aspnet-conventions"],
   "tokens": { "subagents_total": 41000, "by_agent": { "aspnet-implementer": 21000 }, "main_delta": 6000, "source": "subagent_tokens + /cost delta" },
