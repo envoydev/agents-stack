@@ -7,6 +7,8 @@ description: "Personal .NET web / HTTP service conventions - the architecture-ne
 
 This is the web hub - the first skill to load for any HTTP service, the place the cross-cutting concerns every ASP.NET Core app shares are decided once. It is deliberately architecture-neutral: it tells you how the HTTP client, validation, resilience, observability, and caching layers behave, and it sends you to a focused companion for endpoint mechanics, errors, OpenAPI, and auth. It mandates no particular architecture - that is a separate, deliberate choice covered below. Floor is .NET 8 / C# 12; anything that needs a later runtime is flagged.
 
+On .NET Framework 4.8 the classic pipeline (MVC 5 / Web API 2 / Web Forms) differs materially - the single-threaded request context, no `IHttpClientFactory`, the OWIN pipeline - see `references/net-framework-48.md`.
+
 ## Architecture - pick exactly one, here
 
 This is the single home of the architecture rule, and it has one job: stop two patterns living side by side in one repo.

@@ -9,6 +9,10 @@ WPF is a retained-mode XAML UI on the data-binding engine. The whole discipline 
 view concerns (visuals, the visual tree, the dispatcher) on one side of a line and application state
 on the other, so the state side stays a plain testable C# object. Floor is .NET 8 / C# 12.
 
+On .NET Framework 4.8 these conventions hold, but the CommunityToolkit.Mvvm source generators, Generic
+Host composition, and app-level exception wiring carry net48-specific constraints - see
+`references/net-framework-48.md`.
+
 ## MVVM is the architecture, not a suggestion
 
 Three layers, with a deliberately one-directional dependency:
@@ -125,6 +129,18 @@ These solve different problems; do not confuse them.
 - Any side effect (subscribing an event, mutating the visual tree) lives in the property-changed
   callback and is undone symmetrically when the value clears or the element unloads. An attached
   property that subscribes without unsubscribing is a leak.
+
+## Event subscriptions and weak events
+
+- Subscribe and unsubscribe symmetrically - a handler wired in `Loaded` or `OnAttached` is removed in
+  `Unloaded` or `OnDetaching`. The leak appears when the event source outlives the subscriber: a
+  ViewModel or control handling a static, application-lifetime, or singleton-service event stays rooted
+  by that subscription and never collects.
+- Break the strong reference in that case - subscribe through `WeakEventManager<TSource, TEventArgs>`
+  (or, for ViewModel-to-ViewModel notifications, the toolkit's `WeakReferenceMessenger`) so the handler
+  does not keep the subscriber alive - or guarantee the symmetric unsubscribe on teardown. Prefer
+  explicit unsubscribe where the lifetimes are clear; reach for the weak-event pattern when the source's
+  lifetime is not yours to control.
 
 ## Behaviors over code-behind wiring
 

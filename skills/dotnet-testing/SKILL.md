@@ -9,7 +9,7 @@ metadata:
 
 This skill captures the **approach**, not a single library. The principles below apply regardless of which test runner, substitute library, or assertion library a project picks. Library routing is in §Library choices.
 
-**Floor: .NET 8 / C# 12.** The time seam is `TimeProvider` advanced via `FakeTimeProvider`; only fall back to a hand-rolled `IClock` on a pre-.NET-8 target.
+**Floor: .NET 8 / C# 12.** The time seam is `TimeProvider` advanced via `FakeTimeProvider`; only fall back to a hand-rolled `IClock` on a pre-.NET-8 target. Testing classic ASP.NET on .NET Framework 4.8 (in-memory OWIN `TestServer`, `HttpContextBase`) is `references/net-framework-48.md`.
 
 ## Test strategy by responsibility (architecture-neutral)
 
@@ -63,7 +63,7 @@ Do not mix runners in one project. Migrate, don't blend.
 
 | Library | API style | When to pick |
 |---|---|---|
-| **NSubstitute** | Substitutes (`Substitute.For<T>()`); record/replay-free, terse syntax (`x.M(Arg.Any<int>()).Returns(...)`); strict by default for `Returns`/`Received`. | Default for new projects. Fluent, readable in AAA. |
+| **NSubstitute** | Substitutes (`Substitute.For<T>()`); record/replay-free, terse syntax (`x.M(Arg.Any<int>()).Returns(...)`); loose by default - unconfigured members return defaults; `Received()` throws only when an expected call was not made. | Default for new projects. Fluent, readable in AAA. |
 | **Moq** | Mocks (`new Mock<T>()`); `.Setup(...).Returns(...)`, `.Verify(...)`. Loose by default; `MockBehavior.Strict` opts into strict. | When project already uses Moq, or when tooling/team familiarity argues for it. |
 | **FakeItEasy** | Fakes (`A.Fake<T>()`); `A.CallTo(() => fake.M(...)).Returns(...)`, `A.CallTo(...).MustHaveHappened()`. | Project preference; mature alternative with natural English DSL. |
 
@@ -94,6 +94,7 @@ Common rules regardless of library:
 - One test project per production project, mirroring namespace and folder structure.
 - Folder layout inside test project mirrors the SUT's folder layout.
 - Shared fixtures live in `*.TestSupport` / `*.Testing` projects when reused across multiple test projects; otherwise inline.
+- Run the suite at minimal verbosity so the captured output stays lean: `dotnet test -v minimal` (or `--logger "console;verbosity=minimal"`), and read a failure by windowing to the first error / failed assertion, not the whole log - test output is context every seat that runs the gate pays for.
 
 ## Cancellation, async, time
 
@@ -135,7 +136,7 @@ Coverage proves a line *ran*; it does not prove a test would *fail* if that line
 
 - **Scope it** - run on critical / high-risk projects, never blindly across the whole solution. It is expensive and amplifies flaky or slow suites, so keep it off the fast PR path and stabilize the suite first.
 - Install as a local tool (`dotnet new tool-manifest`; `dotnet tool install dotnet-stryker`) for local-and-CI parity, then `dotnet stryker` on the target project.
-- Read the mutation score as a *test-quality* signal interpreted with judgement, not a vanity metric. It complements line/branch coverage (§Coverage) and the risk hotspots in `dotnet-code-quality` (`references/crap-analysis.md`) - all three answer different questions.
+- Read the mutation score as a *test-quality* signal interpreted with judgment, not a vanity metric. It complements line/branch coverage (§Coverage) and the risk hotspots in `dotnet-code-quality` (`references/crap-analysis.md`) - all three answer different questions.
 
 ## Routing
 

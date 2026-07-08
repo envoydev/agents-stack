@@ -12,6 +12,7 @@ Owns the .NET side of talking to a database, the part that is the same whichever
 
 - EF Core -> `references/efcore.md`
 - NHibernate -> `references/nhibernate.md`
+- .NET Framework 4.8 (EF Core 3.1 vs EF6, DbContext-per-request) -> `references/net-framework-48.md`
 
 Out of scope, by design: raw SQL / index / planner tuning -> `postgres` or `sqlite`; the migration safety playbook (expand-contract, backfill, rollback, never edit an applied migration) -> `dotnet-migrate`; async / `CancellationToken` / hand-mapping -> `csharp`; real-DB integration tests -> `dotnet-testing`.
 

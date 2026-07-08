@@ -7,7 +7,7 @@ description: "Personal ASP.NET Core auth conventions covering both halves - auth
 
 Two questions, never one. **Authentication** answers who the caller is and hands you a `ClaimsPrincipal`. **Authorization** answers what that principal may do. The framework keeps them as separate middlewares - `UseAuthentication()` then `UseAuthorization()`, in that order - and so should your thinking. A 401 means the framework could not establish identity; a 403 means it knows who you are and the answer is still no.
 
-Baseline is .NET 8 / C# 12.
+Baseline is .NET 8 / C# 12. On .NET Framework 4.8 the OWIN / Katana + ASP.NET Identity 2.x auth stack is in `references/net-framework-48.md`.
 
 ## Pick the scheme from the surface
 

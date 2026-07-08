@@ -87,8 +87,9 @@ because the platforms differ:
   applicable), `chrome-devtools` (browser/extension debug) and `appium-mcp` (native mobile E2E -
   Capacitor/Ionic, needs Xcode/Android SDK + Java). The last two are heavy and fail at launch
   without their native deps - comment them out where not applicable. The `memory` MCP (one shared
-  SQLite DB under `$HOME`) is the cross-project store - the per-project handoff and orientation run
-  on serena's local memory, so comment `memory` out in a standalone project.
+  SQLite DB under `$HOME`) is the cross-project store - the per-project transient handoff runs
+  on serena's local memory (durable orientation is the committed architecture docs), so comment
+  `memory` out in a standalone project.
 - **serena self-activates via `--project-from-cwd`**, not a hook: it finds `.serena/project.yml`
   in its cwd (the project root) and binds on process start, zero model involvement. Two approaches
   that look right but FAIL - do not retry: (1) an `mcp_tool` `SessionStart` hook calling
@@ -107,17 +108,23 @@ because the platforms differ:
 - **serena holds local memory; the `memory` MCP is the cross-project store.** Three stores,
   don't conflate: the file-based auto-memory (`MEMORY.md` + `memory/*.md`, harness-injected);
   **serena's per-project memory** (`.serena/memories/`, name-addressed, local to the repo and
-  gitignored - the store for the subagent handoff and per-project orientation); and the `memory`
+  gitignored - the store for the transient per-feature subagent handoff, not durable orientation); and the `memory`
   MCP (one SQLite DB under `$HOME`, shared across projects *and* accounts - active in the baseline
   for cross-project recall; a space arg names its DB `memory_<space>.db` and, on Claude, selects
   the `~/.claude-<space>` account). Comment `memory` out in a standalone project. Cross-project
   *structure* - which repos are related and where they live - lives in each repo's `## Related
   projects` CLAUDE.md section, not in memory.
-- **Agents use serena for all local memory** - the second hard rule (peer of the read-whole-file
-  rule below): the subagent handoff and any per-project recall `write_memory` / `read_memory` /
-  `list_memories` in serena, named `<feature>__<contract_version>__<seat>`, never the shared
-  `memory` MCP. serena memory is local and disposable by design; a reference that must survive a
-  fresh clone belongs in a committed file, not memory.
+- **Two stores, split by durability** - the second hard rule (peer of the read-whole-file rule
+  below). The committed architecture docs - a lean `docs/ARCHITECTURE.md` core map plus the deep-dive
+  files under `docs/architecture/` it links to - are the DURABLE truth: every seat READS them at start
+  to orient (the structure, patterns, boundaries and packages already in place) instead of re-deriving
+  the project, and `architecture-analyzer` owns them and updates them after each change lands. serena's
+  per-project memory (`write_memory` / `read_memory` / `list_memories`, named
+  `<feature>__<contract_version>__<seat>`, never the shared `memory` MCP) is the EPHEMERAL inter-agent
+  comms bus - the transient per-feature handoff between seats: a diagnoser's task cards to the
+  implementer, the implementer's build summary to the verifier, a short 'what to do' context note -
+  info that is not durable architecture. serena memory is local and disposable; a reference that must
+  survive a fresh clone belongs in the committed docs, not memory.
 - **Never `Read` a whole file to find a symbol** - the hard rule shipped to both stacks: locate via
   serena (`find_symbol` / `find_referencing_symbols`) or the LSP; `Read` is for code already located.
 

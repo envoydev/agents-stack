@@ -9,6 +9,8 @@ Personal C# style, structure, and runtime conventions in one place: how code is 
 
 **Floor: .NET 8 / C# 12.** Every rule below assumes at least this target - `TimeProvider`, `UnsafeAccessorAttribute`, the static argument throw-helpers, and the C# 12 collection expressions / primary constructors are all in. Where a convention names a newer feature (C# 13 `System.Threading.Lock`, the `field` keyword), it flags the version inline; treat those as opt-in once the project's target moves up.
 
+On a .NET Framework 4.8 (net48) codebase the C# 7.3 language ceiling, the polyfill packages, and the SynchronizationContext async caveat differ from this floor - those deltas are in `references/net-framework-48.md`.
+
 Specialized concerns route through the `dotnet` router - one table mapping each area (concurrency, performance / memory layout, design patterns, serialization, DI registration, config binding, DDD, architecture, packaging) to its focused skill. Load the skill the router names; this file stays the style and runtime baseline only.
 
 ---
@@ -137,6 +139,21 @@ When a convention here drives a package change - adding, removing, or swapping o
 
 ## Documentation
 - Every public API surface has XML doc comments covering parameters, return values, thrown exceptions, and remarks for non-obvious behavior.
+- Write them in the expanded multi-line form: open and close each tag on its own line with the text on separate `///` lines, in full descriptive sentences - what the member does plus the context a caller needs - never a terse fragment collapsed onto a single `/// <summary>...</summary>` line. Give `<returns>` and every `<param>` the same expanded treatment, not only `<summary>`.
+
+```csharp
+// Good - expanded block, full descriptive sentences, <returns> documented:
+/// <summary>
+/// Retrieves the feature flags that govern checkout from the current database session.
+/// These flags decide which payment providers are enabled for the request.
+/// </summary>
+/// <returns>
+/// A read-only list of FeatureFlag entries keyed by name for the checkout module.
+/// </returns>
+
+// Avoid - collapsed onto one line, terse, no <returns>:
+/// <summary>Loads the checkout feature flags.</summary>
+```
 
 ---
 

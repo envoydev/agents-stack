@@ -80,4 +80,8 @@ token_reduction_policy:
 
 Ponytail cuts the work, Caveman cuts the words; the third lever cuts the context a seat loads - load only the certain-use skill or MCP, navigate with serena, reach for context7 before a library API, and let a verifier orient from the implementer's memory note plus the diff instead of re-reading the whole module. The per-role wiring and the mechanisms live in `capability-reuse.md`, which also holds the safety floor: the verifier still runs the gates independently and never trusts the note in place of running the gate.
 
+## The fourth lever - quiet the command output
+
+The tool's own output is context you pay for, so run every gate at minimal verbosity rather than letting it stream a wall of text: `dotnet test -v minimal` (or `--logger "console;verbosity=minimal"`), `nx <target> --output-style=static`, `tsc --pretty false`, `git --no-pager status --short`. Then window a failing log to the first real error instead of pasting the whole run - the evidence-gatherer already does this for the diagnosers, and any seat running a build / test / lint gate should do the same. This is a cheaper, dependency-free version of a shell-output compressor: cut the noise at the source instead of filtering it after.
+
 Never let Ponytail minimalism or Caveman terseness cut a security check, validation, authorization safeguard, audit log, migration safety, or data-loss protection. Smaller is a means, not a license.

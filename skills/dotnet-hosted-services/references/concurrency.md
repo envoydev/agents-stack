@@ -17,6 +17,10 @@ var user = await GetUserAsync(id);
 
 - **`ConfigureAwait(false)` in library code.** A method in a reusable library has no reason to resume on the caller's captured context, so append `ConfigureAwait(false)` to every `await` in it - the continuation runs on any thread pool thread, avoiding the deadlock above and skipping the context hop. Application code (a `BackgroundService`, an ASP.NET Core handler - neither captures a context) does not need it; library code does.
 
+## On .NET Framework 4.8
+
+The 'neither captures a context' assumption above is a modern-.NET fact. On classic ASP.NET, WPF, and WinForms a real single-threaded `SynchronizationContext` is present, so the sync-over-async deadlock above is concrete on 4.8, not hypothetical. Why that context makes `ConfigureAwait(false)` in library code load-bearing, and what app-level code keeps the default for, is `csharp`'s `references/net-framework-48.md` - it owns the async / `SynchronizationContext` split, and the `ValueTask` / `IAsyncEnumerable` polyfill packages 4.8 needs are covered there too.
+
 ## Cancellation propagation
 
 A `CancellationToken` is only useful if it reaches the operation that must stop. Take one as the last parameter of every async method and pass it down the whole call chain to the leaf I/O call - a token that stops at your method boundary cancels nothing.

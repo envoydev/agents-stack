@@ -12,6 +12,7 @@ Two performance-aware design calls that are cheap to get right up front and expe
 
 - Type allocation / memory layout -> `references/type-design.md`
 - Serialization-format choice -> `references/serialization.md`
+- .NET Framework 4.8 caveats (the 'slow span', NuGet-only fast-path packages) -> `references/net-framework-48.md`
 
 The language baseline (naming, async, records, disposal, DI) is `csharp`; the full .NET map is `dotnet`.
 

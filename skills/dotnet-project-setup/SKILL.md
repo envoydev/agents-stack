@@ -12,6 +12,7 @@ The files that configure every project in a solution at once - the layout, `.sln
 
 - Central package management (`Directory.Packages.props`) -> `references/central-package-management.md`.
 - Local tool pinning (`.config/dotnet-tools.json`) -> `references/local-tools.md`.
+- .NET Framework 4.8 project config (`packages.config` -> `PackageReference`, `<LangVersion>` pin, Server GC) -> `references/net-framework-48.md`.
 - Analyzers, `TreatWarningsAsErrors`, `.editorconfig`, the CI quality gate -> `dotnet-code-quality`. Do not put these in `Directory.Build.props` here.
 - CI workflows, container / `dotnet pack` packaging, SourceLink -> `devops`.
 - The dotnet-ef tool's migration workflow (add / apply migrations) -> `dotnet-migrate`.

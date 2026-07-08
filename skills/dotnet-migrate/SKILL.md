@@ -31,6 +31,8 @@ Assess blast radius with serena (`find_symbol`, `find_referencing_symbols`) or t
 4. **Adopt new features on purpose.** A release's additions (`TimeProvider` for testable time, `HybridCache`, keyed services, primary constructors) are opt-in - take them where they pay, in their own follow-up commits, not bundled into the bump.
 5. **Verify the full set.** Build, test, then `dotnet format` so the diff is upgrade-only and not noise. The floor is .NET 8 / C# 12; how far you go above it is the target you chose.
 
+A .NET Framework 4.8 -> modern .NET move is more than a TFM bump - different programming models and hard blockers (WebForms, server-side WCF, .NET Remoting, AppDomains). Its stance and upgrade-vs-replace blocker map are in `references/net-framework-48.md`.
+
 ## Flow C - NuGet package updates
 
 1. **Audit first.** `dotnet list package --outdated` for what is behind, `dotnet list package --vulnerable` (add `--include-transitive`) for what is unsafe. Security fixes jump the queue.

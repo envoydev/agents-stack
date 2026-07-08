@@ -7,7 +7,7 @@ description: "Personal .NET cryptography conventions for System.Security.Cryptog
 
 Cryptography in .NET is a library of correct primitives that are easy to assemble incorrectly. The job is almost never to invent a scheme - it is to pick the primitive the situation calls for and use it the single way it is meant to be used. Everything here lives in `System.Security.Cryptography`. Floor is .NET 8 / C# 12, which covers every classical primitive below; post-quantum is a .NET 10+ addition flagged at the end.
 
-Two boundaries this skill does not cross. Where keys and secrets *live* - a vault, a managed key service, environment config - is your secrets layer, never a literal in source and never a checked-in file. Signing a user in is `dotnet-authentication`. This skill is only the math and the API around it.
+Two boundaries this skill does not cross. Where keys and secrets *live* - a vault, a managed key service, environment config - is your secrets layer, never a literal in source and never a checked-in file. Signing a user in is `dotnet-authentication`. This skill is only the math and the API around it. On .NET Framework 4.8 two defaults are footguns - PBKDF2's SHA-1 default and the `RandomNumberGenerator` API name - covered in `references/net-framework-48.md`.
 
 ## First principle: use the static one-shots
 

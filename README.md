@@ -107,6 +107,9 @@ npx skills remove      # uninstall skills
   strategy, coverage thresholds, and test-library routing.
 - **dotnet-web-backend** - ASP.NET Core HTTP-service cross-cutting
   conventions: HttpClientFactory, Polly, API versioning, OpenAPI, observability.
+- **dotnet-winforms** - WinForms conventions: logic out of code-behind,
+  control / component / GDI disposal discipline, high-DPI, with per-version
+  (4.8 vs .NET 8/9/10) mechanics and migration deltas in references.
 - **dotnet-wpf** - WPF conventions: strict MVVM, binding modes, UI
   threading, list virtualization, localization.
 - **postgres** - PostgreSQL engine specialist: index-type selection, JSONB / full-text, SARGable
@@ -147,6 +150,10 @@ npx skills remove      # uninstall skills
 - **dotnet-diagnostics** - Measure and diagnose a live .NET process: BenchmarkDotNet
   microbenchmarks and crash / hang / OOM dump capture (dotnet-dump, dotnet-gcdump,
   containers) with a first-look SOS pass. A hub with references.
+- **nx** - Nx monorepo project-graph layer: navigate via nx show projects / nx graph /
+  nx affected instead of dumping config, scope build / test / lint to affected projects,
+  scaffold with nx generate, enforce module boundaries with tags. Draws the serena-vs-Nx
+  routing line; teaches the CLI over the (minimal-mode) Nx MCP.
 
 ## Repository layout
 
