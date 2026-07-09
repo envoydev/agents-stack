@@ -17,6 +17,7 @@ These are house rules for Angular, floored at v17 and reaching forward to whatev
 
 ## Signals are the default state primitive
 - Local component state is a `signal`; anything derived is a `computed`; side effects that must react to state run in an `effect`. Reach for this before any other mechanism in new code.
+- Any state a `computed` or an `effect` reads must itself be a `signal`. A plain class property that feeds a derived value is the reactivity bug to hunt: the `computed` reads it once at creation and never recomputes when the property later changes, so a filter/derived view silently stops updating until some unrelated change happens to trigger change detection. If a `computed` depends on it, it is a `signal` - no exceptions; a filter field, a selected id, a search term that narrows a list all qualify.
 - `linkedSignal` (v19+) is writable state derived from a source that should reset when the source moves. Use its `source` and `computation` object form when a user's selection must survive a source change as long as it stays valid.
 - `resource` and `rxResource` (v19+) lift async work into signals: give them a `params` signal and a `loader` that respects its `abortSignal`, then read `value()`, `hasValue()`, and `status()` instead of hand-managing loading and error booleans.
 - Treat stores (NgRx, NGXS, or a signal-based store) as a last resort, reserved for state that truly spans many unrelated features. Most state is local and stays in component signals.
@@ -103,6 +104,7 @@ Validation is a layer, not a pile of one-off checks: declare it on the model, ke
 ## Testing
 - Drive component tests through the CDK component-test harnesses rather than raw DOM queries - a harness keeps passing across internal template churn that would shatter a brittle selector.
 - Assert observable behavior: signal and state transitions and what actually renders, never a private method or an implementation detail.
+- Cover comparison and boundary logic - date/overdue thresholds, sort direction, off-by-one ranges - with a regression test that pins the *direction*, not just that a list renders: a task due yesterday is overdue and one due tomorrow is not, the newest sorts first, the last partial page returns its remainder. An inverted comparison (`>` for `<`) passes every 'renders the list' test and only a directional assertion catches it.
 - Build fixtures with factory or object-mother helpers so the same literal is not copy-pasted across specs.
 - Mock collaborators with the workspace's runner - `jasmine.createSpyObj` under Karma, `jest.fn()` under Jest - and do not mix the two.
 - Bake automated accessibility checks into component specs with `axe-core` and `jest-axe`.

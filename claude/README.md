@@ -187,6 +187,24 @@ old positional forms (`install work`, `install github-cli`) are gone - pass a va
 
 **Claude-only steps fail soft** if the `claude` CLI is absent - skills still install.
 
+### Optional: tool-usage instrumentation (opt-in, not installed by default)
+
+The orchestrator can't see which skill or MCP a dispatched subagent actually loaded or called -
+only that subagent's aggregate token/tool_use totals - so a real run's skill / MCP usage can only be
+*assessed*, not measured. For an audit or benchmark run that needs the exact tally,
+`claude/hooks/instrument-tool-usage.js` is a **PreToolUse** hook that logs every `Skill` and `mcp__*`
+call as one JSONL row. It is **not** in the installer's `HOOKS` set (zero cost by default) and is
+inert unless enabled. To turn it on for a run:
+
+1. Fetch it into the project: `.claude/hooks/instrument-tool-usage.js` (from
+   `…/main/claude/hooks/instrument-tool-usage.js`), `chmod +x` it.
+2. Wire a PreToolUse hook to it in `.claude/settings.json` with matcher `"Skill|mcp__.*"`.
+3. Run with `STACK_INSTRUMENT=1` (optionally `STACK_INSTRUMENT_LOG=<path>`); rows land in
+   `<project>/.claude/tool-usage.<session>.jsonl`. Unset the env (or remove the wiring) to stop.
+
+It only ever observes - it never blocks a call. Verify subagent-call coverage against a known run
+before trusting a tally (whether PreToolUse propagates into dispatched subagents is build-dependent).
+
 ---
 
 ## Memory database
