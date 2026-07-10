@@ -31,6 +31,7 @@ tasks:
     acceptance: []            # the observable behavior / passing test that proves the slice done
     dependencies: []
     allowed_files_or_areas: []
+    anchors: []               # file:symbol the designer located - the implementer jumps to these, skipping re-navigation
     forbidden_changes: []
     implementer_model: haiku | sonnet   # designer-assigned by task difficulty; sonnet floors any risk trigger
 verification_notes: []
@@ -124,6 +125,7 @@ title: ...
 scope: []
 acceptance: []                # the observable proof of done
 allowed_files_or_areas: []
+anchors: []                    # file:symbol the designer located - the implementer jumps to these, skipping re-navigation
 forbidden_changes: []          # the shared seams this task must not touch
 dependencies: []
 implementer_model: haiku | sonnet   # designer-assigned by task difficulty; sonnet floors any risk trigger
