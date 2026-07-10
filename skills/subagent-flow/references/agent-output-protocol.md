@@ -32,7 +32,7 @@ tasks:
     dependencies: []
     allowed_files_or_areas: []
     forbidden_changes: []
-    suggested_model_risk: medium | high
+    implementer_model: haiku | sonnet   # designer-assigned by task difficulty; sonnet floors any risk trigger
 verification_notes: []
 ```
 
@@ -126,7 +126,7 @@ acceptance: []                # the observable proof of done
 allowed_files_or_areas: []
 forbidden_changes: []          # the shared seams this task must not touch
 dependencies: []
-suggested_model_risk: medium | high
+implementer_model: haiku | sonnet   # designer-assigned by task difficulty; sonnet floors any risk trigger
 ```
 
 ## Verification-report template
