@@ -7,6 +7,8 @@ description: "Personal database conventions across Postgres, SQL Server/T-SQL, S
 
 A database is the one part of a system where a careless change is permanent: a dropped column takes its data with it, a missing index turns a query into a table scan under load, an unbounded result set is a memory incident waiting for the row count to grow. These conventions are the engine-neutral defaults that keep that from happening. They are deliberately not deep tuning - this skill is loaded before persistence work, and it routes the deep work out to the companions named below rather than restating it.
 
+**SQL writing style is authoritative in `references/sql-style.md`** - casing, formatting and layout, naming style, query construction, data-type choice, NULL handling, dialect portability, and the per-engine cheat-sheet (PostgreSQL / SQL Server / SQLite). This SKILL.md owns schema design and operational safety (schema, migrations, indexes, transactions, connections); where the two overlap on naming, query safety, or engine data types, the style reference wins. **Above both, a project's own SQL style - a co-located `SQL_STYLE.md` or its `docs/CODE-STYLE.md` - is higher priority: where a project diverges from these general conventions, follow the project.**
+
 ## Choosing a store
 
 Relational is the default store; reach for a document, key-value, graph, or time-series engine only when the access pattern genuinely mismatches SQL, and expect to run it alongside the relational database rather than in place of it. A cache (Redis and the like) is a performance layer, never the source of truth - the system must be able to rebuild it from the database, and every cached key carries a TTL so a stale or orphaned entry cannot grow until it runs the instance out of memory.
@@ -26,10 +28,12 @@ The rules in this skill hold across engines; the deep, engine-specific mechanics
 
 - **PostgreSQL** - `postgres` for index-type selection, JSONB/full-text, SARGable rewrites, the planner (EXPLAIN / pg_stat_statements / autovacuum), and connection pooling.
 - **SQLite** - `sqlite` for the WAL / single-writer concurrency model, PRAGMAs, type affinity, limited ALTER TABLE, and connection-per-thread.
-- **SQL Server / T-SQL** - no dedicated house skill; the engine-neutral rules here plus `postgres`'s transferable index/SARGability principles cover most of it.
+- **SQL Server / T-SQL** - no dedicated engine skill; the engine-neutral rules here, plus `references/sql-style.md`'s T-SQL style and dialect gotchas (`TOP`/`OFFSET-FETCH`, `MERGE`, `THROW`, `IDENTITY`, `TRY/CATCH`), plus `postgres`'s transferable index/SARGability principles cover most of it.
 - **MongoDB / document stores** - no dedicated skill; apply document-modeling care. Embed versus reference by access pattern, index every queried field path, bound array growth, and never run an unbounded `$lookup`.
 
 ## Query safety
+
+The query-*writing* style - explicit column lists over `SELECT *`, ANSI `JOIN` syntax, `AS` aliases, column qualification, SARGable predicates, and clause order - is in `references/sql-style.md`. The operational safety rules here:
 
 Every query is either parameterized or it is a vulnerability. Never build SQL by string concatenation, not even for inputs you believe are safe - use parameterized queries or the ORM's query API, because the one 'trusted' value that turns out to be user-controlled is the whole exploit. Keep parameter values out of logs too: query text that carries PII or secrets must never be logged verbatim.
 
@@ -56,6 +60,8 @@ The migration *workflow* - previewing the generated SQL, carrying a rollback, re
 - **Production migrations are reviewed for lock impact** before they ship: an `ALTER TABLE` or an index rebuild on a large table can lock it for the duration, and that is a downtime decision, not an afterthought.
 
 ## Naming
+
+The naming *style* - keyword casing, table singular/plural, column suffixes, and constraint/index name prefixes - lives in `references/sql-style.md`. The schema-side essentials here:
 
 Naming is a convention, which means its only job is to be consistent - the specific choice matters far less than not mixing two. Keep all identifiers in English. Pick one case per project and hold it: `snake_case` for PostgreSQL by default, `PascalCase` for SQL Server unless the project overrides it. Pick singular or plural table names once and never mix the two. Foreign-key columns follow the related table - `<related_table>_id` or `<RelatedTable>Id` to match the project's case. Indexes self-describe (`ix_orders_customer_id_status`), so a name tells you what it serves; leave anonymous index names to the tool only when the migration generator produces them.
 
@@ -91,7 +97,7 @@ Default to keeping logic in the application, where it is testable, diffable, and
 
 ## Engine pitfalls
 
-The defaults above are engine-neutral; these are the per-engine traps worth naming because the obvious choice is the wrong one.
+The full per-engine data-type tables (text, numbers, boolean, date/time, UUID) are in `references/sql-style.md`. The defaults above are engine-neutral; these are the per-engine traps worth repeating here because the obvious choice is the wrong one.
 
 - **Money and exact quantities** - store as `decimal` / `NUMERIC(p,s)` on every engine, never `float` or `double`, since binary floats cannot represent decimal fractions and drift silently on sums.
 - **PostgreSQL** - `SERIAL` is legacy; use `GENERATED ALWAYS AS IDENTITY` for new tables (it is SQL-standard and avoids the sequence-ownership surprises `SERIAL` carries). Prefer `TEXT` over `VARCHAR(n)` unless you need a hard length cap, since the two perform identically and `TEXT` never forces a migration to widen a limit.
