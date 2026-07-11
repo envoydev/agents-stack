@@ -9,12 +9,10 @@ disable-model-invocation: true
 Use this skill to build a new application or a major new module from scratch, before code exists. It routes the work to the right architecture skill and scaffolding command, then - in a stack-installed Claude Code project - drives the build itself, slice by slice, from the main session.
 
 ## Execution modes
-Pick the mode once, before DESIGN, and hold it for the whole run.
+DELEGATED vs INLINE - and why detection keys on dispatch capability, not file presence - is the shared policy `cross-stack-agents-flow` owns (`references/execution-modes.md`). Pick the mode once, before DESIGN, hold it for the run, and apply it to the scaffold:
 
-- **DELEGATED** - the default whenever the current session can dispatch subagents (the Agent tool is available). The main session orchestrates: it dispatches greenfield-solution-designer, then runs each slice's `main-stack-agents-flow` vertical by dispatching that stack's seats directly; it never does their work itself. (This skill and `main-stack-agents-flow` are manual `/`-only skills (`disable-model-invocation`), so a slice runs its vertical by dispatching the seats, not by model-invoking the `main-stack-agents-flow` skill.)
-- **INLINE** - the fallback when dispatch is unavailable: Cursor, a non-stack project, or a scaffold small enough that dispatch overhead outweighs the work. Do it all in-session, using brainstorming and writing-plans plus the architecture skills directly, instead of dispatching a designer.
-
-Detection keys on dispatch capability, not file presence - a project can carry the agent files on disk with no Agent tool available, in which case it still runs INLINE.
+- **DELEGATED** (dispatch available) - the main session dispatches greenfield-solution-designer, then runs each slice's `main-stack-agents-flow` vertical by dispatching that stack's seats directly, never doing their work itself. (This skill and `main-stack-agents-flow` are manual `/`-only skills (`disable-model-invocation`), so a slice runs its vertical by dispatching the seats, not by model-invoking the `main-stack-agents-flow` skill.)
+- **INLINE** (no dispatch: Cursor, a non-stack project, or a scaffold too small to fan out) - do it all in-session, using brainstorming and writing-plans plus the architecture skills directly, instead of dispatching a designer.
 
 ## Steps
 1. **DESIGN** - DELEGATED: dispatch greenfield-solution-designer to turn the spec into architecture options. INLINE: brainstorming and writing-plans in-session, to the same end. Either way, get the user's approval on the architecture and the stack before scaffolding anything - greenfield tech choices are the user's, never silently picked.
@@ -30,6 +28,13 @@ Detection keys on dispatch capability, not file presence - a project can carry t
 | ASP.NET Core backend | dotnet new webapi/web | `dotnet-architecture` + `dotnet-web-backend` / `dotnet-minimal-api` |
 | WPF desktop | dotnet new wpf | `dotnet-wpf` (strict MVVM) |
 | SQL / data | first schema | `database-conventions` + `dotnet-migrate` |
+
+## Example
+
+Brief: 'Start a new Angular admin dashboard.' DELEGATED, stack-installed project:
+1. **DESIGN** - dispatch greenfield-solution-designer; it returns 2-3 architecture options (routing, state tier, folder shape). Present them, get the user's pick before scaffolding.
+2. **SCAFFOLD** - on approval: `ng new admin`, establish the structure from `angular-conventions`, and wire the baseline - lint/format config, a test setup, the core routing shell.
+3. **BUILD** - first slice (the auth shell): dispatch angular-solution-designer, then the angular implementer(s), then angular-verifier - the `main-stack-agents-flow` vertical - and loop its punch-list. Repeat per slice to the first milestone.
 
 ## Rules
 - Greenfield architecture and tech choices are the user's - present options, get approval, never scaffold before the design is approved.

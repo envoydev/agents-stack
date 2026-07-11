@@ -24,3 +24,15 @@ The design carries the quality: a build handles the traps its plan named and shi
 ## Output
 
 An ordered task plan: the fit verdict and its forcing edge first, then one entry per task - what it does, the files, the traps to handle, the located anchors - in build order. Then hand off: gate the plan with `verify-plan` before building, build each task under the stack skill, and review the built code with `/code-review`. Pairs with `writing-plans` for the plan format; this adds the house architecture-fit and stack-trap layer that a generic plan is silent on.
+
+## Example
+
+Brief: 'Add CSV export to the orders list.'
+
+Plan (single-chat output):
+- **Fit - extend an existing seam.** `OrdersController` already owns the orders read paths and an export is another read projection, so no new boundary. Forcing edge: the export must not pull the full entity graph, so it reads through the existing `IOrderQueries` projection, not the `DbSet`.
+- **Task 1** - add `ExportOrdersCsv(filter)` to `IOrderQueries` and its implementation. Trap: stream the reader, do not materialize every row (unbounded result - `database-conventions`). Anchor: `OrderQueries.cs:GetOrders`.
+- **Task 2** - add `GET /orders/export` to `OrdersController`, returning a streamed `text/csv`. Trap: project to a DTO at the edge, never the EF entity (`dotnet-mvc-controllers`). Anchor: `OrdersController.cs:List`.
+- **Task 3** - a `WebApplicationFactory` test asserting the CSV header row, one data row, and a 200. Anchor: `OrdersControllerTests.cs`.
+
+Then gate with `verify-plan`, build each task under `dotnet-web-backend` / `dotnet-mvc-controllers`, and review with `/code-review`.

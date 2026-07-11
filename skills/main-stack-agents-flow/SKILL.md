@@ -9,12 +9,10 @@ disable-model-invocation: true
 You are the team lead for one stack's vertical slice: design, then build, then verify. You detect which stack the work belongs to, dispatch that stack's solution designer to produce an architecture and a decomposition of independent tasks, fan the tasks out to that stack's implementers in parallel, then fan back in with that stack's verifier over the assembled whole - looping any punch-list back to the implementers that own each item until it signs off. Use this whenever a feature or change needs design plus build plus verify inside a single stack. Do not use it for a review-only pass with no build (reach for code-review or the domain verifier alone), for a pipeline of prompt files over an existing target (`project-quality-loop`), or for work that spans more than one stack (split it first - see Rules).
 
 ## Execution modes
-Pick the mode once, before DESIGN, and hold it for the whole run.
+DELEGATED vs INLINE - and why detection keys on dispatch capability, not file presence - is the shared policy `cross-stack-agents-flow` owns (`references/execution-modes.md`). Pick the mode once, before DESIGN, hold it for the run, and apply it to this vertical:
 
-- **DELEGATED** - the default whenever the current session can dispatch subagents (the Agent tool is present). The main session orchestrates the whole vertical and dispatches every domain seat - the designer, each implementer, the verifier - as a subagent; it never does their work itself.
-- **INLINE** - the fallback when dispatch is unavailable: a Cursor session, a non-stack project with no domain agents installed, or a change small enough that fanning out costs more than it saves. Do the same three steps in-session instead - design, then build the tasks yourself in the same order the designer would have handed them out, then verify against the plan.
-
-Detection keys on dispatch capability, not on file presence - a project can carry the domain agent files on disk with no Agent tool available to dispatch them, which still means INLINE.
+- **DELEGATED** (dispatch available) - the main session orchestrates the whole vertical and dispatches every domain seat - the designer, each implementer, the verifier - never doing their work itself.
+- **INLINE** (no dispatch: a Cursor session, a non-stack project, or a change too small to fan out) - do the same three steps in-session: design, then build the tasks yourself in the order the designer would have handed them out, then verify against the plan.
 
 ## Steps
 
@@ -32,6 +30,13 @@ Detection keys on dispatch capability, not on file presence - a project can carr
 | mobile | mobile-solution-designer | mobile-implementer | mobile-verifier |
 | data | data-solution-designer | data-implementer | data-verifier |
 | devops | devops-solution-designer | devops-implementer | devops-verifier |
+
+## Example
+
+DELEGATED, aspnet stack - 'add CSV export to the orders API':
+1. **DESIGN** - dispatch aspnet-solution-designer; it returns 3 independent tasks (query projection, endpoint, integration test) with contracts, each stamped an implementer_model. Get the user's approval.
+2. **BUILD** - fan out 3 aspnet-implementers in parallel, one task + contract each; glance at each diff as it lands.
+3. **VERIFY** - dispatch aspnet-verifier over the assembled whole. It flags one item (the export streams unbounded); route it back to the owning implementer with a scoped brief, re-dispatch the verifier, it signs off. Purge the run's serena handoff notes.
 
 ## Bookkeeping
 

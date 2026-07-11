@@ -2,6 +2,14 @@
 
 The full team is not the default. Classify size, risk, domains, and contract impact, then run the smallest safe mode. Modes are a routing policy, not separate agents - never create an angular-small-task-agent or an aspnet-implementer-high; keep one seat per role and let this policy pick the mode and `references/model-routing.md` pick the effort.
 
+## DELEGATED vs INLINE - dispatch capability
+Before the size/risk modes below, each orchestration skill (`main-stack-agents-flow`, `project-scaffold`, `architecture-quality-loop`, `project-quality-loop`) picks one dispatch mode at the start and holds it for the run. This is the shared policy those skills cite rather than restate:
+
+- **DELEGATED** - the default whenever the session can dispatch subagents (the Agent tool is present). The main session orchestrates and dispatches every seat, never doing their work itself.
+- **INLINE** - the fallback when dispatch is unavailable (a Cursor session, a non-stack project with no domain agents, or a change too small to fan out). Do the same steps in-session.
+
+Detection keys on dispatch capability, not file presence - a project can carry the agent files on disk with no Agent tool to dispatch them, which is still INLINE. The size/risk modes below assume DELEGATED; in INLINE the same routing applies, done in-session.
+
 ## Feature / change modes
 
 | Mode | Flow | Use when | Token profile |

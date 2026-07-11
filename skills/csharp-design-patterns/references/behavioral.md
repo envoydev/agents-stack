@@ -2,6 +2,9 @@
 
 Each entry: Intent, When to use, Modern C# form, .NET-native form, Pros/Cons. Code targets .NET 8+, nullable enabled.
 
+## Contents
+Chain of Responsibility · Command · Interpreter · Iterator · Mediator · Memento · Observer · State · Strategy · Template Method · Visitor
+
 ## Chain of Responsibility
 
 **Intent**: pass a request along a chain of handlers; each decides to process it and/or pass it on.

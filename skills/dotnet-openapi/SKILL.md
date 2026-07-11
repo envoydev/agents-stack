@@ -1,6 +1,6 @@
 ---
 name: dotnet-openapi
-description: "Personal ASP.NET Core OpenAPI conventions - how the service emits a correct OpenAPI document and serves a browsable docs UI from it. Picks the generator by framework floor (Swashbuckle or NSwag on .NET 8, the built-in Microsoft.AspNetCore.OpenApi with AddOpenApi and MapOpenApi on .NET 9 and up), shapes the spec with document, operation, and schema transformers, declares security schemes so the UI can authorize, splits versioned or grouped documents, drives precise schemas from TypedResults plus Produces and XML doc comments, and renders the result with Scalar (Swagger UI as the floor fallback). Floors at .NET 8 / C# 12. Load before adding API docs, editing the generated spec, declaring a security scheme in the document, or standing up the docs UI. Companions: dotnet-minimal-api (the endpoint metadata that feeds the document), dotnet-web-backend (where docs sit among the cross-cutting concerns), dotnet-authentication (the real auth pipeline the spec only describes). Skip it for non-HTTP code and for internal APIs with no published contract."
+description: "Personal ASP.NET Core OpenAPI conventions - how a service emits a correct, generated OpenAPI document and serves a browsable docs UI from it. Picks the generator by framework floor (Swashbuckle or NSwag on .NET 8; the built-in Microsoft.AspNetCore.OpenApi with AddOpenApi / MapOpenApi on .NET 9 and up), shapes the spec with document, operation, and schema transformers, declares security schemes, splits versioned documents, and renders with Scalar. Floors at .NET 8 / C# 12. Load before adding API docs, editing the generated spec, declaring a security scheme, or standing up the docs UI. Companions: dotnet-minimal-api (the endpoint metadata that feeds the document), dotnet-web-backend, and dotnet-authentication (the real auth the spec only describes). Skip it for non-HTTP code and internal APIs with no published contract."
 ---
 
 # ASP.NET Core OpenAPI - the document and the docs UI
@@ -14,6 +14,29 @@ The single discipline that runs through everything below: the document is genera
 - **On .NET 8**, use Swashbuckle - `AddSwaggerGen()` at startup, `UseSwagger()` to expose the JSON. Reach for NSwag instead only when the same toolchain must also generate strongly-typed clients (C# or TypeScript) from the spec; that client story is NSwag's reason to exist. For a service that just publishes a contract, Swashbuckle is the lighter default.
 - **On .NET 9 and up**, prefer the framework's own `Microsoft.AspNetCore.OpenApi`: `builder.Services.AddOpenApi()` and `app.MapOpenApi()`, which serves the document at `/openapi/v1.json`. It is maintained in lockstep with the framework, carries no third-party dependency, and generates at build or first request without Swashbuckle's reflection overhead. This is the choice for any new .NET 9+ service.
 - Do not run two generators side by side, and do not migrate an existing project's generator without a concrete reason - a project already on Swashbuckle stays on Swashbuckle until there's a payoff. Match what the repo already does.
+
+Built-in wiring on .NET 9+, the common path end to end - a document transformer adds the bearer scheme, `MapOpenApi` serves the JSON, and Scalar renders it behind a dev gate:
+```csharp
+builder.Services.AddOpenApi("v1", options =>
+{
+    options.AddDocumentTransformer((document, context, ct) =>
+    {
+        document.Components ??= new OpenApiComponents();
+        document.Components.SecuritySchemes["Bearer"] = new OpenApiSecurityScheme
+        {
+            Type = SecuritySchemeType.Http,
+            Scheme = "bearer",
+            BearerFormat = "JWT",
+        };
+        return Task.CompletedTask;
+    });
+});
+
+var app = builder.Build();
+app.MapOpenApi();                    // document at /openapi/v1.json
+if (app.Environment.IsDevelopment())
+    app.MapScalarApiReference();     // UI at /scalar, dev only
+```
 
 ## Make the schemas accurate
 

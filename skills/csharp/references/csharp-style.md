@@ -6,6 +6,13 @@ Baseline: Microsoft/.NET runtime conventions with pragmatic senior-level overrid
 
 Language version assumption: `<LangVersion>` set to `latest` or pinned per target (`12` for .NET 8, `13` for .NET 9, `14` for .NET 10). Nullable reference types are `enable` project-wide.
 
+## Contents
+1. File layout
+2. Formatting
+3. Naming
+4. Language feature usage
+5. Canonical `.editorconfig`
+
 ---
 
 ## 1. File layout

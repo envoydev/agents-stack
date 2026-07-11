@@ -11,12 +11,10 @@ You drive a deliberate loop that improves a project's architecture: analyze it, 
 Best run in Claude Code, where you can dispatch the analysis and build seats and edit files across rounds. On a large codebase, scope it - point it at one bounded context or module subtree per run.
 
 ## Execution modes
-Pick the mode once, before ANALYZE, and hold it for the whole run.
+DELEGATED vs INLINE - and why detection keys on dispatch capability, not file presence - is the shared policy `cross-stack-agents-flow` owns (`references/execution-modes.md`). Pick the mode once, before ANALYZE, hold it for the run, and apply it to the loop:
 
-- **DELEGATED** - the default whenever the current session can dispatch subagents (the Agent tool is present). The main session orchestrates and dispatches every seat - architecture-analyzer, then the domain designer / implementers / verifier for a substantial fix, or an implementer for a small one - and never does their work itself. This skill and `main-stack-agents-flow` are manual (`disable-model-invocation`), so a substantial fix runs the stack vertical by dispatching that stack's seats directly, not by model-invoking the `main-stack-agents-flow` skill.
-- **INLINE** - the fallback when dispatch is unavailable (Cursor, a non-stack project, or a scope small enough that dispatch overhead outweighs the work). Do the same steps in-session: map and assess the architecture yourself against the house architecture skills, then apply the fixable cons directly, smallest blast radius first.
-
-Detection keys on dispatch capability, not file presence.
+- **DELEGATED** (dispatch available) - the main session dispatches every seat - architecture-analyzer, then the domain designer / implementers / verifier for a substantial fix, or an implementer for a small one - never doing their work itself. This skill and `main-stack-agents-flow` are manual (`disable-model-invocation`), so a substantial fix runs the stack vertical by dispatching that stack's seats directly, not by model-invoking the `main-stack-agents-flow` skill.
+- **INLINE** (no dispatch: Cursor, a non-stack project, or a scope too small to fan out) - do the same steps in-session: map and assess the architecture yourself against the house architecture skills, then apply the fixable cons directly, smallest blast radius first.
 
 ## The loop
 
@@ -43,7 +41,20 @@ Re-read the reconciled `docs/architecture/ASSESSMENT.md` and decide, off the wea
 - **CAPPED** - you reached the round cap. **Hard cap: 3 improve rounds.**
 - **BLOCKED** - only structural weaknesses remain and the user has not approved a rework - report and stop.
 
-Then emit the final report.
+Then emit the final report:
+- **Outcome** - SATISFIED / PLATEAU / CAPPED / BLOCKED, and on which round.
+- **Resolved** - each weakness fixed, its tier, and the change that closed it.
+- **Deferred** - structural items the user declined or has not decided, plus accepted tradeoffs left alone.
+- **Docs** - the reconciled `docs/architecture/ARCHITECTURE.md` + `docs/architecture/ASSESSMENT.md` state.
+- **Baseline** - build + tests green at stop (or the red that blocked it).
+
+## Example
+
+DELEGATED, one run over the Orders module:
+1. **ANALYZE + ASSESS** - dispatch architecture-analyzer; it writes ARCHITECTURE.md + ASSESSMENT.md with tiered weaknesses. The top two: a **small** con (a repository leaks an EF type across the boundary) and a **substantial** con (queries and handlers share one grab-bag namespace).
+2. **FIX by tier** - confirm the green baseline. Small: dispatch aspnet-implementer with a scoped brief, re-run build + tests. Substantial: dispatch aspnet-solution-designer for a decomposition, get approval, fan out implementers, gate with aspnet-verifier. A **structural** con (invert the persistence dependency) is flagged for a user decision, not auto-applied.
+3. **UPDATE DOCS** - re-dispatch architecture-analyzer; the two fixed weaknesses drop off the reconciled docs.
+4. **LOOP or STOP** - re-read ASSESSMENT.md: only the user-declined structural item and accepted tradeoffs remain -> **SATISFIED**. Emit the final report.
 
 ## Bounded and honest
 - **A round cap of 3.** Architecture work is expensive and each round re-runs the opus analyzer; do not loop indefinitely chasing the last debatable con.

@@ -17,7 +17,7 @@ The design decisions these measurements justify live in `dotnet-performance`; th
 
 ## Measure first
 
-A benchmark exists to earn or refute a change, not to decorate one. Before you tune, confirm the hot path is actually hot - most 'slow' code is a bad query or an N+1, not a struct-vs-class problem, and a microbenchmark of the wrong method buys nothing. Reach for `references/microbenchmarking.md` when the comparison is CPU/allocation on a tight in-process path; reach for a profiler or trace when the cost is I/O, contention, or spread across a request.
+A benchmark exists to earn or refute a change, not to decorate one. Before you tune, confirm the hot path is actually hot - a microbenchmark of the wrong method buys nothing, and the usual culprit is a slow query or an N+1, not a type choice (that call is `dotnet-performance`'s). Reach for `references/microbenchmarking.md` when the comparison is CPU/allocation on a tight in-process path; reach for a profiler or trace when the cost is I/O, contention, or spread across a request.
 
 ## Capture where it reproduces
 

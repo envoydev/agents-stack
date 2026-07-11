@@ -2,6 +2,9 @@
 
 The authoritative cross-engine SQL *writing* style: casing, formatting and layout, naming style, query construction, data-type choice, NULL handling, dialect portability, and the per-engine cheat-sheet. `SKILL.md` owns schema design and operational safety (keys, normalization, migrations, indexes, transactions, connections); where the two overlap on naming or query safety, this document wins. Above both, a project's own SQL style - a co-located `SQL_STYLE.md` or its `docs/CODE-STYLE.md` - is HIGHER priority: where a project diverges from these general conventions, follow the project. Targets hand-written SQL; ORM/EF-generated SQL follows its tool's conventions.
 
+## Contents
+TL;DR · Key findings · Details 1-12 (casing, naming, formatting and layout, query construction, data types, NULL handling, comments, CTEs and subqueries, transactions, dialect portability, performance-adjacent, security) · Cheat-sheet · Recommendations · Caveats
+
 ## TL;DR
 - **There is no single official SQL style standard, but the widely respected guides converge on a common core**: explicit column lists (never `SELECT *` in production), ANSI `JOIN` syntax, the `AS` keyword for all aliases, one column per line, and a documented-and-enforced house style. The biggest genuine disagreements are keyword casing (uppercase vs lowercase) and leading vs trailing commas - both are legitimate, and consistency matters more than which you pick.
 - **The three engines diverge most in identifier casing, data types, and dialect syntax** (`LIMIT`/`TOP`/`FETCH`, string concatenation, quoting, UPSERT, auto-increment, boolean handling, `NULLS FIRST/LAST`). Writing portable SQL means preferring ANSI constructs and knowing exactly where each engine breaks compatibility.
