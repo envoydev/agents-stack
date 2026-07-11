@@ -1,11 +1,13 @@
 ---
 name: csharp
-description: Personal C# conventions (.NET 8 / C# 12 floor) - style/structure (file layout, naming, member/ctor ordering, methods, types, visibility, design-pattern (GoF) awareness, modern C# 11/12/13 syntax, forbidden patterns, XML doc) and runtime behavior (DateTime/IClock, async, dispose, exceptions + Result, structured logging, secrets/config, LINQ, System.Text.Json, decoupling + DI lifetimes). Load before creating or editing any `.cs` file - writing, reviewing, or refactoring C#; do not lean on recalled conventions. The always-load baseline; specialist areas (concurrency, performance, EF, web, messaging) route out through the `dotnet` companion router, not here.
+description: Personal C# conventions (.NET 8 / C# 12 floor) - style/structure (file layout, naming, member/ctor ordering, methods, types, visibility, design-pattern (GoF) awareness, modern C# 12/13/14 syntax, forbidden patterns, XML doc) and runtime behavior (DateTime/IClock, async, dispose, exceptions + Result, structured logging, secrets/config, LINQ, System.Text.Json, decoupling + DI lifetimes). Load before creating or editing any `.cs` file - writing, reviewing, or refactoring C#; do not lean on recalled conventions. The always-load baseline; specialist areas (concurrency, performance, EF, web, messaging) route out through the `dotnet` companion router, not here.
 ---
 
 # C# Conventions
 
 Personal C# style, structure, and runtime conventions in one place: how code is shaped (naming, layout, syntax) and how it behaves (async, I/O, exceptions, logging, DI). Style is enforced by `.editorconfig` (Allman braces, 120-char line limit, file-scoped namespaces) and `EnforceCodeStyleInBuild=true`.
+
+**Formatting, naming, and language-feature style is authoritative in `references/csharp-style.md`** (with the full canonical `.editorconfig`); the .NET Framework / C# 7.3 delta is `references/net-framework-48.md`. This file keeps the house rules those style docs do not cover - structure limits, member and constructor ordering, forbidden patterns, XML doc, and the runtime behavior below - and where it overlaps them, the style docs win. **Above all of these, a project's own `.editorconfig` and its `docs/CODE-STYLE.md` are higher priority: where a project diverges from these general conventions, follow the project.**
 
 **Floor: .NET 8 / C# 12.** Every rule below assumes at least this target - `TimeProvider`, `UnsafeAccessorAttribute`, the static argument throw-helpers, and the C# 12 collection expressions / primary constructors are all in. Where a convention names a newer feature (C# 13 `System.Threading.Lock`, the `field` keyword), it flags the version inline; treat those as opt-in once the project's target moves up.
 
@@ -25,15 +27,8 @@ Specialized concerns route through the `dotnet` router - one table mapping each 
 - File-scoped namespaces: `namespace MyApp.Services;` - never the braced form.
 
 ## Naming
-- `_camelCase` for private instance fields and `private static readonly` fields.
-- `PascalCase` for public members, types, events, and every `const` regardless of accessibility. A `private const` is `PascalCase`; a `const` inside a method body is also `PascalCase`.
-- `camelCase` for non-`const` local variables and method parameters.
-- Prefix interfaces with `I`: `IOrderService`, not `OrderService`.
-- Suffix async methods with `Async`: `GetOrderAsync`.
-- No abbreviations unless universally accepted (`Id`, `Dto`, `Url`, `Http`).
-- Boolean members read as a statement: `isReady`, `hasItems`, `canExecute` - not `flag`, `status`, `enabled`.
 
-**Naming intent - apply four tests to every name:**
+Casing, prefixes, and the `Async` suffix live in `references/csharp-style.md` - not repeated here. The house rule on top of them is naming *intent* - apply four tests to every name:
 1. **Domain-aligned** - use vocabulary from the project domain. Avoid `Manager`, `Helper`, `Data`, `Info`, `Item`, or vague verbs like `Process` / `Handle` when a domain-specific term exists.
 2. **Intent-revealing** - the name explains what the member does without reading the implementation.
 3. **DDD-consistent** - value objects model concepts, not primitives. Don't suffix entity types with `Entity` or `Aggregate`. Do suffix repositories and services.
@@ -92,14 +87,11 @@ switch (x)
 Per-case braces give each case its own scope (no accidental variable leak); blank line before `break` / `return` when preceded by another statement; no blank line when the transfer is the only statement after `{` (the `default` above).
 
 ## Types and variables
-- Use `var` only when the type is obvious from the right-hand side: `var order = new Order();` OK; `var result = GetResult();` not OK.
-- Nullable reference types enabled project-wide; treat nullable warnings as errors.
-- Prefer `record` for immutable DTOs, value-like data, and types defined by their values. Prefer `class` when the type has identity, mutable state, inheritance, or behavior beyond data.
+- `var`, nullable reference types, records vs classes, and expression-bodied members: `references/csharp-style.md` is authoritative. The bullets below are the house additions it does not cover.
 - Value objects: model as small immutable types - typically `readonly record struct` - validate in the constructor (trust everywhere after), and expose explicit conversions / factory methods only, never an `implicit operator` (it silently defeats the type safety it exists to provide). Add a `TypeConverter` when the value object must bind from configuration.
 - Member signatures expose the narrowest useful shape: accept `IEnumerable<T>` / `IReadOnlyCollection<T>` / `IReadOnlyList<T>` (or `ReadOnlySpan<T>` on hot paths), and return a read-only collection type (`IReadOnlyList<T>`, `IReadOnlyDictionary<,>`); return a `List<T>` / array only when the caller is meant to mutate it.
 - No magic numbers or magic strings - use named constants or enums.
 - Enums: explicit underlying values for any enum persisted to a database or sent over the wire. Use `[Flags]` only when bitwise combination is intended.
-- Expression-bodied members only for single-expression getters and trivial methods.
 - No public mutable fields - use properties.
 - String comparison: always specify `StringComparison.Ordinal` for non-linguistic comparisons (identifiers, keys, file paths), `StringComparison.OrdinalIgnoreCase` for case-insensitive. Never rely on culture-default comparison.
 
@@ -114,15 +106,9 @@ Per-case braces give each case its own scope (no accidental variable leak); blan
 - Reach for the framework-native construct before hand-rolling a pattern: the DI container is your Factory / Abstract Factory / Singleton; `Func<T>` and `Lazy<T>` cover deferred creation; events, `IObservable<T>`, or an in-process event bus are your Observer; `IEnumerable<T>` + `yield` is your Iterator; a switch expression usually beats a State / Strategy class hierarchy.
 - This section is the awareness baseline only. To choose, implement, compare, or refactor toward a specific pattern, load `csharp-design-patterns` - full 23-pattern catalog with modern .NET forms, selection table, and anti-pattern checks.
 
-## Modern C# syntax preferences (11+/12+/13)
-- **Primary constructors** - default for constructor injection and simple parameter capture: `public sealed class OrderService(IOrderRepository repository, ILogger<OrderService> logger)`. Reference captured parameters directly (`camelCase`, no underscore); do not mirror them into `_fields` unless the value is transformed first or needs `readonly` protection on a mutation-prone type. Fall back to an explicit ctor when construction has logic (guard clauses beyond `?? throw`, validation, multiple constructors, conditional base calls).
-- **Collection expressions `[a, b, c]`, spread `[..first, last]`** - default for literal construction. Use `new List<T>()` only when items are added conditionally. Do not write `new[] { ... }` in new code.
-- **`params ReadOnlySpan<T>`** (C# 13) - default for new internal APIs (zero-alloc). Use `params T[]` only when the caller already owns an array.
-- **Raw strings `"""..."""` / `$$"""..."""`** - use for multi-line literals and for any string containing `"`. Drop `@"..."` for new code unless single-line and short.
-- **`required` members** (C# 11) - use for properties that must be set during initialization but cannot be enforced by a constructor (e.g. records or DTOs with many properties).
-- **`field` keyword in accessors** (preview in C# 13, stable in C# 14) - allowed only for trivial guards. Anything richer keeps an explicit backing field.
-- **`System.Threading.Lock`** (C# 13) - use for new lock objects. Do not retrofit existing `lock(object)` sites.
-- **Switch expression vs switch statement** - prefer switch expression for value-returning code. Use switch statement only when arms have side effects (DI registration, channel writes, logging).
+## Modern C# syntax preferences
+
+The modern-feature style - primary constructors, collection expressions, raw strings, `required` members, the `field` keyword, pattern matching, switch expressions - is authoritative in `references/csharp-style.md` (language feature usage). Two house preferences that document does not name: prefer `params ReadOnlySpan<T>` (C# 13) for new internal zero-alloc APIs over `params T[]`, and `System.Threading.Lock` (C# 13) for new lock objects (do not retrofit existing `lock(object)` sites).
 
 Performance concerns (sealing, readonly structs, `Span<T>` / `Memory<T>` / `ArrayPool<T>`, collection choice) belong with the `dotnet-performance` skill.
 
