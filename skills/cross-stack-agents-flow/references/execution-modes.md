@@ -13,7 +13,7 @@ The full team is not the default. Classify size, risk, domains, and contract imp
 | `cross_domain_light` | light contract -> per-domain implement + verify -> integration-reviewer | 2+ domains, obvious stable contract | high |
 | `full_cross_domain` | contract designer -> domain designers -> implementer fan-out -> domain verifiers -> integration gate | DB + API + UI, security, devops, migrations, auth, or production-critical | highest |
 
-`domain_trio` and `fanout_domain_trio` ARE the `domain-build` skill - route single-stack work to it. cross_domain_light and full_cross_domain are owned here in `subagent-flow`.
+`domain_trio` and `fanout_domain_trio` ARE the `main-stack-agents-flow` skill - route single-stack work to it. cross_domain_light and full_cross_domain are owned here in `cross-stack-agents-flow`.
 
 ## Decision ladder
 

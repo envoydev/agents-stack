@@ -1,6 +1,6 @@
 ---
 name: project-scaffold
-description: "Build a new application or major module from scratch - greenfield scaffolding and orchestration, before code exists. Routes a new project to the right architecture skill (`dotnet-architecture`) and build-spine setup (`dotnet-project-setup`), plus the scaffolding command (dotnet new, ng new), then in a stack-installed Claude Code project drives the build from the main session - greenfield-solution-designer designs, and each vertical slice runs the `domain-build` skill for its stack. Not for changing an existing codebase - a feature inside a live app is `domain-build`, cross-stack routing is `subagent-flow`. Triggers on build from scratch, new project, greenfield, scaffold, start a new app."
+description: "Build a new application or major module from scratch - greenfield scaffolding and orchestration, before code exists. Routes a new project to the right architecture skill (`dotnet-architecture`) and build-spine setup (`dotnet-project-setup`), plus the scaffolding command (dotnet new, ng new), then in a stack-installed Claude Code project drives the build from the main session - greenfield-solution-designer designs, and each vertical slice runs the `main-stack-agents-flow` skill for its stack. Not for changing an existing codebase - a feature inside a live app is `main-stack-agents-flow`, cross-stack routing is `cross-stack-agents-flow`. Triggers on build from scratch, new project, greenfield, scaffold, start a new app."
 ---
 
 # Project Scaffold - Greenfield Build Orchestration
@@ -10,7 +10,7 @@ Use this skill to build a new application or a major new module from scratch, be
 ## Execution modes
 Pick the mode once, before DESIGN, and hold it for the whole run.
 
-- **DELEGATED** - the default whenever the current session can dispatch subagents (the Agent tool is available). The main session orchestrates: it dispatches greenfield-solution-designer, then runs the `domain-build` skill per slice; it never does their work itself.
+- **DELEGATED** - the default whenever the current session can dispatch subagents (the Agent tool is available). The main session orchestrates: it dispatches greenfield-solution-designer, then runs the `main-stack-agents-flow` skill per slice; it never does their work itself.
 - **INLINE** - the fallback when dispatch is unavailable: Cursor, a non-stack project, or a scaffold small enough that dispatch overhead outweighs the work. Do it all in-session, using brainstorming and writing-plans plus the architecture skills directly, instead of dispatching a designer.
 
 Detection keys on dispatch capability, not file presence - a project can carry the agent files on disk with no Agent tool available, in which case it still runs INLINE.
@@ -18,7 +18,7 @@ Detection keys on dispatch capability, not file presence - a project can carry t
 ## Steps
 1. **DESIGN** - DELEGATED: dispatch greenfield-solution-designer to turn the spec into architecture options. INLINE: brainstorming and writing-plans in-session, to the same end. Either way, get the user's approval on the architecture and the stack before scaffolding anything - greenfield tech choices are the user's, never silently picked.
 2. **SCAFFOLD** - once approved, run the named new-project command (dotnet new <template>; ng new; ionic start for Ionic), establish the structure from the chosen architecture skill, and wire the baseline - DI, config, a test project, formatter/analyzer config - via the stack's setup skills (`dotnet-project-setup` + `dotnet-code-quality` on .NET).
-3. **BUILD** - slice by slice: for each vertical slice, run the `domain-build` skill for that slice's stack (it fans out that stack's designer, implementer, and verifier in turn). Loop until the spec's first milestone is met.
+3. **BUILD** - slice by slice: for each vertical slice, run the `main-stack-agents-flow` skill for that slice's stack (it fans out that stack's designer, implementer, and verifier in turn). Loop until the spec's first milestone is met.
 
 ## Per-stack scaffolding
 
@@ -32,5 +32,5 @@ Detection keys on dispatch capability, not file presence - a project can carry t
 
 ## Rules
 - Greenfield architecture and tech choices are the user's - present options, get approval, never scaffold before the design is approved.
-- The main session is the only orchestrator - never instruct a subagent to dispatch another; the agents this skill dispatches (greenfield-solution-designer, then the domain seats via the `domain-build` skill) carry no Agent tool.
+- The main session is the only orchestrator - never instruct a subagent to dispatch another; the agents this skill dispatches (greenfield-solution-designer, then the domain seats via the `main-stack-agents-flow` skill) carry no Agent tool.
 - Reuse the architecture skills rather than restating structure here - this skill routes, it does not re-derive.

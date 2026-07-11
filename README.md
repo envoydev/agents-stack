@@ -121,15 +121,27 @@ npx skills remove      # uninstall skills
 - **verify-plan** - Audit an implementation plan before writing code: a risk-coverage review that
   checks the plan names the traps its stack will hit (routing to the stack skill), matches scope,
   covers the edges, and stays minimal - the cheapest place to catch a design error, upstream of code review.
+- **solution-design** - Work out how a feature fits the existing code before building, in a single
+  chat: read the committed architecture, judge where the change belongs (extend a seam, refactor
+  first, or isolate a new boundary), load the stack skill for its traps, and decompose into an
+  ordered, minimal plan. The in-context twin of the designer agent; feeds `verify-plan`.
+- **failure-signatures** - Match a runtime crash to its signature and isolate the real cause: a
+  lookup of the common local-runtime signatures (null-reference, DI resolution, async deadlock,
+  disposed-lifecycle, config drift, boundary, database contention, HTTP-status) each mapped to where the cause lives -
+  usually not the line that threw. Pairs with the systematic-debugging method.
+- **ci-triage** - Triage a red CI pipeline or PR check in the current chat: match the failure to a
+  signature (compile/restore, green-locally-red-on-runner, quality gate, signing, workflow drift,
+  infra flake), make the code-vs-environment call, and route it. The single-chat twin of the
+  `ci-failure-diagnoser` agent; the CI sibling of `failure-signatures`.
 - **project-scaffold** - Build a new application or major module from scratch: routes greenfield
   work to the right architecture skill and scaffolding command, then drives design -> scaffold ->
   slice-by-slice build over the agent pipeline.
-- **domain-build** - Build a feature through a stack specialist team: the domain designer
+- **main-stack-agents-flow** - Build a feature through a stack specialist team: the domain designer
   decomposes into parallel tasks, implementers build them at once, the verifier gates and loops
   back.
-- **subagent-flow** - Entry-point router for multi-agent engineering work: classify a feature or
+- **cross-stack-agents-flow** - Entry-point router for multi-agent engineering work: classify a feature or
   bug, pick the smallest safe execution mode, and for cross-domain work freeze the shared contract,
-  run each stack's domain-build in parallel, then gate the assembled whole through the
+  run each stack's main-stack-agents-flow in parallel, then gate the assembled whole through the
   integration-reviewer before commit. Home of the shared subagent policies (contract change,
   structured output, model and token routing).
 - **devops** - Containers, CI/CD, and safe deploys for the .NET/Angular house: multi-stage
@@ -157,6 +169,33 @@ npx skills remove      # uninstall skills
   nx affected instead of dumping config, scope build / test / lint to affected projects,
   scaffold with nx generate, enforce module boundaries with tags. Draws the serena-vs-Nx
   routing line; teaches the CLI over the (minimal-mode) Nx MCP.
+
+## Working in a single chat
+
+The same build/diagnose flow runs two ways: dispatch the **subagents** (isolated contexts,
+parallel fan-out) or load the **skills that reproduce each seat inside your current chat**
+(visible, checkpointed, at your model). The single-chat form is the cheaper path for
+small-to-medium single-stack work - you see and correct every step instead of reading a
+dispatched agent's report.
+
+| Agent seat | Load this in a single chat |
+|---|---|
+| `<stack>-solution-designer` | `solution-design` |
+| verifier (before build) | `verify-plan` |
+| `<stack>-implementer` | just code - conventions auto-load on file touch |
+| verifier (after build) | `/code-review` + `verification-before-completion` |
+| `issue-diagnoser` | `systematic-debugging` + `failure-signatures` |
+| `ci-failure-diagnoser` | `ci-triage` |
+
+The trio loop is `solution-design` -> `verify-plan` -> build under the auto-loaded conventions
+-> `/code-review`, with a checkpoint after each step. **See the full tutorial and worked example
+in [docs/single-chat-guide.md](docs/single-chat-guide.md).**
+
+The inverse path - running the same flow as a dispatched team of 32 model-pinned subagents, the
+`main-stack-agents-flow` and `cross-stack-agents-flow` orchestration skills, the execution-mode ladder, and when the
+isolation floor is worth paying - is **[docs/agent-flow-guide.md](docs/agent-flow-guide.md)**. Read
+the two as a pair: stay in chat for small single-stack work, dispatch the team for large, parallel,
+cross-domain, or log-heavy work.
 
 ## Repository layout
 

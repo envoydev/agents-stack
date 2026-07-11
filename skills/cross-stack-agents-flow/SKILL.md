@@ -1,6 +1,7 @@
 ---
-name: subagent-flow
-description: "The entry-point router for multi-agent engineering work - classify a feature or bug, then run the smallest safe execution mode instead of always paying for the full team. Picks single-chat, one-implementer, a single-stack design-build-verify trio, or a cross-domain contract-frozen fan-out, and for cross-domain work owns the whole lifecycle: freeze the shared contract first, run each stack's vertical in parallel, then gate the assembled feature through the integration-reviewer before commit. Also the home of the shared subagent policies - contract change, structured output, progress ledger, model routing, token reduction, repo separation - that every seat references instead of restating. Triggers on how should I build or route this work, plan the agents for this, this spans backend and frontend and data, or investigate-and-fix a bug across the stack. A task that lives inside one stack hands off to domain-build; this skill routes and owns the cross-domain seams, it does not itself design or write code."
+name: cross-stack-agents-flow
+description: "The entry-point router for multi-agent engineering work - classify a feature or bug, then run the smallest safe execution mode instead of always paying for the full team. Picks single-chat, one-implementer, a single-stack design-build-verify trio, or a cross-domain contract-frozen fan-out, and for cross-domain work owns the whole lifecycle: freeze the shared contract first, run each stack's vertical in parallel, then gate the assembled feature through the integration-reviewer before commit. Also the home of the shared subagent policies - contract change, structured output, progress ledger, model routing, token reduction, repo separation - that every seat references instead of restating. Triggers on how should I build or route this work, plan the agents for this, this spans backend and frontend and data, or investigate-and-fix a bug across the stack. A task that lives inside one stack hands off to main-stack-agents-flow; this skill routes and owns the cross-domain seams, it does not itself design or write code."
+disable-model-invocation: true
 ---
 
 # Subagent Flow - Team-Lead Router for the Multi-Agent Engineering Flow
@@ -41,12 +42,12 @@ Do not run the full team for every task. Classify size, risk, and how many domai
 |---|---|
 | single_chat | main session only - tiny, clear, one-domain, no contract impact |
 | implementer_only | main session -> one domain implementer -> main session verifies |
-| domain_trio | one stack's designer -> implementer -> verifier (this is `domain-build`) |
-| fanout_domain_trio | one stack's designer -> 2-4 implementers -> verifier (also `domain-build`) |
+| domain_trio | one stack's designer -> implementer -> verifier (this is `main-stack-agents-flow`) |
+| fanout_domain_trio | one stack's designer -> 2-4 implementers -> verifier (also `main-stack-agents-flow`) |
 | cross_domain_light | light contract -> per-domain implement + verify -> integration-reviewer - 2+ domains, stable obvious contract |
 | full_cross_domain | contract designer -> domain pipelines -> integration-reviewer - DB + API + UI, auth, migrations, devops, or production-critical |
 
-For any single-stack mode, hand off to `domain-build` - it owns the design-build-verify vertical for one stack. This skill owns everything above one stack: mode selection, the contract lifecycle, and the final gate. Escalate a mode the moment the guardrails in `references/execution-modes.md` trip (a hidden cross-domain contract impact, an auth or migration or data-loss risk, a large refactor surface).
+For any single-stack mode, hand off to `main-stack-agents-flow` - it owns the design-build-verify vertical for one stack. Both this skill and `main-stack-agents-flow` are manual (`disable-model-invocation`) skills, invoked only via `/cross-stack-agents-flow` and `/main-stack-agents-flow` - the model never auto-loads either. So a single-stack hand-off here does not model-invoke the `main-stack-agents-flow` skill; it dispatches that stack's seats (designer -> implementers -> verifier, the vertical `main-stack-agents-flow` documents) directly from the main session. This skill owns everything above one stack: mode selection, the contract lifecycle, and the final gate. Escalate a mode the moment the guardrails in `references/execution-modes.md` trip (a hidden cross-domain contract impact, an auth or migration or data-loss risk, a large refactor surface).
 
 ## Cross-domain orchestration
 
@@ -56,7 +57,7 @@ When the mode is cross_domain_light or full_cross_domain:
 Requirements clarified first (the feature-family gate above)
   -> task-analyzer or architecture-analyzer classify size, risk, affected domains
   -> cross-stack-contract-designer freezes Contract v1  (see references/contract-protocol.md)
-  -> parallel per-stack domain-build runs, each against the frozen contract:
+  -> parallel per-stack main-stack-agents-flow runs, each against the frozen contract:
        data / aspnet / angular / wpf / mobile / devops
   -> integration-reviewer gates the assembled whole  (final gate, mandatory)
   -> optional security-auditor if the risk requires
@@ -64,7 +65,7 @@ Requirements clarified first (the feature-family gate above)
   -> commit only after the integration gate signs off and the docs match what shipped
 ```
 
-Freeze the contract before any parallel domain work starts. Each domain pipeline runs `domain-build` for its stack against the frozen contract; the pipelines run in parallel, each internally sequential (designer -> implementers -> verifier). When every affected domain verifier has signed off, dispatch integration-reviewer over the assembled feature - it is independent of you and checks the seams the single-stack verifiers cannot see. Loop its punch-list back to the owning domains until it signs off, then commit.
+Freeze the contract before any parallel domain work starts. Each domain pipeline runs `main-stack-agents-flow` for its stack against the frozen contract; the pipelines run in parallel, each internally sequential (designer -> implementers -> verifier). When every affected domain verifier has signed off, dispatch integration-reviewer over the assembled feature - it is independent of you and checks the seams the single-stack verifiers cannot see. Loop its punch-list back to the owning domains until it signs off, then commit.
 
 ## The contract is law
 
@@ -93,4 +94,4 @@ Route to these rather than restating them in each agent:
 - Do not duplicate agents to vary task size or model effort. One durable seat per role; `references/execution-modes.md` picks the mode and `references/model-routing.md` picks the effort.
 - Never verify against a stale contract version, and never commit on a domain verifier's sign-off alone - the integration gate is the only thing that authorizes a cross-domain commit.
 - Durable architecture lives in the committed docs (`docs/architecture/ARCHITECTURE.md` + `docs/architecture/references/`); every seat reads them to orient instead of re-deriving the project, and serena memory is the transient inter-agent comms bus, not the architecture store. After a feature lands, refresh the docs (architecture-analyzer) before commit if it changed the architecture.
-- Keep this skill routing and orchestration only. Stack knowledge lives in the domain agents and the skills they load; single-stack execution lives in `domain-build`.
+- Keep this skill routing and orchestration only. Stack knowledge lives in the domain agents and the skills they load; single-stack execution lives in `main-stack-agents-flow`.

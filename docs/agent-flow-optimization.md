@@ -1,6 +1,6 @@
 # Agent flow & token-cost optimization
 
-2026-07-07. Branch `flow-optimization-2026-07`. Optimizing effectiveness-per-token across the multi-agent stack. This is a tightening of the routing the repo already has (`subagent-flow` + `domain-build`), not a redesign.
+2026-07-07. Branch `flow-optimization-2026-07`. Optimizing effectiveness-per-token across the multi-agent stack. This is a tightening of the routing the repo already has (`cross-stack-agents-flow` + `main-stack-agents-flow`), not a redesign.
 
 Headline: the routing was already mature - the mode ladder, the small-fix floor, the escalation guardrails, the issue family, the model-routing floors, and the Ponytail/Caveman policy all already existed, and the per-seat model/effort pins are the product of a prior worst-case audit (recorded, and re-confirmed by the inventory below). The genuine slack was on one axis the references did not cover: **capability reuse as a cost lever** - which the memory-handoff capability (added the same day) makes newly material. Per-seat tiers: **0 changes, by design.**
 
@@ -42,7 +42,7 @@ The designer (opus/xhigh ~10) is the single costliest seat, so **skipping it** (
 | Archetype | Definition | Smallest safe mode |
 |---|---|---|
 | Small fix | one file/symbol, obvious, no shared-contract impact | `single_chat` or `implementer_only` |
-| Single-stack feature | real work in one stack, contract-local | `domain_trio` / `fanout_domain_trio` (= `domain-build`) |
+| Single-stack feature | real work in one stack, contract-local | `domain_trio` / `fanout_domain_trio` (= `main-stack-agents-flow`) |
 | Cross-domain build | DB + API + UI, auth, migrations, production-critical | `cross_domain_light` -> `full_cross_domain` |
 | Logs/incident | why is it broken/failing/flaky/slow - diagnose first | the issue family in `references/issue-investigation.md` |
 
@@ -52,7 +52,7 @@ The designer (opus/xhigh ~10) is the single costliest seat, so **skipping it** (
 |---|---|---|---|---|---|---|---|
 | Small fix | single_chat / implementer_only | 0, or 1 implementer (sonnet/medium) | the one convention skill for the file type | serena (locate, not whole-file read); context7 before any library API; stack LSP inline diagnostics (cuts a fix-loop bounce) | n/a / seq | 1 | ANY of: shared-contract impact, auth/migration/data-loss, deployment-order, security-sensitive, large refactor, unclear legacy -> escalate one step |
 | Single-stack feature | domain_trio / fanout_domain_trio | designer opus/xhigh, impl sonnet/medium (xN), verifier sonnet/xhigh | designer+verifier preload the stack skills | designer: serena + context7 + memory recall of prior contract; impl: LSP + context7-before-API + serena + memory read/write (removes a version-guess rework + a whole-file read); verifier: orient from impl memory note + diff, then run gates independently (removes a redundant re-read) | parallel implementers, seq trio | 1 design + <=2 fix rounds then escalate | hidden cross-domain contract impact -> cross_domain_light/full |
-| Cross-domain build | cross_domain_light -> full_cross_domain | contract-designer opus/xhigh, per-domain trios, integration-reviewer opus/xhigh | contract-designer + integration-reviewer preload subagent-flow | context7 on every producer/consumer seam; memory carries the frozen contract across seats; security-guidance on auth/data/migration seats; playwright only where a browser is the only proof | domains parallel, each internally seq | per-domain <=2 + one integration punch-list loop | (this IS the top mode) |
+| Cross-domain build | cross_domain_light -> full_cross_domain | contract-designer opus/xhigh, per-domain trios, integration-reviewer opus/xhigh | contract-designer + integration-reviewer preload cross-stack-agents-flow | context7 on every producer/consumer seam; memory carries the frozen contract across seats; security-guidance on auth/data/migration seats; playwright only where a browser is the only proof | domains parallel, each internally seq | per-domain <=2 + one integration punch-list loop | (this IS the top mode) |
 | Logs/incident | issue family; diagnose before coding | diagnoser opus (xhigh/high) + evidence-gatherer sonnet/low (parallel, read-only) | diagnoser preloads systematic-debugging + the domain router | diagnoser: serena + memory recall of a matching error-signature->fix + evidence-gatherer for log volume (keeps the log off the opus seat); resolver: LSP + memory recall of the prior fix | evidence parallel, fix seq behind the diagnosis gate | investigation caps at 2 passes; resolver loop bounded | proven cause is cross-domain/contract -> cross_domain_issue_fix; security -> security_issue_fix |
 
 ## Step 4 - Gap analysis
@@ -69,10 +69,10 @@ The designer (opus/xhigh ~10) is the single costliest seat, so **skipping it** (
 
 ## Step 5 - Edits applied
 
-- **NEW `skills/subagent-flow/references/capability-reuse.md`** - per-role capability wiring (skill/MCP/LSP-plugin), the guess/pass each removes, the cross-cutting disciplines (context7-before-API, superpowers-on-ambiguity, claude-md-management for shared context), and the redundant-read rule (verifier orients from the memory note + diff, runs the gates independently).
+- **NEW `skills/cross-stack-agents-flow/references/capability-reuse.md`** - per-role capability wiring (skill/MCP/LSP-plugin), the guess/pass each removes, the cross-cutting disciplines (context7-before-API, superpowers-on-ambiguity, claude-md-management for shared context), and the redundant-read rule (verifier orients from the memory note + diff, runs the gates independently).
 - **`references/token-reduction.md`** - added the third lever (eager context + redundant reads), cross-linked to `capability-reuse.md`, no restatement.
 - **`references/execution-modes.md`** - reconciliation note: seats run at their static pins; the lever is mode/seat-count, not a re-dialed seat; capability wiring is the mode's other lever.
-- **`skills/subagent-flow/SKILL.md`** - added `capability-reuse.md` to the Policies list.
+- **`skills/cross-stack-agents-flow/SKILL.md`** - added `capability-reuse.md` to the Policies list.
 - **`references/model-routing.md`** - reviewed, already consistent (it already frames escalation as heavier-seat/higher-mode, not effort re-tuning); no change.
 - **Per-seat `claude/agents/*.md` frontmatter** - 0 model/effort changes, by design (see Step 4).
 

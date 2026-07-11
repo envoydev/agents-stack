@@ -10,4 +10,4 @@ Default to delegating fix-the-build / make-the-tests-pass to the matching resolv
 than looping in-session - the subagent absorbs the repeated output and returns only a
 diagnosis. Both pinned sonnet/high. A fix that would need a shared-contract change
 is outside a resolver's bounded scope - it stops as BLOCKED_CONTRACT_CHANGE for
-`subagent-flow` to route, never edits the contract to go green.
+`cross-stack-agents-flow` to route, never edits the contract to go green.

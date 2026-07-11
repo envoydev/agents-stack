@@ -1,6 +1,6 @@
 # Agents audit & improve loop
 
-> **Superseded 2026-07-08.** Hard requirement (2) below was 'memory MCP handoff'. The stack has since moved the per-project subagent handoff to **serena's local memory** (name-addressed notes via `write_memory` / `read_memory` / `list_memories`, named `<feature>__<contract_version>__<seat>`), leaving the `memory` MCP for cross-project recall only - see `CLAUDE.md` and `subagent-flow`'s `references/capability-reuse.md`. The scoreboard and batch notes below are the original 2026-07-07 record (memory-MCP handoff) and are left as history; hard requirement 2 is now **serena memory handoff** - re-audit against that, not the memory MCP.
+> **Superseded 2026-07-08.** Hard requirement (2) below was 'memory MCP handoff'. The stack has since moved the per-project subagent handoff to **serena's local memory** (name-addressed notes via `write_memory` / `read_memory` / `list_memories`, named `<feature>__<contract_version>__<seat>`), leaving the `memory` MCP for cross-project recall only - see `CLAUDE.md` and `cross-stack-agents-flow`'s `references/capability-reuse.md`. The scoreboard and batch notes below are the original 2026-07-07 record (memory-MCP handoff) and are left as history; hard requirement 2 is now **serena memory handoff** - re-audit against that, not the memory MCP.
 
 Durable ledger for the subagent audit (`claude/agents/*.md`, 32 seats). Rubric: 9 dimensions scored 0-10; grade = lowest dim (A = all >=8 AND all four hard requirements met, B = all >=6, C = all >=4). Four hard requirements are gates, not averaged: (1) serena-first navigation, (2) memory MCP handoff, (3) skill delegation, (4) mandatory upfront load. Gates for A: `node scripts/lint-skills.js` clean (checks 13 + 16 cover agents), YAML frontmatter parses and `name` matches file, all four hard reqs met, every dim >=8. Independent adversarial verify after each audit+fix pass; hard cap 5 passes.
 
@@ -10,7 +10,7 @@ Branch: `agents-audit-2026-07`. Started and completed 2026-07-07. **Result: 32/3
 
 ## The standardized memory-handoff contract (the new capability)
 
-The in-run handoff is unchanged: dispatch-prompt-in / structured-report-out (`subagent-flow`'s `references/agent-output-protocol.md`) plus the orchestrator's durable ledger. The memory MCP (`mcp__memory__*`, server `memory` / mcp-memory-service, sqlite_vec) adds a **durable cross-run, cross-project recall layer** on top - it does not replace the dispatch/report path.
+The in-run handoff is unchanged: dispatch-prompt-in / structured-report-out (`cross-stack-agents-flow`'s `references/agent-output-protocol.md`) plus the orchestrator's durable ledger. The memory MCP (`mcp__memory__*`, server `memory` / mcp-memory-service, sqlite_vec) adds a **durable cross-run, cross-project recall layer** on top - it does not replace the dispatch/report path.
 
 Standard added to each seat's `## Conventions` (plus `mcp__memory__*` in `tools`):
 - **At start (read):** recall prior memories for this feature/contract from the memory MCP (search by the feature + contract_version tag) - seat-specific: prior frozen contract + decisions / prior findings / prior root-cause for the same signature.

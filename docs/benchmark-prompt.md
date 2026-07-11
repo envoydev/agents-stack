@@ -15,7 +15,7 @@ visibly separate. Never fabricate a number.
 ## 0. What you are benchmarking
 
 The stack lives in the `agents-stack` repo (referred to below as `<STACK>`). It provides, per consuming
-project: ~53 house **skills**, 32 **agents** (a `subagent-flow` router over `domain-build`; per-domain
+project: ~53 house **skills**, 32 **agents** (a `cross-stack-agents-flow` router over `main-stack-agents-flow`; per-domain
 `solution-designer -> implementer -> verifier` trios for asp.net/angular/wpf/mobile/data/devops; cross
 cutting `architecture-analyzer`, `task-analyzer`, `issue-diagnoser`, `ci-failure-diagnoser`,
 `cross-stack-contract-designer`, `integration-reviewer`, `security-auditor`, four build/test resolvers,
@@ -24,8 +24,8 @@ and a read-only `evidence-gatherer` the diagnosers dispatch), 3 **hooks**, 8 pat
 `context7`, `memory`, `playwright`, `angular-cli`, `chrome-devtools`, `appium-mcp`).
 
 **Read these before you start** (do not skip - they define the flow you are measuring):
-`<STACK>/CLAUDE.md`, `<STACK>/skills/subagent-flow/SKILL.md`,
-`<STACK>/skills/domain-build/SKILL.md`, and the existing measurement harness under
+`<STACK>/CLAUDE.md`, `<STACK>/skills/cross-stack-agents-flow/SKILL.md`,
+`<STACK>/skills/main-stack-agents-flow/SKILL.md`, and the existing measurement harness under
 `<STACK>/examples/` (`angular-project-test-prompt.md`, `ANSWER-KEY.md`, `RUN-PHASES-1-3.md`) - your
 methodology mirrors and extends theirs (MEASURED vs ASSESSED; cite every number's source).
 
@@ -169,7 +169,7 @@ without re-deriving the project?).
 
 ### Family B - Happy-path task flow (Requirement 3)
 
-Drive real work through `subagent-flow`/`domain-build` and measure the normal path (no forced defect):
+Drive real work through `cross-stack-agents-flow`/`main-stack-agents-flow` and measure the normal path (no forced defect):
 - **B1 small / aspnet**, **B2 small / angular** - expect a light mode (`single_chat` / `implementer_only`).
 - **B3 big / aspnet**, **B4 big / angular** - expect a full `domain_trio` (or fan-out).
 - **B5 cross-project feature** - a feature spanning both projects; expect the cross-domain path
