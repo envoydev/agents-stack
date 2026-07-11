@@ -1,9 +1,6 @@
 ---
 name: ilspy-decompile
 description: "Decompile a compiled .NET assembly to read its real implementation - see how a framework or NuGet API actually works, view source you do not ship, or confirm behavior before a framework upgrade. Uses ilspycmd (via dnx or a pinned global tool). Load when you need ground truth from a .dll instead of guessing at an API, not for source you already have (that is serena / the LSP). Companions: `dotnet-migrate` (upgrade investigation), `csharp`."
-metadata:
-  type: reference
-  sources: "Distilled 2026-07 from aaronontheweb/dotnet-skills (ilspy-decompile). Kept the command recipes and the assembly-location map; trimmed the SDK-locator verbosity and the legal boilerplate to a single line."
 ---
 
 # ilspy-decompile

@@ -1,9 +1,6 @@
 ---
 name: sqlite
 description: "SQLite engine specialist - the SQLite-specific delta on top of the cross-engine database-conventions hub: when SQLite fits (and when it doesn't), the single-writer / WAL concurrency model and busy-timeout, PRAGMAs (foreign_keys, journal_mode, synchronous), type affinity vs STRICT tables and date/bool storage, limited ALTER TABLE and the table-rebuild, connection-per-thread and in-memory test DBs, B-tree-only indexing, FTS5, and backup. Load for a SQLite .db, a PRAGMA, an embedded/desktop/mobile/test store, or an EF Core SQLite provider quirk. Companions: database-conventions (cross-engine hub - load first), dotnet-data-access (the EF Core / ORM side), postgres (the other engine)."
-metadata:
-  type: reference
-  sources: "Authored from knowledge (no upstream skill). Engine-neutral conventions owned by database-conventions; this holds the SQLite-specific delta only."
 ---
 
 # sqlite (engine specialist)

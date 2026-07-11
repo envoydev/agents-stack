@@ -1,8 +1,6 @@
 ---
 name: dotnet-testing
 description: "Personal .NET testing hub - the architecture-neutral approach for unit / integration / E2E tests, not a single library: AAA structure, a test strategy keyed off responsibility that maps onto whatever architecture the project picked (layered, vertical-slice, modular), coverage thresholds computed after exclusions, and library routing (xUnit/NUnit/MSTest, NSubstitute/Moq/FakeItEasy, FluentAssertions/AwesomeAssertions/Shouldly, coverlet). Floors at .NET 8 / C# 12 - TimeProvider plus FakeTimeProvider are the time seam. Load before writing, modifying, or reviewing .NET tests, auditing test quality / smells, running mutation testing, or configuring coverage - do not rely on recall. Companions: csharp (testability, clock, async-returns-Task baseline), dotnet-error-handling (Result/exception shapes under assertion); Testcontainers (Postgres), Aspire-orchestrated integration, and Verify/snapshot testing are folded in here as references/. Do NOT load for Angular/Jasmine/Karma/Jest."
-metadata:
-  sources: "references/aspire-integration-testing.md + references/snapshot-testing.md + references/testcontainers.md distilled 2026-07 from aaronontheweb/dotnet-skills; the hub itself is original house work."
 ---
 
 # .NET Testing Approach

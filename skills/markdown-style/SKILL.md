@@ -1,9 +1,6 @@
 ---
 name: markdown-style
 description: "Markdown authoring and review skill - the two-layer rule set (syntax canon = valid, portable Markdown from the Markdown Guide; style overlay = opinionated house form from Google's style guide) plus the review procedure. Load when authoring or restructuring any .md (README, ADR, runbook, how-to, design doc) or on an explicit 'lint / style-check / fix this markdown', 'ATX vs setext', 'should I use a TOC?', or 'fix the headings / list indentation' ask. Markdown form only - not prose clarity (that is Vale) or spelling (codespell / hunspell)."
-metadata:
-  type: reference
-  sources: "Distilled 2026-07 from josiahsiegel/claude-plugin-marketplace (doc-master/markdown-style). Two layers derived from the Markdown Guide basic-syntax reference (CC BY-SA 4.0) and Google's developer-docs Markdown style guide (Apache 2.0) - see Attribution. Trimmed to house voice: dangling sibling-skill routing removed, per-finding approval ceremony replaced with the decisive apply-then-flag procedure."
 ---
 
 # markdown-style

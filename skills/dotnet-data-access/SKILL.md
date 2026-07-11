@@ -1,9 +1,6 @@
 ---
 name: dotnet-data-access
 description: "The .NET ORM / data-access layer (.NET 8 floor) - ORM-agnostic access principles here, per-ORM mechanics in references/: session or context lifetime and thread-safety, identity map / change tracking, eager-vs-lazy loading and N+1, projection to read models and read/write stores, bounded results and no-generic-repository, set-based bulk ops, and the full-ORM-for-writes + micro-ORM-for-reads split. Load when you configure a DbContext or ISession, write or review an ORM query, pick a loading strategy, or design a read/write store; then use references/efcore.md for EF Core or references/nhibernate.md for NHibernate. Not the engine side (raw SQL, index, planner -> postgres / sqlite) nor the migration playbook (-> dotnet-migrate). Companions: csharp (async, mapping), dotnet-testing (integration tests)."
-metadata:
-  type: reference
-  sources: "ORM-agnostic layer + references/efcore.md distilled 2026-07 from aaronontheweb/dotnet-skills (efcore-patterns, database-performance, ORM slice). references/nhibernate.md authored from knowledge (no upstream skill). Engine SQL -> postgres/sqlite; migration playbook -> dotnet-migrate; async/mapping -> csharp; integration tests -> dotnet-testing."
 ---
 
 # dotnet-data-access (ORM hub)

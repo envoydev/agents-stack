@@ -1,9 +1,6 @@
 ---
 name: dotnet-architecture
 description: "Choose and hold a .NET application architecture - the decision layer here, each style's depth in references/. Two axes plus one additive: topology (single deployable -> modular-monolith -> microservices), internal organization (clean-architecture vs vertical-slice), and DDD tactical patterns layered on when the domain has real invariants. Load when deciding where code belongs, structuring a new app or module, picking a layering/slicing style, drawing a service or module boundary, or reviewing an architecture drift. Companions: dotnet-architecture-tests (enforce the boundaries as build-failing tests), dotnet-web-backend (endpoint/validation wiring), dotnet-messaging (async across boundaries), csharp (value objects, records)."
-metadata:
-  type: reference
-  sources: "Decision layer + references/{clean-architecture,ddd,vertical-slice}.md distilled 2026-07 from codewithmukesh/dotnet-claude-kit (clean-architecture, ddd) and mryll/skills (vertical-slice-architecture, .NET slice). references/{modular-monolith,microservices}.md authored from knowledge (no upstream skill). Domain mechanics (records, Result, naming) -> csharp; boundary enforcement -> dotnet-architecture-tests."
 ---
 
 # dotnet-architecture (decision hub)

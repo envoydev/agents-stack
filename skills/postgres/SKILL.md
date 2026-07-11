@@ -1,9 +1,6 @@
 ---
 name: postgres
 description: "PostgreSQL engine specialist - the Postgres-specific delta on top of the cross-engine database-conventions hub: identifier folding and idempotent DDL, index-type selection (B-tree/GIN/GiST/BRIN/hash), JSONB and full-text indexing, SARGable predicate rewrites, the planner (EXPLAIN ANALYZE, pg_stat_statements, autovacuum/ANALYZE, work_mem), connection pooling modes, and array-batching/ON CONFLICT/COPY. Load for any hand-written Postgres SQL, an .sql file on a Postgres project, an EXPLAIN plan, a slow query, or an index/pooling decision. Not the cross-engine schema/transaction rules (-> database-conventions), the ORM side (-> dotnet-data-access), or another engine's SQL. Companions: database-conventions (cross-engine hub - load first), data-security (RLS/privileges), dotnet-data-access (the EF Core / ORM side)."
-metadata:
-  type: reference
-  sources: "Distilled 2026-07 from supabase/agent-skills (supabase-postgres-best-practices), josiahsiegel/claude-plugin-marketplace (index-strategies, query-optimization). Engine-neutral principles owned by database-conventions; this holds the Postgres-specific delta only."
 ---
 
 # postgres (engine specialist)
