@@ -44,7 +44,7 @@ bolded.
 | Claim | Verdict |
 |---|---|
 | `CLAUDE.md` always resident, every main session | CONFIRMED (memory.md) |
-| `CLAUDE.md` injected into every subagent | **UNVERIFIABLE from official docs.** Built-in Explore/Plan agents explicitly skip CLAUDE.md (skills.md); custom-agent behavior is undocumented. The cost model in this audit assumes main-session residency only - already sufficient to justify the cut. |
+| `CLAUDE.md` injected into every subagent | **UNVERIFIABLE from official docs; empirically CONFIRMED for `general-purpose` subagents** (claude CLI 2.1.207, scratch-project probe 2026-07-12: a subagent instructed to use no tools still listed markers planted in both `CLAUDE.md` and a path-less `.claude/rules/` file, source-attributed - so both are context-injected into dispatched subagents). Built-in Explore/Plan remain the documented exception. The cut is therefore worth more than the main-session-only cost model assumed. |
 | Skill `description` auto-injects; body loads on trigger | CONFIRMED (skills.md) |
 | `disable-model-invocation: true` = zero passive cost, `/`-only | CONFIRMED (skills.md): the description is removed from context entirely. **Consequence: `CLAUDE.md` is the only resident home for the 5 orchestration skills' existence - a one-line pointer must stay.** |
 | Rules with `paths:` lazy-load on a matching file touch | CONFIRMED (memory.md). **Rules trigger on file reads, never on Bash commands. A rule without `paths:` loads at launch with the same priority as CLAUDE.md - a path-less rule saves nothing.** |
@@ -521,6 +521,11 @@ definitions in section 3; the per-line classes are derivable from section 10's d
    `PLUGINS`. Delete instead and accept the coupling?
 3. **Optional enforcement hook** for commit-message format / attribution (saves zero resident tokens,
    adds 2-installer + HTML + lint surface): file as a follow-up, or drop the idea?
-4. **CLAUDE.md-in-subagents** is unverifiable from official docs (built-in Explore/Plan skip it;
-   custom-agent injection undocumented). The audit states 'main-session cost confirmed, subagent cost
-   unverified' - fine, or is there empirical evidence to cite?
+4. **CLAUDE.md-in-subagents** - ANSWERED empirically 2026-07-12 (see the mechanism table): a
+   no-tools `general-purpose` subagent sees both `CLAUDE.md` and path-less `.claude/rules/` files
+   as injected context (claude CLI 2.1.207). The same probe confirmed a path-less rule loads at
+   launch in the main session, and `update_rules` (`claude-stack.sh:719` -> `download_rules`)
+   re-fetches rules from GitHub `main` while `seed_claude_md` never refreshes a seeded `CLAUDE.md` -
+   so an evergreen-baseline rule would be fleet-updatable at zero token delta. Splitting the
+   baseline out of the template into a path-less rule is a possible follow-up, not part of this
+   migration.
