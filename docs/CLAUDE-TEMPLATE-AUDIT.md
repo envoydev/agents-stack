@@ -551,6 +551,18 @@ now 3,269 tokens vs 2,775 pre-split and 5,362 original (-39%). Rules count 9 -> 
 installers, the HTML data, both READMEs, and the repo map; lint green; a live probe answered three
 questions from three different baseline files in one fresh session.
 
+**Refined (same branch, 8ce0284):** the template's `## Rules` table became a baseline-only map -
+one detailed row per `baseline-*` rule (path-scoped rules dropped from it: their own `paths:`
+frontmatter is the trigger, no index needed); the MCP servers table moved out of the template into
+a tenth always-on rule (`baseline-mcp-tools.md`, placeholder-free - the `<framework>-cli` row
+became an `angular-cli`-as-example row, the comment-out fill notes became registration facts); and
+`## Per-project additions` was regrouped into a Project group (what it is: intro, architecture,
+patterns, operational notes, checklists) and a Stack group (what it's built with: stack, commands,
+conventions, testing, load-by-artifact). Rules 19 -> 20. Combined always-on 3,470 tokens
+(vs 5,362 original, -35%). Probes: a fresh session routed third-party-SDK work to context7 (from
+`baseline-mcp-tools`) and resolved the done-claim gate to `baseline-definition-of-done` via the
+template's map.
+
 ## 13. Open questions
 
 1. **Stack agents**: the slim version keeps only the dispatch policy and the five orchestration-skill
