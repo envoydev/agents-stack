@@ -418,7 +418,7 @@ HOOKS=(
 # .claude/settings.json alongside the hooks on INSTALL (idempotent, union-merged - a consuming project's
 # own deny entries are preserved). Bare globs match at any depth (gitignore semantics), and Claude Code
 # applies a Read() deny to recognized Bash reads too (cat/head/tail/sed) - not to arbitrary subprocesses.
-# Stack-specific secret/config globs stay a per-project addition (see CLAUDE.template.md's Security note).
+# Stack-specific secret/config globs stay a per-project addition (baseline-security.md tells the agent to extend the deny list in settings.json).
 # Claude-only - Cursor has no settings.json deny-list.
 SECRET_DENY=(
   "Read(.env)"
