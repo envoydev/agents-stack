@@ -33,17 +33,17 @@ a checkpoint), never a vibe. Project specifics go under `## Per-project addition
 
 ### Planning and execution
 
-- Non-trivial code (new feature, refactor, 3+ files): plan and write tests first - `writing-plans` then `test-driven-development`. Routine requests: apply-then-summarize.
+- Non-trivial code (new feature, refactor, 3+ files): plan and write tests first. Routine requests: apply-then-summarize.
 - Mid-size mechanical change (rename touching 10+ files): confirm the scope list, skip the full plan.
 - Skip planning for typos, one-line fixes, formatting, dep bumps, single-file rename.
-- Code fails: read the full error, quote the relevant part, reproduce if ambiguous. No shotgun debugging.
+- Code fails: read the full error, quote the relevant part.
 - Inherited code: codebase conventions win over these rules unless broken or unsafe.
 
 ### Code quality
 
 - No dead code, commented-out blocks, or `TODO` without a ticket ref.
 - Unit tests for new code; integration tests for DB / external service.
-- Keep it simple. No speculative abstractions, no error handling for impossible cases. Touch only what the task requires.
+- Keep it simple. No speculative abstractions. Touch only what the task requires.
 - Inline comments explain *why*, not *what*.
 
 ### Definition of done
@@ -68,46 +68,28 @@ Partial work: state complete vs not vs why, then ask continue / redirect / stop.
 
 - Conventional Commits. Branch `<type>/<short-description>` or `<type>/<ticket-id>`.
 - Before committing, show the `git diff` / `git status` and let the user review - commit only on their go, never automatically, and never push without an explicit ask. Never mention yourself: no AI/assistant attribution in the commit message, the branch name, or the PR title/body (a deliberate override of the platform default).
-- One logical change per PR, under 400 LOC. Body: what / why / how to test - what changed and why, never a change-statistics dump (file count, lines added/removed); that noise is generated, not decision-relevant. Link the ticket; screenshots if UI.
+- One logical change per PR, under 400 LOC. Body: what / why / how to test. Link the ticket; screenshots if UI.
 - Squash or rebase, no merge commits on feature branches. Prefer `--force-with-lease` over `--force`.
-- Non-trivial git beyond add/commit/push - rebase, cherry-pick, history recovery, conflict resolution - work reversibly (know the undo before you run it); the protected-branch force-push guard still applies.
-- Branch finished and all tests green: `finishing-a-development-branch` walks the close-out - merge / PR / cleanup - so integration is a deliberate choice, not an ad-hoc push.
+- Non-trivial git beyond add/commit/push - rebase, cherry-pick, history recovery, conflict resolution - work reversibly (know the undo before you run it).
 
 ### Navigation and code reading
 
 - Read only what's needed; before editing, read the body end-to-end and any function it depends on. To *locate* a symbol, its callers, or its resolved type, use `serena` (`find_symbol` / `find_referencing_symbols`) or the per-project `LSP` plugin - serena is the default navigator and owns symbol-level *edits*; an installed `LSP` plugin adds compiler-exact lookups and inline diagnostics for its language.
-- Navigate *inline* with serena - do not delegate a symbol / caller / type lookup to `Explore` / `general-purpose` (they fall back to grep). Reserve those agents for genuinely broad multi-file sweeps, not single-symbol lookups.
+- Navigate *inline* with serena - do not delegate a symbol / caller / type lookup to `Explore` / `general-purpose`. Reserve those agents for genuinely broad multi-file sweeps, not single-symbol lookups.
 - Ambiguous reference (e.g. 'the OrderService' with multiple matches): list the matches, ask. Do not guess.
 - Pasted code in chat is illustrative unless stated otherwise; confirm the target file before editing.
 
 ## Skills, plugins, hooks and MCPs
 
-How routing works, and the rules that matter most:
-
 - **The trigger is an artifact, a task shape, or a checkpoint - never a vibe.** Load a skill for the *work* (a file you're about to edit, a command you're about to run, a diff you're about to show), not to answer a question or explain. Over-loading a simple turn is the failure to avoid.
 - **Match the mechanism to the job, one home per piece, no duplication.** A deterministic gate at a discrete event → a hook. A keyword-fired capability → the skill's own auto-injected description. Everything else cross-cutting or project-specific → this file. Never state one trigger in two places.
 - **Skill descriptions auto-inject.** Route here only what a description does not already make obvious. House-style skills fire on their own keywords; the project's `CLAUDE.md` routes the third-party skills it cannot re-describe.
-- **Path-scoped rules** (`.claude/rules/`) carry glob-scoped routing (markdown authoring, per-language repair-loop delegation) and the per-file-type convention pointers (each glob-attaches a file type to its house-style skill) - they lazy-load only when a matching file is touched, so they cost nothing on an unrelated turn.
-
-### Personal (house-style) skills
-
-No inventory here. Name the project's house-style skills, and the file type each governs, under `## Per-project additions` (item 6).
-
-### Stack hooks
-
-Three PreToolUse guards ship in `.claude/hooks/`, wired into `.claude/settings.json`, and each announces its own block when it fires (so their behaviour is not restated here): the protected-branch and catastrophic-rm guards (`Bash`) and the whole-file-read guard (`Read`). Add a new deterministic gate as a hook there, not as prose.
 
 ### Stack agents
-
-The stack's subagents ship in `.claude/agents/` (auto-discovered), each model/effort-pinned in its own frontmatter: a set of cross-cutting agents plus a per-domain team for each of the seven stacks (ASP.NET, Angular, WPF, console/worker, Ionic/mobile, data/SQL, DevOps). A `CLAUDE_CODE_SUBAGENT_MODEL` env var silently overrides every model pin - leave it unset.
 
 **Invocation is explicit, never automatic.** Dispatch a subagent only on an explicit trigger - a user `@agent-<name>` mention, or an orchestration skill (`main-stack-agents-flow` / `cross-stack-agents-flow`) routing to it. Do not self-delegate to a subagent from a plain task description just because it matches the agent's `description`; when it looks like a match but no explicit trigger was given, handle it in the main session or invoke the orchestration skill. The descriptions state *when each agent applies* - the lever a skill or an `@agent-` mention uses to pick the right one, not a cue to fire on its own. (Claude Code has no per-agent flag to disable auto-delegation; this rule is the lever, and it holds because these descriptions carry no 'use proactively' phrasing. 'A first delegation on its trigger' below means the situation in which you would dispatch it, not that it auto-fires.)
 
 Every skill that dispatches agents - `main-stack-agents-flow`, `cross-stack-agents-flow`, `project-scaffold`, `project-quality-loop`, `architecture-quality-loop` - is set `disable-model-invocation` (a hard Claude Code flag): they never auto-activate and are removed from the model's skill list, so they run ONLY when the user invokes `/main-stack-agents-flow`, `/cross-stack-agents-flow`, `/project-scaffold`, `/project-quality-loop`, or `/architecture-quality-loop`. That is what keeps agents dispatchable ONLY via a manually-run skill or an `@agent-<name>` mention. Because the flag also blocks the model from loading one skill from another, when `cross-stack-agents-flow` or `project-scaffold` runs a single stack's vertical it dispatches that stack's seats (designer -> implementers -> verifier) directly from the main session rather than invoking the `main-stack-agents-flow` skill. (This is Claude-only; Cursor ignores the flag, so the skills can still auto-activate there.)
-
-**Cross-cutting** - the four .NET/Angular build/test **repair loops** route per-language via `.claude/rules/` (loading only in matching projects), which carry the delegate-don't-loop-in-session discipline. Plus the opus **analysis** agents (xhigh, or high for `task-analyzer` / `ci-failure-diagnoser`), each a first delegation on its trigger: `task-analyzer` (one feature or bug), `architecture-analyzer` (deliberate-only, via `@agent-` or the `architecture-quality-loop` skill, never in a build flow - an iterative reasoner that loops `code-analyzer` to map the project and writes a lean `docs/architecture/ARCHITECTURE.md` core map, its `docs/architecture/references/` deep-dives, and a `docs/architecture/ASSESSMENT.md` pros/cons evaluation; the change-fit verdict is the designer's now), `greenfield-solution-designer` (new project or module - feeds the `project-scaffold` skill), `ci-failure-diagnoser` (red CI), `issue-diagnoser` (a bug of unknown cause - read-only, isolates the root cause to a file and symbol and routes the fix, never fixes it), `cross-stack-contract-designer` (freeze the shared backend / frontend contract before the per-stack designers, on a feature that spans stacks), and `framework-upgrade-planner` (a version or deprecation event -> an ordered upgrade plan). Two cheap sonnet analysis seats support these: `code-analyzer` (the read-only per-module characterizer `architecture-analyzer` loops - purpose, surface, deps, patterns, smells) and `style-analyzer` (writes `docs/CODE-STYLE.md`, the project's actual code style that every code seat reads to orient alongside `docs/architecture/ARCHITECTURE.md`).
-
-**Per-domain team** - one triad per stack, same shape: a `<stack>-solution-designer` (opus / xhigh) designs the architecture and test strategy, then decomposes the work into independent parallel contracted tasks; several `<stack>-implementer`s (sonnet / medium) each build one task with its tests inside its contract; a `<stack>-verifier` (sonnet / xhigh) gates the assembled whole against plan and quality, looping a punch-list back until it signs off. The `main-stack-agents-flow` skill runs the vertical from the main session: detect the stack -> designer -> approve the design -> fan out the implementers -> verifier -> loop any punch-list back. Only the main session orchestrates the vertical - its seats never dispatch agents (the only nested dispatch inside a build flow is the two diagnosers dispatching a cheap read-only `evidence-gatherer` to keep log volume off the opus seat; the deliberate `architecture-analyzer` looping `code-analyzer` is the stack's other sanctioned nested dispatch, run outside any build flow); for a feature that crosses stacks, the `cross-stack-agents-flow` skill routes the cross-domain flow: it classifies the work (via `task-analyzer`, reading the committed architecture map) and picks the smallest execution mode, freezes the shared contract (via `cross-stack-contract-designer`) before running `main-stack-agents-flow` per stack in parallel, then gates the assembled whole through the read-only `integration-reviewer` (opus / xhigh), the mandatory final gate before a cross-domain commit. `cross-stack-agents-flow` is also the home of the shared subagent policies - execution modes, contract change, structured output, model and token routing.
 
 ### Pre-commit and done checkpoints
 
@@ -115,8 +97,7 @@ The `git commit` you're about to run, or the diff you're about to show, is the t
 On any non-trivial diff, before committing or presenting: run the formatter, then
 `/code-review` (`/simplify` applies its quality findings in place), plus any
 language-specific diff gates the project's `CLAUDE.md` names - then satisfy the
-Definition-of-done gate above. `security-guidance` plugin hooks
-run automatically on edits / Stop / commit; heed their warnings. Skip only for
+Definition-of-done gate above. Skip only for
 typos / one-line / formatting-only diffs.
 
 ### MCP servers
@@ -129,14 +110,6 @@ typos / one-line / formatting-only diffs.
 | `playwright` | drive a browser for visual checks / large HTML reports - don't text-read them |
 | `<framework>-cli` (framework-gated; `angular-cli` in the Angular baseline) | the framework CLI's own docs / commands - shipped active in the Angular stack, commented out where the project isn't that framework. A framework-specific complement to `context7`, which stays the generic-docs route. |
 | Issue-tracker connector (Claude built-in, not stack-wired) | the project's tracker read-write: search, create, update issues - your ticket-authoring skills generate the content, the connector files it (always confirm before filing) |
-
-Two further MCPs ship active in the baseline but are heavy and fail at launch without their
-native deps - `chrome-devtools` (browser / extension debug) and `appium-mcp` (native mobile
-E2E, needs Xcode / Android SDK + Java); comment them out where the project isn't a browser /
-mobile target. Name any other MCP the project adds under `## Per-project additions`. The stack
-installer writes an `enabledMcpjsonServers` allow-list into `settings.json` naming exactly these
-registered servers, so Claude Code pre-approves the project `.mcp.json` with no per-launch trust
-prompt - never a blanket `enableAllProjectMcpServers`.
 
 Adjacent but not an MCP: the **`LSP` tool** is fed by the per-language LSP pair - `csharp-lsp`
 (C#), `typescript-lsp` (TS / JS) - enable whichever match the project's language(s). An LSP gives
@@ -166,9 +139,6 @@ related_projects:
     visit_when: <optional - what sends you there, e.g. 'a bug traces into this package'>
 ```
 
-- **Orient from `read_first` before code.** When an edge sends you into a sibling, `Read` its agent
-  brief (`CLAUDE.md` / `AGENTS.md`) then `README.md` (and any other `read_first` doc) first - they
-  are plain files, so no cross-project indexing is needed.
 - **Navigation stays per-repo.** serena binds to *this* repo; you can `Read` / `Grep` a sibling's
   files directly, but real serena symbol-navigation of a sibling happens in a context rooted in that
   sibling (a dispatched sub-investigation or a session with its cwd there), never cross-navigated

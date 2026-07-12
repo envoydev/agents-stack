@@ -80,9 +80,7 @@ const NON_SKILL_TOKENS = new Set([
     // superpowers-plugin workflow skills (ship with the plugin, not house skills)
     // referenced by name in the base templates and the single-chat twin skills.
     'writing-plans',
-    'test-driven-development',
     'verification-before-completion',
-    'finishing-a-development-branch',
     'systematic-debugging',   // paired with by the failure-signatures skill
     // Claude Code SKILL.md frontmatter field (manual-only skills), backticked in
     // prose in cross-stack-agents-flow + the base template - a field name, not a skill.
