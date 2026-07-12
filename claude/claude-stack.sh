@@ -489,6 +489,7 @@ CLAUDE_RULES=(
   "baseline-git.md"
   "baseline-navigation.md"
   "baseline-agents-skills.md"
+  "baseline-mcp-tools.md"
   # Path-scoped routing
   "markdown-docs.md"          # markdown-style routing, path-scoped **/*.md
   "dotnet-repair-agents.md"   # .NET repair-loop routing, path-scoped cs/csproj/sln/xaml

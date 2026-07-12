@@ -2,49 +2,32 @@
 
 > **Fill-in block - delete once done.** Copy this file into a new project as `CLAUDE.md`, then:
 > replace every `<placeholder>` with what the project actually has (inspect first: `.claude/skills/`,
-> `.mcp.json`, `claude plugin list`); trim every inventory to the stack(s) this project uses; delete
-> any section that does not apply; add the project top per `## Per-project additions`. This file
-> auto-injects every session and into subagents - keep it lean and route work by an observable
-> trigger (an artifact, a command, a checkpoint). The cross-project working conventions are NOT
-> here: they load from the always-on baseline-*.md rules in `.claude/rules/` (installer-managed,
-> refreshed on `update`) - never restate them in this file. Trim the `## Rules` table below to what
-> the installer actually laid down.
+> `.mcp.json`, `claude plugin list`); trim the `## Rules` table to what the installer actually laid
+> down; delete any section that does not apply; add the project top per `## Per-project additions`.
+> This file auto-injects every session and into subagents - keep it lean and route work by an
+> observable trigger (an artifact, a command, a checkpoint). The cross-project working conventions
+> are NOT here: they load from the always-on baseline rules in `.claude/rules/` (installer-managed,
+> refreshed on `update`) - never restate them in this file.
 
 ## Rules
 
-What sits in `.claude/rules/` and when each loads. The baseline set is always-on; path-scoped
-rules attach themselves when a matching file is touched - if a rule's topic comes up with no
-matching file in play (or you need its exact wording), read the rule file directly.
+The always-on baseline set in `.claude/rules/` - each file is one concern; all of them are loaded
+every session, so this table is the map of where each behavior rule lives (read the file when you
+need its exact wording). Path-scoped rules in the same directory attach themselves when a matching
+file is touched and are not listed here - their own `paths:` frontmatter says when.
 
-| Rule | Loads | Job |
-|---|---|---|
-| baseline-* (9: communication, evaluating-proposals, planning, code-quality, definition-of-done, security, git, navigation, agents-skills) | always | the house working baseline - one concern per file |
-| markdown-docs | `**/*.md` | routes .md authoring to `markdown-style` |
-| typescript-conventions | ts/js family | routes to `typescript` |
-| angular-conventions | Angular file shapes | routes to `angular-conventions` |
-| angular-styling-conventions | scss/css | routes to `angular-styling` |
-| csharp-conventions | `**/*.cs` | routes to `csharp` |
-| wpf-conventions | `**/*.xaml` | routes to `dotnet-wpf` |
-| sql-conventions | `**/*.sql` | routes to `database-conventions` |
-| devops-conventions | Dockerfile / compose / workflows | routes to `devops` |
-| dotnet-repair-agents | .NET file shapes | routes build/test repair to the .NET resolvers |
-| angular-repair-agents | Angular file shapes | routes build/test repair to the ng resolvers |
-
-## MCP servers
-
-| Server | Use for |
+| Baseline rule | What it governs |
 |---|---|
-| `serena` | default symbol navigator + symbol-level editor - `find_symbol` / `find_referencing_symbols` before any whole-file Read; self-activates on launch (never call `activate_project`). Also holds the per-project memory (`.serena/memories/`) the agent flows use for hand-off notes. |
-| `context7` | up-to-date docs for any API you don't own. Before writing or changing hand-written code against a third-party package, vendor SDK, or version-sensitive framework surface: resolve + query first; never answer library-API questions from recall. Generated code doesn't count. |
-| `memory` | *cross-project* recall only - search when this project's context is thin; store a significant cross-project outcome at task end (decision / gotcha / architecture, + project & date). Per-project hand-off lives in serena, not here. Comment out in a standalone project. |
-| `playwright` | drive a browser for visual checks / large HTML reports - don't text-read them |
-| `<framework>-cli` | the framework CLI's own docs / commands - keep only in a matching project |
-| Issue-tracker connector | the project's tracker read-write; ticket skills write the content, the connector files it - always confirm before filing |
-
-`chrome-devtools` and `appium-mcp` ship active but need native deps - comment out where the
-project isn't a browser / mobile target. LSP plugins (`csharp-lsp`, `typescript-lsp`) feed the
-`LSP` tool - enable the project's language(s). Name any project-added MCPs and plugins under
-`## Per-project additions`.
+| baseline-communication | response style: direct, no filler openers, concise with structure, recommendation-first, label uncertainty, verify anything current, silently correct the user's language, name privacy, single dashes + single quotes |
+| baseline-evaluating-proposals | adversarial review of any user proposal (design, plan, decision): strongest objection first, BLOCKER / MATERIAL / MINOR ranks, concrete failure modes, what-would-have-to-be-true + cheapest test, no sycophancy or manufactured criticism |
+| baseline-planning | when to plan and write tests first (3+ files) vs apply-then-summarize, the skip-planning list, read-the-full-error discipline, inherited-code precedence |
+| baseline-code-quality | no dead code or ticketless TODOs, unit + integration test expectations, keep-it-simple, comments explain why |
+| baseline-definition-of-done | the done-claim gate: build + tests run and output quoted before saying done / fixed / works, never game the gate, partial-work protocol |
+| baseline-security | /security-review routing for sensitive diffs, never log PII / secrets, hardcoded-secret protocol, the permissions.deny subprocess caveat |
+| baseline-git | Conventional Commits + branch naming, review-before-commit, never auto-push, no AI attribution, PR shape, force-with-lease, the pre-commit checkpoint |
+| baseline-navigation | serena-first symbol lookup, read-before-edit, ambiguous-reference handling, pasted-code-is-illustrative |
+| baseline-agents-skills | skill-loading discipline, explicit-only subagent dispatch, the five slash-only orchestration skills |
+| baseline-mcp-tools | which MCP or tool for which job: serena, context7, memory, playwright, framework CLIs, the LSP plugins |
 
 ## Related projects
 
@@ -66,16 +49,21 @@ related_projects:
 
 ## Per-project additions
 
-A project's `CLAUDE.md` is this base plus a project-specific top. Add, in roughly this order,
-keeping each section lean:
+A project's `CLAUDE.md` is this base plus a project-specific top, in two groups (each section
+lean; interleave as reads best - the project intro usually comes first):
+
+**Project - what it is:**
 
 1. **What this project is** - one paragraph: domain, shape (binary / service / library), persistence, surfaces.
-2. **Stack** - languages, frameworks, key libraries, test stack + coverage gate, the LSP plugin for the primary language(s).
-3. **Commands** - copy-pasteable build / test / run / migrate / publish, with any environment quirks.
-4. **Architecture** - layers / modules, dependency rules, folder organization.
-5. **Key patterns** - the non-obvious in-house patterns a newcomer would trip on.
-6. **Code conventions** - the house-style skill for each file type (a path-scoped rule in `.claude/rules/` glob-attaches it; a file matching two globs loads both skills).
-7. **Testing approach** - per-layer strategy, what's excluded, the integration / regression net.
-8. **Load by artifact** - a table mapping this repo's concrete files / types / constructs to the third-party skills it can't re-describe (house-style skills self-fire, so they're not in it).
-9. **Operational notes** - runtime constraints and gotchas that shape code decisions.
-10. **Cross-cutting checklists** - for each change that must move several files in lockstep, the full touch-point list.
+2. **Architecture** - layers / modules, dependency rules, folder organization.
+3. **Key patterns** - the non-obvious in-house patterns a newcomer would trip on.
+4. **Operational notes** - runtime constraints and gotchas that shape code decisions.
+5. **Cross-cutting checklists** - for each change that must move several files in lockstep, the full touch-point list.
+
+**Stack - what it is built with:**
+
+6. **Stack** - languages, frameworks, key libraries, test stack + coverage gate, the LSP plugin for the primary language(s), any project-added MCPs / plugins.
+7. **Commands** - copy-pasteable build / test / run / migrate / publish, with any environment quirks.
+8. **Code conventions** - the house-style skill for each file type (a path-scoped rule in `.claude/rules/` glob-attaches it; a file matching two globs loads both skills).
+9. **Testing approach** - per-layer strategy, what's excluded, the integration / regression net.
+10. **Load by artifact** - a table mapping this repo's concrete files / types / constructs to the third-party skills it can't re-describe (house-style skills self-fire, so they're not in it).
