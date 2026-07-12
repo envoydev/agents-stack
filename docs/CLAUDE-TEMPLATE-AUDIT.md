@@ -512,7 +512,32 @@ EOF
 The directive:rationale split additionally classifies each line D / R / M (mixed = 50/50) per the
 definitions in section 3; the per-line classes are derivable from section 10's dispositions.
 
-## 12. Open questions
+## 12. Follow-up executed: baseline split into an always-on rule
+
+After the migration landed, the evergreen half of the template moved into
+`claude/rules/house-baseline.md` (no `paths:` frontmatter - loads at launch and into subagents,
+per the probes in section 2), leaving `claude/CLAUDE.template.md` a purely per-project skeleton:
+
+- **Rule** (1,719 tokens / 97 lines): `## How to work here` (all eight subsections) + the
+  skills/agents routing bullets + the pre-commit checkpoint. Zero placeholders - the security-globs
+  fill instruction became an extend-`settings.json` instruction, and the two self-references now
+  point at 'the project's `CLAUDE.md`'.
+- **Template** (1,056 tokens / 60 lines): fill block (now pointing at the rule, forbidding
+  restatement) + MCP servers table + Related projects + Per-project additions.
+- **Combined resident cost 2,775 tokens** (+107 vs the 2,668 single file - the rule's header
+  explaining its update-clobber semantics). The win is distribution, not tokens: `update_rules`
+  re-fetches the baseline fleet-wide on every `update`, while a seeded `CLAUDE.md` never refreshes;
+  per-project exclusion is a `CLAUDE_RULES` manifest comment-out.
+- Wiring: `CLAUDE_RULES` in both installers, the HTML `rules` data + group caption, both
+  `claude/README.md` rows (Rules 8 -> 9), the root repo map. `npm run lint` green. Live probe: a
+  scratch project with the real rule + template answered the em-dash and proposal-review questions
+  from rule content.
+- Section 9's single homes that read 'template' now read 'house-baseline rule' for the evergreen
+  items; the one-home property is unchanged. The tradeoff accepted: local edits to the baseline
+  rule in a consuming project are overwritten on `update` - project-specific guidance belongs in
+  `CLAUDE.md`, never in the rule.
+
+## 13. Open questions
 
 1. **Stack agents**: the slim version keeps only the dispatch policy and the five orchestration-skill
    pointers. Should one orientation line on the triad shape (designer -> implementers -> verifier per
