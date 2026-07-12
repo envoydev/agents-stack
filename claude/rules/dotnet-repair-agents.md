@@ -1,13 +1,11 @@
 ---
-paths: ["**/*.cs", "**/*.csproj", "**/*.sln", "**/*.xaml"]
+paths: ["**/*.cs", "**/*.csproj", "**/*.sln", "**/*.slnx", "**/*.xaml"]
 ---
 
-The two .NET repair loops routing - **`dotnet-build-error-resolver`** runs dotnet build,
-categorizes CS/NU/MSB/MC errors (MC#### = WPF XAML markup compile), fixes minimally via
-serena, rebuilds until clean (5-cycle cap); **`dotnet-test-failure-resolver`** drives dotnet
-test red->green fixing the correct side, never gaming a test; use after the build is green.
-Default to delegating fix-the-build / make-the-tests-pass to the matching resolver rather
-than looping in-session - the subagent absorbs the repeated output and returns only a
-diagnosis. Both pinned sonnet/high. A fix that would need a shared-contract change
-is outside a resolver's bounded scope - it stops as BLOCKED_CONTRACT_CHANGE for
-`cross-stack-agents-flow` to route, never edits the contract to go green.
+A broken .NET build or red test suite - default to delegating rather than looping in-session:
+fix-the-build goes to **`dotnet-build-error-resolver`** (MC#### errors = WPF XAML markup
+compile are its scope too), make-the-tests-pass goes to **`dotnet-test-failure-resolver`**
+once the build is green. The subagent absorbs the repeated build/test output and returns
+only a diagnosis. A resolver that stops as BLOCKED_CONTRACT_CHANGE hit a fix needing a
+shared-contract change - outside its bounded scope by design; route it through
+`cross-stack-agents-flow`, never edit the contract to go green.

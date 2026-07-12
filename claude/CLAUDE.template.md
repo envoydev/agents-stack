@@ -12,8 +12,8 @@
 ## Rules
 
 The always-on baseline set in `.claude/rules/` - each file is one concern; all of them are loaded
-every session, so this table is the map of where each behavior rule lives (read the file when you
-need its exact wording). Path-scoped rules in the same directory attach themselves when a matching
+every session, so this table is the map of where each behavior rule lives. Path-scoped rules in
+the same directory attach themselves when a matching
 file is touched and are not listed here - their own `paths:` frontmatter says when.
 
 | Baseline rule | What it governs |
