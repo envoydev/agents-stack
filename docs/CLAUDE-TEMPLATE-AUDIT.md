@@ -537,6 +537,20 @@ per the probes in section 2), leaving `claude/CLAUDE.template.md` a purely per-p
   rule in a consuming project are overwritten on `update` - project-specific guidance belongs in
   `CLAUDE.md`, never in the rule.
 
+**Superseded by the single-job split (same branch):** the one `house-baseline.md` was further split
+into nine always-on `baseline-*.md` rules (one concern per file: communication,
+evaluating-proposals, planning, code-quality, definition-of-done, security, git + pre-commit,
+navigation, agents-skills - individually excludable via the `CLAUDE_RULES` manifest), and
+`web-conventions.md` - the one path-scoped rule routing to three independently-installable skills -
+split into `typescript-conventions.md` / `angular-conventions.md` / `angular-styling-conventions.md`
+(a TypeScript-only project no longer installs a rule pointing at absent Angular skills; the other
+path-scoped rules already routed to a single skill each, so they did not split). The template
+gained a `## Rules` index table (loads + job per rule; the baseline set as one row). Cost
+accounting: split overhead +147 tokens (nine frontmatter headers), index +347 - combined always-on
+now 3,269 tokens vs 2,775 pre-split and 5,362 original (-39%). Rules count 9 -> 19 across both
+installers, the HTML data, both READMEs, and the repo map; lint green; a live probe answered three
+questions from three different baseline files in one fresh session.
+
 ## 13. Open questions
 
 1. **Stack agents**: the slim version keeps only the dispatch policy and the five orchestration-skill
