@@ -2,7 +2,7 @@
 paths: ["**/angular.json", "**/*.component.ts", "**/*.component.html", "**/*.service.ts", "**/*.directive.ts", "**/*.pipe.ts", "**/*.guard.ts", "**/*.resolver.ts", "**/*.module.ts", "**/*.routes.ts", "**/src/app/**/*.ts", "**/src/app/**/*.html", "**/src/lib/**/*.ts", "**/src/lib/**/*.html"]
 ---
 
-Editing Angular / Ionic framework code - load `angular-conventions` before the edit, on top of the
+Editing Angular / Ionic framework code - load `angular-conventions` before the edit - skip the load when it is already in context (some seats preload it) - on top of the
 `typescript` baseline its own rule attaches; conventions are the source of truth, not recall.
 Covers components, services, directives, pipes, guards, resolvers, modules, routes, and templates -
 an Ionic/Capacitor app shares the same conventions, and the `src/app` / `src/lib` globs catch the
