@@ -24,9 +24,9 @@ rules in the same directory attach on a matching file touch - their own `paths:`
 | baseline-git | commits, branches, PRs, push discipline, the pre-commit checkpoint |
 | baseline-navigation | symbol-lookup and code-reading discipline |
 | baseline-project-capabilities (GENERATED - run /project-capabilities after install or a trim) | the usage policy plus this project's real skill / seat / MCP inventory |
-
-Two more generated always-on rules land when their captures run: `baseline-project-architecture.md`
-(/project-architecture-analyzer) and `baseline-project-related-context.md` (/project-related-context).
+| baseline-project-architecture (GENERATED - run /project-architecture-analyzer) | architecture awareness - the micro-summary plus the read-the-map trigger into docs/architecture/ |
+| baseline-project-related-context (GENERATED - run /project-related-context with the sibling paths/URLs) | sibling-repo awareness - name / location / relation / seam per sibling |
+| inject-code-style hook (GENERATED - run /project-code-style-analyzer; a hook + doc, not a rule) | the project's actual code style - docs/PROJECT-CODE-STYLE.md surfaced at edit time, filtered to the observed file types |
 
 ## Per-project additions
 
