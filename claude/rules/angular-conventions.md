@@ -1,9 +1,10 @@
 ---
-paths: ["**/angular.json", "**/*.component.ts", "**/*.component.html", "**/*.service.ts", "**/*.directive.ts", "**/*.pipe.ts", "**/*.guard.ts", "**/*.resolver.ts", "**/*.module.ts", "**/*.routes.ts"]
+paths: ["**/angular.json", "**/*.component.ts", "**/*.component.html", "**/*.service.ts", "**/*.directive.ts", "**/*.pipe.ts", "**/*.guard.ts", "**/*.resolver.ts", "**/*.module.ts", "**/*.routes.ts", "**/src/app/**/*.ts", "**/src/app/**/*.html", "**/src/lib/**/*.ts", "**/src/lib/**/*.html"]
 ---
 
 Editing Angular / Ionic framework code - load `angular-conventions` before the edit, on top of the
 `typescript` baseline its own rule attaches; conventions are the source of truth, not recall.
 Covers components, services, directives, pipes, guards, resolvers, modules, routes, and templates -
-an Ionic/Capacitor app shares the same conventions. A file that is both an Angular file and
-TypeScript wants both skills. Skip one-line tweaks.
+an Ionic/Capacitor app shares the same conventions, and the `src/app` / `src/lib` globs catch the
+v20 suffix-less file names the type-suffix globs miss (a bespoke layout: load the skill yourself).
+A file that is both an Angular file and TypeScript wants both skills. Skip one-line tweaks.

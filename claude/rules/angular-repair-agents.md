@@ -1,5 +1,5 @@
 ---
-paths: ["**/angular.json", "**/*.component.ts", "**/*.component.html", "**/*.spec.ts", "**/*.scss"]
+paths: ["**/angular.json", "**/*.component.ts", "**/*.component.html", "**/*.spec.ts", "**/*.scss", "**/src/app/**/*.ts", "**/src/lib/**/*.ts"]
 ---
 
 A broken Angular build or red spec suite (Ionic/Capacitor included - ionic build wraps ng
