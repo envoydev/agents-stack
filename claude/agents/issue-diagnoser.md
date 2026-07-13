@@ -6,7 +6,7 @@ model: opus
 effort: xhigh
 color: orange
 skills:
-  - systematic-debugging
+  - superpowers:systematic-debugging
   - project-failure-signatures
 ---
 
