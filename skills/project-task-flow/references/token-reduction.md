@@ -10,7 +10,6 @@ Ponytail is primary because it reduces the work itself, not just the words. Run 
 ponytail:
   implementers: full
   repair_agents: full
-  integration_reviewer: full
   domain_verifiers: full        # the 'review' discipline: hunt over-build past the plan
   solution_designers: lite      # the 'ultra' discipline: smallest plan that fully meets the requirement
 ```
@@ -23,7 +22,7 @@ Core Ponytail behavior expected from an implementer (the 'full' discipline):
 3. Prefer a framework / native / stdlib feature before a new dependency.
 4. Implement the smallest change that satisfies the contract and acceptance criteria.
 5. Do not future-proof speculatively.
-6. Mark each deliberate simplification with a `ponytail:` code comment naming its ceiling and upgrade path (`// ponytail: global lock, per-account locks if throughput matters`) - a shortcut read as intent, not ignorance.
+6. Record each deliberate simplification and its ceiling/upgrade path in the closing report ('global lock, per-account locks if throughput matters') - never as a `ponytail:` code comment; markers stay out of the code, the report carries the intent.
 7. Never cut security, accessibility, validation, data-loss prevention, or migration safety to get smaller.
 ```
 
@@ -37,7 +36,7 @@ correctness or safety? Over-build past the plan is a finding; re-opening scope
 the plan deliberately included is the designer's call, not the verifier's.
 ```
 
-This is why each seat already names its discipline inline - designers 'ultra', implementers 'full', verifiers 'review'. This policy is the shared statement of why.
+This is why each seat already names its discipline inline - designers 'ultra', implementers and repair resolvers 'full', verifiers 'review'. The integration-reviewer runs NO ponytail pass - over-build is already hunted per stack by the domain verifiers; it carries report-lean only. This policy is the shared statement of why.
 
 ## Report terseness - selective only
 
@@ -56,7 +55,6 @@ token_reduction_policy:
   ponytail:
     implementers: full
     repair_agents: full
-    integration_reviewer: full
     verifiers: full
     designers: lite
   report_terseness:            # inline discipline in each report / punch-list seat (was the Caveman plugin, now dropped)
