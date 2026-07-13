@@ -1,6 +1,6 @@
 ---
 name: project-quality-loop
-description: "Autonomous review-and-fix pipeline driven from a folder of numbered prompt files (a loops/ folder of code-quality / naming / comments / tests). Runs each prompt in numeric order, looping it on a target until its bar is met, then advances - making and logging judgment calls itself, never pausing for input. Triggers on 'run the project quality loop' or 'run the loops pipeline'. Code-quality only - architecture restructuring is project-architecture-quality-loop; a single diff sweep is /code-review or /security-review, not this. Do NOT fire for a one-off review pass, without a folder of prompt files, or when findings should be reported without auto-fixing."
+description: "Autonomous review-and-fix pipeline driven from a folder of numbered prompt files (a loops/ folder of code-quality / naming / comments / tests). Runs each prompt in numeric order, looping it on a target until its bar is met, then advances - making and logging judgment calls itself, never pausing for input. Triggers on 'run the project quality loop' or 'run the loops pipeline'. Code-quality only - architecture restructuring is project-architecture-quality-loop; a single diff sweep is /code-review or /security-review, not this. Do NOT fire for a one-off review pass or when findings should be reported without auto-fixing (a missing loops/ folder is no blocker - the skill ships a starter set to bootstrap)."
 disable-model-invocation: true
 ---
 

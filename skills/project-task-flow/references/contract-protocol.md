@@ -17,7 +17,7 @@ A local implementation detail can change and continue (report DONE_WITH_CONCERNS
 - Event or message contracts.
 - Config / env vars.
 - Migration or deployment order.
-- Frontend / WPF / mobile-visible behavior.
+- Frontend / desktop / mobile-visible behavior.
 
 ## The change protocol
 

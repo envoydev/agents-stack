@@ -22,7 +22,7 @@ The design carries the quality: a build handles the traps its plan named and shi
 
 ## Output
 
-An ordered task plan: the fit verdict and its forcing edge first, then one entry per task - what it does, the files, the traps to handle, the located anchors - in build order. Then hand off: gate the plan with `project-verify-plan` before building, build each task under the stack skill, and review the built code with `/code-review`. Pairs with `writing-plans` for the plan format; this adds the house architecture-fit and stack-trap layer that a generic plan is silent on.
+An ordered task plan: the fit verdict and its forcing edge first, then one entry per task - what it does, the files, the traps to handle, the located anchors - in build order. Then hand off: gate the plan with `project-verify-plan` before building, build each task with `project-implement` under the stack skill, and review the built code with `/code-review`. Pairs with `writing-plans` for the plan format; this adds the house architecture-fit and stack-trap layer that a generic plan is silent on.
 
 ## Example
 
@@ -34,4 +34,4 @@ Plan (single-chat output):
 - **Task 2** - add the export entry point returning a streamed response. Trap: map to a transfer shape at the edge, never the persistence entity (the stack skill's boundary trap). Anchor: the located edge (`file:symbol`).
 - **Task 3** - an integration test asserting the header row, one data row, and the success status. Anchor: the located test suite.
 
-Then gate with `project-verify-plan`, build each task under the stack's house skills, and review with `/code-review`.
+Then gate with `project-verify-plan`, build each task with `project-implement` under the stack's house skills, and review with `/code-review`.

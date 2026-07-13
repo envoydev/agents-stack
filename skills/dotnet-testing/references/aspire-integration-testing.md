@@ -76,7 +76,7 @@ public sealed class AspireCollection : ICollectionFixture<AspireAppFixture> { }
 public sealed class ApiTests(AspireAppFixture fixture)
 {
     [Fact]
-    public async Task Root_returns_200()
+    public async Task Root_Returns_200()
     {
         var client = fixture.App.CreateHttpClient("api");
         var response = await client.GetAsync("/");

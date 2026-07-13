@@ -55,7 +55,7 @@ dotnet add package PublicApiGenerator
 
 ```csharp
 [Fact]
-public Task Public_api_is_unchanged()
+public Task Public_Api_Is_Unchanged()
 {
     var api = typeof(MyLibrary.PublicClass).Assembly.GeneratePublicApi();
     return Verify(api);
@@ -68,7 +68,7 @@ Capture status, selected headers, and body together so a route's whole contract 
 
 ```csharp
 [Fact]
-public async Task GetUser_returns_expected_response()
+public async Task GetUser_Returns_Expected_Response()
 {
     var client = _factory.CreateClient();
     var response = await client.GetAsync("/api/users/123");

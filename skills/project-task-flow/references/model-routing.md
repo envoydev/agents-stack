@@ -9,7 +9,6 @@ task_class: medium_feature
 risk: [auth, database_migration]
 domains: [data, backend]
 routing:
-  contract_designer: opus-xhigh
   solution_designer: opus-high
   implementer: sonnet-medium
   verifier: sonnet-xhigh
@@ -22,9 +21,7 @@ routing:
 |---|---|---|
 | BA / requirements clarification | sonnet high | opus high for very ambiguous product logic or a regulated domain |
 | Team Lead / orchestrator | sonnet high | opus high/xhigh for large cross-stack decomposition |
-| Task Analyzer | sonnet high | opus high/xhigh for large / ambiguous / refactor / security-critical work |
-| Cross-stack Contract Designer | opus xhigh | keep opus xhigh for cross-domain feature work |
-| Domain Solution Designer | opus high | opus xhigh for backend / data / devops / security / major architecture risk |
+| Domain Solution Designer | opus high | opus xhigh for backend / data / devops / security / major architecture risk - and the producer designer whose interface section is the cross-domain contract |
 | Implementer | sonnet medium | sonnet high for auth, migrations, concurrency, messaging, devops, security-sensitive code, large refactors, legacy unknowns |
 | Domain Verifier | sonnet high | sonnet xhigh for auth, data, devops, security, contract-sensitive work |
 | Integration Reviewer | sonnet xhigh | opus xhigh for cross-domain contract changes, production-critical, or security-sensitive features |

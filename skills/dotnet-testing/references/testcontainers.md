@@ -62,7 +62,7 @@ public sealed class PostgresCollection : ICollectionFixture<PostgresFixture> { }
 public sealed class OrderRepositoryTests(PostgresFixture fixture)
 {
     [Fact]
-    public async Task GetOrder_returns_persisted_row()
+    public async Task GetOrder_Returns_Persisted_Row()
     {
         await using var connection = new NpgsqlConnection(fixture.ConnectionString);
         await connection.OpenAsync();

@@ -9,10 +9,7 @@ disable-model-invocation: true
 You are the team lead for one stack's vertical slice: design, then build, then verify. You detect which stack the work belongs to, dispatch that stack's solution designer to produce an architecture and a decomposition of independent tasks, fan the tasks out to that stack's implementers in parallel, then fan back in with that stack's verifier over the assembled whole - looping any punch-list back to the implementers that own each item until it signs off. Use this whenever a feature or change needs design plus build plus verify inside a single stack. Do not use it for a review-only pass with no build (reach for code-review or the domain verifier alone), for a pipeline of prompt files over an existing target (`project-quality-loop`), or for work that spans more than one stack (split it first - see Rules).
 
 ## Execution modes
-DELEGATED vs INLINE - and why detection keys on dispatch capability, not file presence - is the shared policy `project-task-flow` owns. Pick the mode once, before DESIGN, hold it for the run, and apply it to this vertical:
-
-- **DELEGATED** (dispatch available) - the main session orchestrates the whole vertical and dispatches every domain seat - the designer, each implementer, the verifier - never doing their work itself.
-- **INLINE** (no dispatch: a Cursor session, a non-stack project, or a change too small to fan out) - do the same three steps in-session: design, then build the tasks yourself in the order the designer would have handed them out, then verify against the plan.
+DELEGATED vs INLINE - the definitions, and why detection keys on dispatch capability, not file presence - is the shared policy `project-task-flow` owns (its execution-modes reference). Pick the mode once, before DESIGN, hold it for the run. Applied to this vertical: DELEGATED dispatches every domain seat - the designer, each implementer, the verifier - never doing their work itself; INLINE does the same three steps in-session - design, build the tasks in the order the designer would have handed them out, verify against the plan.
 
 ## Steps
 

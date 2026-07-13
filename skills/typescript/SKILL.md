@@ -53,7 +53,7 @@ Library-grade type work - conditional types with `infer`, mapped types, template
 
 - ES modules only - `import` / `export`. No CommonJS `require` in new TypeScript, save for a `.cjs` interop shim. Set `"type": "module"` wherever the runtime allows it.
 - Named exports by default; they keep one canonical name and survive renames. Reserve `export default` for the entry points a framework or bundler demands.
-- Expose a feature or package through a single `index.ts` barrel and import from that barrel across the boundary. Inside a feature, deep relative imports are fine; reaching past another feature's barrel is not.
+- Expose a package - or a feature wide enough to have a public surface - through a single `index.ts` barrel at its boundary, and import through that barrel from outside. Barrels stop there: no deep intra-feature barrels (they hurt build/lint/test performance and invite cycles - the reference's caution). Inside a feature, deep relative imports are fine; reaching past another feature's barrel is not.
 - `import type { ... }` for type-only imports. It erases at build, can't pull a value at runtime, and won't create an import cycle through types alone.
 - When an upstream package's types are merely incomplete, fix them in place with module augmentation - `declare module 'pkg' { ... }`, or `declare global { interface Window { ... } }` for globals - in a dedicated `*.d.ts`. That is strictly better than casting to `any` or wrapping the library to dodge the gap.
 

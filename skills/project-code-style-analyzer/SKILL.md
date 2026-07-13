@@ -1,6 +1,6 @@
 ---
 name: project-code-style-analyzer
-description: "The deliberate project code-style capture: fan out code-style-analyzer agents (one per detected language), merge their reports into docs/PROJECT-CODE-STYLE.md, and generate + wire the inject-code-style hook that surfaces that doc at edit time, filtered to the exact file extensions the agents observed. Re-run to refresh: the same analysis, but the doc reconciles in place and the hook is rewritten only if invalid or outdated. Manual, /-only. Triggers on 'capture the project code style' or 'set up the code-style doc and hook'. NOT for architecture (project-architecture-quality-loop), one language's style question (@agent-code-style-analyzer alone), or enforcing style (the per-language configs stay the enforced source)."
+description: "The deliberate project code-style capture: fan out code-style-analyzer agents (one per detected language), merge their reports into docs/PROJECT-CODE-STYLE.md, and generate + wire the inject-code-style hook that surfaces that doc at edit time, filtered to the exact file extensions the agents observed. Re-run to refresh: the same analysis, but the doc reconciles in place and the hook is rewritten only if invalid or outdated. Manual, /-only. Triggers on 'capture the project code style' or 'set up the code-style doc and hook'. NOT for architecture (project-architecture-analyzer), one language's style question (@agent-code-style-analyzer alone), or enforcing style (the per-language configs stay the enforced source)."
 disable-model-invocation: true
 ---
 

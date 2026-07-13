@@ -2,6 +2,23 @@
 
 The authoritative cross-engine SQL *writing* style: casing, formatting and layout, naming style, query construction, data-type choice, NULL handling, dialect portability, and the per-engine cheat-sheet. Precedence is stated once in `SKILL.md`: the project's own SQL style wins over both documents, and this reference wins over `SKILL.md` where the two overlap. Targets hand-written SQL; ORM/EF-generated SQL follows its tool's conventions. These are conventions, not correctness rules - the cited guides genuinely disagree in places and any internally consistent choice is legitimate; version-gated features are noted inline, so confirm them against the deployed engine version.
 
+## Contents
+
+1. [Casing conventions](#1-casing-conventions)
+2. [Naming conventions](#2-naming-conventions)
+3. [Formatting and layout](#3-formatting-and-layout)
+4. [Query construction best practices](#4-query-construction-best-practices)
+5. [Data type conventions](#5-data-type-conventions)
+6. [NULL handling conventions](#6-null-handling-conventions)
+7. [Comments and documentation](#7-comments-and-documentation)
+8. [CTEs and subqueries](#8-ctes-and-subqueries)
+9. [Transactions and error handling](#9-transactions-and-error-handling)
+10. [Dialect-specific gotchas and portability](#10-dialect-specific-gotchas-and-portability)
+11. [Performance-adjacent conventions](#11-performance-adjacent-conventions-that-are-also-style)
+12. [Security conventions](#12-security-conventions)
+
+Plus [Recommendations](#recommendations) and the [dialect cheat-sheet](#cheat-sheet-dialect-quick-reference).
+
 ## Details
 
 ### 1. Casing conventions

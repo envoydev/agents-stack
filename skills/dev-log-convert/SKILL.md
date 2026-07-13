@@ -57,7 +57,7 @@ Total time: <sum across all groups>.
 **Ordering**
 - Order groups by total time spent that day, largest first.
 - Within a group: ticketed tasks first (largest time first), then `Other` items.
-- The date in the title is today's date in `dd.mm.yyyy` format.
+- The date in the title is today's date in `dd.mm.yyyy` format - for single-day input with no date of its own; a dated or multi-day input takes each entry's resolved date (see Multiple days and Edge cases).
 
 ## Rules
 
@@ -100,6 +100,7 @@ Total time: <sum across all groups>.
 
 **Multiple days**
 - If input contains multiple days, output each day as a separate section in the same response.
+- Each day's section title carries that day's own resolved date - the today's-date title rule applies to single-day input only.
 - If a day of week is not provided, write `Day not specified`.
 
 **Edge cases**

@@ -1,6 +1,6 @@
 # Issue Investigation Flow
 
-Bugs, CI failures, incidents, runtime errors, flaky tests, and unclear behavior use a different flow from feature work. Do NOT start them on the feature path (BA -> Team Lead -> solution designers -> implementers). Start with evidence and diagnosis.
+Bugs, CI failures, incidents, runtime errors, flaky tests, and unclear behavior use a different flow from feature work. Do NOT start them on the feature path (clarify -> scope -> solution designers -> implementers). Start with evidence and diagnosis.
 
 ```text
 Issue / failure report

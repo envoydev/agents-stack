@@ -18,8 +18,8 @@ Detection keys on dispatch capability, not file presence - a project can carry t
 | `implementer_only` | main session -> one domain implementer -> main session verifies | the DEFAULT single-domain rung: small OR medium work with no risk trigger - the main session self-verifies (build / test / review) | low |
 | `domain_trio` | domain designer -> one implementer -> domain verifier | single-domain work that trips a risk trigger - auth, migration, data-loss, concurrency, security, or a large refactor (opt-in on risk, NOT the medium-work default) | medium |
 | `fanout_domain_trio` | domain designer -> 2-4 implementers -> domain verifier | large/risky work inside one domain | medium-high |
-| `cross_domain_light` | light contract -> per-domain implement + verify -> integration-reviewer | 2+ domains, obvious stable contract | high |
-| `full_cross_domain` | contract designer -> domain designers -> implementer fan-out -> domain verifiers -> integration gate | DB + API + UI, security, devops, migrations, auth, or production-critical | highest |
+| `cross_domain_light` | producer designer -> producer + consumer implement/verify -> integration-reviewer | 2+ domains, routine stable seam | high |
+| `full_cross_domain` | producer designer -> consumer designer validates the seam -> domain pipelines -> integration-reviewer | novel or risky seam: new public/versioned API, streaming or eventing, auth, migrations, deployment order, production-critical | highest |
 
 `domain_trio` and `fanout_domain_trio` ARE the `main-stack-agents-flow` skill - route single-stack work to it. cross_domain_light and full_cross_domain are owned here in `project-task-flow`.
 
@@ -31,9 +31,10 @@ small OR medium, one-domain, no risk trigger        -> implementer_only   (the d
 one-domain WITH a risk trigger (auth / migration /
   data-loss / concurrency / security / big refactor) -> domain_trio
 large/risky, one-domain                             -> fanout_domain_trio
-2+ domains, contract obvious and stable     -> cross_domain_light
-DB + Backend + Frontend, security, devops,
-  migrations, auth, or production-critical  -> full_cross_domain
+2+ domains, routine stable seam             -> cross_domain_light
+novel or risky seam (new public/versioned API,
+  streaming/eventing, auth, migrations,
+  deployment order) or production-critical  -> full_cross_domain
 ```
 
 ## Single-chat and implementer-only
@@ -44,7 +45,7 @@ DB + Backend + Frontend, security, devops,
 
 The line between them is **discovery**: when the edit site is already known - a named file, a 1-2 line change the request or a diagnosis has already localized - `single_chat` does it in the main session at zero seat cost. Reserve `implementer_only` for when the seat must first *find* where to edit, or the change touches several files in the domain. Spinning a full seat for a known one-liner is the trivial-blast-radius overuse the modes exist to avoid. (The issue-flow sibling of this rung is `direct_fix` in `references/issue-investigation.md` - a diagnoser-localized trivial fix the main session applies without a separate implementer + verifier.)
 
-De-escalation runs the same way, a step DOWN the ladder. A pure presentational leaf - a component with no interaction, RxJS, routing, API, or shared-state surface (a property the designer's verdict already carries) - drops from `domain_trio` to `implementer_only` plus a main-session check, rather than paying an opus designer and an xhigh verifier for a labelled span. The lever is the lighter MODE, not a lighter verify effort: per the model/effort asymmetry `references/model-routing.md` owns, a trivial blast radius is made cheaper by choosing fewer / lighter seats, never by dialing a dispatched seat's effort down.
+De-escalation runs the same way, a step DOWN the ladder. A pure presentational leaf - a component with no interaction, reactive subscriptions, routing, API, or shared-state surface (a property the designer's verdict already carries) - drops from `domain_trio` to `implementer_only` plus a main-session check, rather than paying an opus designer and an xhigh verifier for a labelled span. The lever is the lighter MODE, not a lighter verify effort: per the model/effort asymmetry `references/model-routing.md` owns, a trivial blast radius is made cheaper by choosing fewer / lighter seats, never by dialing a dispatched seat's effort down.
 
 ## Route by risk, not size - what the verifier is worth
 

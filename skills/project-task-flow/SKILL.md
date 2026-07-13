@@ -36,7 +36,7 @@ Scoping is yours, not a seat's. Establish the task's true blast radius from what
 
 1. **Read what is pre-loaded.** The generated awareness rules carry the map: `baseline-project-architecture` (project type, style, modules) and `baseline-project-related-context` (the sibling/sub-project entries with `relation` and `seam` - the dependency directions). Follow into `docs/architecture/ARCHITECTURE.md` for the area the task names.
 2. **Locate, bounded.** Verify the touched symbols and their one-level callers with serena - **hard cap: 2 locating passes**. When a module's picture needs more than that, dispatch code-analyzer (sonnet/low) for a digest instead of reading on - the cheap seat absorbs the reads, you keep the judgment.
-3. **Walk the seam catalog.** `references/seam-catalog.md` lists the stack-keyed traps that turn a 'local' task into a cross-domain one (a shared DTO edit, a migration, a `providedIn: 'root'` service, an event contract). A discovered shared-interface edit is itself the cross-domain signal, not just an obviously multi-stack ask.
+3. **Walk the seam catalog.** `references/seam-catalog.md` lists the stack-keyed traps that turn a 'local' task into a cross-domain one (a shared DTO edit, a migration, an app-wide singleton service, an event contract). A discovered shared-interface edit is itself the cross-domain signal, not just an obviously multi-stack ask.
 4. **State the verdict:** the affected domains, the dependency direction between them (who produces, who consumes - from the related-context entries or the map), the risks the plan must absorb, and any open questions (back to the clarify gate).
 
 ## Execution modes - pick the smallest that is safe

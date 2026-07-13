@@ -13,8 +13,6 @@ ponytail:
   integration_reviewer: full
   domain_verifiers: full        # the 'review' discipline: hunt over-build past the plan
   solution_designers: lite      # the 'ultra' discipline: smallest plan that fully meets the requirement
-  contract_designer: lite
-  task_analyzer: lite
 ```
 
 Core Ponytail behavior expected from an implementer (the 'full' discipline):
@@ -61,7 +59,6 @@ token_reduction_policy:
     integration_reviewer: full
     verifiers: full
     designers: lite
-    contract_designer: lite
   report_terseness:            # inline discipline in each report / punch-list seat (was the Caveman plugin, now dropped)
     reports: lite
     punch_lists: lite
