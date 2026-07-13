@@ -30,7 +30,7 @@ everything below applies to both unless a row is marked otherwise.
 | --------- | ----- | ----- |
 | **Skills**  | 64 | conventions + utilities (ticket writers, C#/.NET, Angular/TS, SQL, `project-task-flow` orchestration + routing (single-stack trios + cross-domain), `project-quality-loop` + `project-architecture-quality-loop` review loops) - `npx skills add … --agent claude-code` |
 | **Plugins** | 7  | `superpowers`, `claude-md-management`, `csharp-lsp`, `typescript-lsp`, `security-guidance`, `claude-hud`, `ponytail` - `claude plugin install` (needs the `claude` CLI) |
-| **MCP servers** | 7 | `angular-cli`, `serena`, `playwright`, `memory`, `context7`, plus `chrome-devtools` + `appium-mcp` (heavy - active; comment out where not needed). `memory` is cross-project recall (the subagent handoff runs on serena) - comment it out in a standalone project → `<repo>/.mcp.json` |
+| **MCP servers** | 8 | `angular-cli`, `serena`, `playwright`, `memory`, `context7`, plus `chrome-devtools` + `appium-mcp` (heavy - active; comment out where not needed) and `sentry` (error monitoring - needs `SENTRY_ACCESS_TOKEN` + `SENTRY_HOST` in settings `env`; comment out without Sentry). `memory` is cross-project recall (the subagent handoff runs on serena) - comment it out in a standalone project → `<repo>/.mcp.json` |
 | **Hooks** | 4 | `guard-protected-force-push` (blocks force-push to main/master/develop) + `guard-catastrophic-rm` (blocks recursive rm of /, ~, $HOME, or a bare *) + `guard-read-whole-file` (PreToolUse Read - blocks a whole-file Read of a >100-line source file, locate via serena first) → `.claude/hooks/` + wired into `.claude/settings.json`; plus `instrument-tool-usage` fetched UNWIRED (opt-in per-run stats - see the instrumentation section) |
 | **Agents** | 33 | 4 resolvers - .NET (`dotnet-build-error-resolver`, `dotnet-test-failure-resolver`) + Angular (`ng-build-error-resolver`, `angular-test-resolver`): implement-phase build/test fix loops, serena-driven, iteration-capped, no reward-hacking, pinned sonnet/high - plus 4 cross-cutting agents (`ci-failure-diagnoser`, `issue-diagnoser`, `security-auditor`, `integration-reviewer` - the last the mandatory cross-domain final gate before commit, all read-only, pinned opus/xhigh - bar ci-failure-diagnoser at opus/high and integration-reviewer at sonnet/xhigh) - plus 21 per-domain seats, a 3-agent vertical repeated across 7 stacks (ASP.NET, Angular, WPF, console, mobile, data, DevOps - the three C# verticals split by surface: web/API, WPF desktop, and console the headless Generic-Host worker/bot/daemon/CLI): `<stack>-solution-designer` (opus/xhigh - decomposes into parallel tasks) → `<stack>-implementer` (sonnet/medium - builds one task, code + tests) → `<stack>-verifier` (sonnet/xhigh - gates the build vs plan + quality, loops back) - plus two read-only sonnet/low support seats: `evidence-gatherer` (the two diagnosers dispatch it to reproduce and pull logs) and `code-analyzer` (the `project-architecture-analyzer` capture fans it out to characterize modules - purpose, surface, deps, patterns, smells), each keeping the read volume off the opus seat; plus `code-style-analyzer` (sonnet/medium - the read-only per-language style characterizer the `project-code-style-analyzer` skill fans out in parallel, merging the reports into `docs/PROJECT-CODE-STYLE.md` + the inject-code-style hook's extension filter) and `related-project-analyzer` (sonnet/medium - the read-only sibling-repo characterizer the `project-related-context` skill fans out per related path/URL, merging the YAML entries into `docs/PROJECT-RELATED-CONTEXT.md`); every seat bar `evidence-gatherer`, `code-analyzer`, `code-style-analyzer` and `related-project-analyzer` also uses serena's per-project memory as the hand-off bus (read a note named `<feature>__<contract_version>__<seat>` at start, write one at hand-off); the committed architecture docs - a lean `docs/architecture/ARCHITECTURE.md` core map plus deep-dive files under `docs/architecture/references/`, the durable project-architecture map the designers build against - are owned by the `project-architecture-analyzer` skill, reasoning in the main session over `code-analyzer` digests → `.claude/agents/` |
 | **Rules** | 15 | five always-on `baseline-*` rules (no `paths:` - the cross-project working conventions grouped by exclusion affinity: interaction (communication + proposal review + planning), quality-gates (code quality + definition of done), security, git + pre-commit, navigation; the skill/agent usage policy, the per-project capability inventory, MCP routing, related-projects and architecture awareness are per-project GENERATED rules - baseline-project-capabilities.md / baseline-project-related-context.md / baseline-project-architecture.md, written by their capture skills, never in this manifest; loaded every session and subagent like CLAUDE.md but refreshed on `update`, individually excludable) + ten path-scoped: markdown authoring, the two repair-loop routers, and seven single-job convention rules (typescript, angular, angular-styling, csharp, wpf, sql, devops - each glob-attaches ONE file family to its house-style skill, so a stack a project lacks is simply not installed) → `.claude/rules/` |
@@ -120,7 +120,7 @@ export CLAUDE_CONFIG_DIR="$HOME/.claude-work"          # macOS/Linux
 $env:CLAUDE_CONFIG_DIR = "$HOME\.claude-work"          # Windows
 ```
 
-### `CONTEXT7_API_KEY` - the one secret (optional)
+### `CONTEXT7_API_KEY` / `SENTRY_*` - the optional secrets
 
 The `context7` MCP reads `CONTEXT7_API_KEY` **from the environment at launch**, so expose it to
 the MCP process *without* writing it into the registration (`.mcp.json`). **Leave it unset in your
@@ -135,7 +135,10 @@ install shell** so the registration stays keyless, and provide the key one of th
   `--api-key` to the registration; at project scope that writes it into `<repo>/.mcp.json` - **keep
   that file uncommitted** if you go this route.
 
-No other API keys are required by any component.
+The `sentry` MCP works the same way: its registration carries literal `${SENTRY_ACCESS_TOKEN}` and
+`${SENTRY_HOST}` args that Claude Code expands **at launch** from `settings.json` `"env"` - put both
+there (host = your self-hosted Sentry or `sentry.io`), and comment the server out of the manifest
+where the project has no Sentry. No other API keys are required by any component.
 
 ---
 
@@ -277,7 +280,7 @@ session reaches for the right tool:
 | **context7** | Any design or upgrade against a library/framework API - current docs beat recalled knowledge. Optional `CONTEXT7_API_KEY` in settings `env` raises rate limits. |
 | **memory** | Cross-project recall (one shared DB under `~/.memory-mcp`). Comment it out in a standalone project - the per-feature subagent hand-off runs on serena's local memory, not this. |
 | **playwright** | Driving a real browser to verify web UI work. |
-| **angular-cli** / **chrome-devtools** / **appium-mcp** | Conditional and/or heavy: Angular workspaces, browser/extension debug, native mobile E2E. Trim them from the manifest where they do not apply - the heavy two die at launch without their native deps. |
+| **angular-cli** / **chrome-devtools** / **appium-mcp** / **sentry** | Conditional and/or heavy: Angular workspaces, browser/extension debug, native mobile E2E, Sentry error monitoring (`SENTRY_ACCESS_TOKEN` + `SENTRY_HOST` in settings `env`). Trim them from the manifest where they do not apply - the heavy two die at launch without their native deps. |
 
 **serena: index the project before you start.** With serena in the stack, run its indexer once from
 the project root before the first working session - it builds the symbol/reference index up front,

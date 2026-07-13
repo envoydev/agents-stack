@@ -371,13 +371,15 @@ MCP_CONTEXT7_VER="$(_npm_latest @upstash/context7-mcp)" || true
 MCP_PLAYWRIGHT_VER="$(_npm_latest @playwright/mcp)" || true
 MCP_SERENA_VER="$(_pypi_latest serena-agent)" || true
 MCP_MEMORY_VER="$(_pypi_latest mcp-memory-service)" || true
+MCP_SENTRY_VER="$(_npm_latest @sentry/mcp-server)" || true
 # Version-pin suffix: "@1.2.3" when resolved, "" (unpinned fallback) when offline.
 CTX7_PIN="${MCP_CONTEXT7_VER:+@$MCP_CONTEXT7_VER}"
 PW_PIN="${MCP_PLAYWRIGHT_VER:+@$MCP_PLAYWRIGHT_VER}"
 SERENA_PIN="${MCP_SERENA_VER:+@$MCP_SERENA_VER}"
 MEMORY_PIN="${MCP_MEMORY_VER:+@$MCP_MEMORY_VER}"
+SENTRY_MCP_PIN="${MCP_SENTRY_VER:+@$MCP_SENTRY_VER}"
 # Report what pinned vs. fell back to unpinned - the whole point of this step is 'frozen until update'.
-for _pv in "context7:$MCP_CONTEXT7_VER" "playwright:$MCP_PLAYWRIGHT_VER" "serena:$MCP_SERENA_VER" "memory:$MCP_MEMORY_VER"; do
+for _pv in "context7:$MCP_CONTEXT7_VER" "playwright:$MCP_PLAYWRIGHT_VER" "serena:$MCP_SERENA_VER" "memory:$MCP_MEMORY_VER" "sentry:$MCP_SENTRY_VER"; do
   _pn="${_pv%%:*}"; _pver="${_pv#*:}"
   if [ -n "$_pver" ]; then log "  pinned $_pn@$_pver"
   else log "  !! could not resolve $_pn latest - installing unpinned (re-run when online to pin it)"; fi
@@ -414,6 +416,7 @@ MCPS=(
   "playwright|-- npx -y @playwright/mcp${PW_PIN} --user-data-dir \${CLAUDE_PROJECT_DIR:-.}/.playwright --output-dir \${CLAUDE_PROJECT_DIR:-.}/.playwright/screenshots" # drive a real browser for visual checks / web app verification
   "chrome-devtools|-- npx chrome-devtools-mcp@latest" # OPT-IN browser/extension debug; drives a full Chrome (heavy) - comment out outside web projects; no WS-frame payloads; pin a version
   "appium-mcp|-- npx -y appium-mcp@latest" # OPT-IN native mobile E2E (official Appium MCP); embedded UiAutomator2/XCUITest drivers, needs Xcode and/or Android SDK + Java (heavy) - comment out outside Capacitor/Ionic mobile projects; pin a version
+  "sentry|-- npx -y @sentry/mcp-server${SENTRY_MCP_PIN} --access-token=\${SENTRY_ACCESS_TOKEN} --host=\${SENTRY_HOST}" # OPT-IN Sentry error monitoring - both tokens stay LITERAL in the registration and expand at launch (Claude: settings.json "env"; Cursor: rewritten to ${env:VAR}, OS env); set SENTRY_ACCESS_TOKEN + SENTRY_HOST, comment out where the project has no Sentry
   "$MEMORY_ENTRY"  # memory: cross-project recall - the subagent handoff runs on serena; comment out in a standalone project
   "$CONTEXT7_ENTRY"                           # up-to-date library/framework/SDK docs (beats recalled API knowledge)
 )

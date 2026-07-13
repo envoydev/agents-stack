@@ -384,13 +384,15 @@ $McpContext7Ver   = Get-NpmLatest  '@upstash/context7-mcp'
 $McpPlaywrightVer = Get-NpmLatest  '@playwright/mcp'
 $McpSerenaVer     = Get-PypiLatest 'serena-agent'
 $McpMemoryVer     = Get-PypiLatest 'mcp-memory-service'
+$McpSentryVer     = Get-NpmLatest  '@sentry/mcp-server'
 # Version-pin suffix: '@1.2.3' when resolved, '' (unpinned fallback) when offline.
 $Ctx7Pin   = if ($McpContext7Ver)   { '@' + $McpContext7Ver }   else { '' }
 $PwPin     = if ($McpPlaywrightVer) { '@' + $McpPlaywrightVer } else { '' }
 $SerenaPin = if ($McpSerenaVer)     { '@' + $McpSerenaVer }     else { '' }
 $MemoryPin = if ($McpMemoryVer)     { '@' + $McpMemoryVer }     else { '' }
+$SentryMcpPin = if ($McpSentryVer)  { '@' + $McpSentryVer }  else { '' }
 # Report what pinned vs. fell back to unpinned - the whole point of this step is 'frozen until update'.
-$resolvedVers = [ordered]@{ 'context7' = $McpContext7Ver; 'playwright' = $McpPlaywrightVer; 'serena' = $McpSerenaVer; 'memory' = $McpMemoryVer }
+$resolvedVers = [ordered]@{ 'context7' = $McpContext7Ver; 'playwright' = $McpPlaywrightVer; 'serena' = $McpSerenaVer; 'memory' = $McpMemoryVer; 'sentry' = $McpSentryVer }
 foreach ($k in $resolvedVers.Keys) {
   if ($resolvedVers[$k]) { Log "  pinned $k@$($resolvedVers[$k])" }
   else { Log "  !! could not resolve $k latest - installing unpinned (re-run when online to pin it)" }
@@ -437,6 +439,7 @@ $Context7Entry = 'context7|' + $Ctx7Spec
 $AngularCliEntry = 'angular-cli|-- ' + $Npx + ' -y @angular/cli mcp'
 $PlaywrightEntry = 'playwright|-- ' + $Npx + " -y @playwright/mcp$PwPin " + '--user-data-dir ${CLAUDE_PROJECT_DIR:-.}/.playwright --output-dir ${CLAUDE_PROJECT_DIR:-.}/.playwright/screenshots'
 $SerenaEntry     = 'serena|-e SERENA_HOME=.serena/home -- uvx --from serena-agent' + $SerenaPin + ' serena start-mcp-server --context @SERENA_CONTEXT@ --enable-web-dashboard false --project-from-cwd'
+$SentryEntry     = 'sentry|-- ' + $Npx + " -y @sentry/mcp-server$SentryMcpPin " + '--access-token=${SENTRY_ACCESS_TOKEN} --host=${SENTRY_HOST}'
 
 $Mcps = @(
   $AngularCliEntry                            # angular-cli: only for Angular workspaces - comment out elsewhere (unpinned: matches the workspace ng).
@@ -444,6 +447,7 @@ $Mcps = @(
   $PlaywrightEntry                            # drive a real browser for visual checks / web app verification
   'chrome-devtools|-- cmd /c npx chrome-devtools-mcp@latest' # OPT-IN browser/extension debug; drives a full Chrome (heavy) - comment out outside web projects; no WS-frame payloads; pin a version
   'appium-mcp|-- cmd /c npx -y appium-mcp@latest' # OPT-IN native mobile E2E (official Appium MCP); embedded UiAutomator2/XCUITest drivers, needs Xcode and/or Android SDK + Java (heavy) - comment out outside Capacitor/Ionic mobile projects; pin a version
+  $SentryEntry  # OPT-IN Sentry error monitoring - tokens stay LITERAL and expand at launch from settings.json "env" (SENTRY_ACCESS_TOKEN + SENTRY_HOST); comment out where the project has no Sentry
   $MemoryEntry  # memory: cross-project recall - the subagent handoff runs on serena; comment out in a standalone project
   $Context7Entry                              # up-to-date library/framework/SDK docs (beats recalled API knowledge)
 )

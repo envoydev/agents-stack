@@ -244,7 +244,7 @@
   <div class="stat-row">
     <div class="stat"><b>33</b><span>subagents</span></div>
     <div class="stat"><b>64</b><span>house skills</span></div>
-    <div class="stat"><b>7</b><span>MCP servers</span></div>
+    <div class="stat"><b>8</b><span>MCP servers</span></div>
     <div class="stat"><b>7</b><span>plugins</span></div>
     <div class="stat"><b>4</b><span>hooks</span></div>
     <div class="stat"><b>15</b><span>rules</span></div>
@@ -1093,6 +1093,7 @@ const otherTools = [
   ["playwright", "MCP server", "Browser automation / web dev", "per-project .mcp.json (npx @playwright/mcp@<pinned>)", "https://github.com/microsoft/playwright-mcp", "Browser navigation, click, type, screenshot via Playwright. Pinned version (no @latest registry check at launch). Writes under <project>/.playwright/."],
   ["chrome-devtools", "MCP server (active, heavy)", "Browser / extension debug", "claude mcp add chrome-devtools --scope user npx chrome-devtools-mcp@latest", "https://github.com/ChromeDevTools/chrome-devtools-mcp", "Official Chrome DevTools MCP: reload extension, read service-worker console (source-mapped), inspect network, manage extensions. Active by default (heavy - comment out where not needed) - drives a full Chrome, so needed mainly for browser-extension/web projects. Does NOT expose WebSocket frame payloads (use DevTools Network->WS tab)."],
   ["appium-mcp", "MCP server (active, heavy)", "Mobile / native E2E", "claude mcp add appium-mcp -- npx -y appium-mcp@latest", "https://github.com/appium/appium-mcp", "Official Appium MCP (maintained by the Appium core team): drive iOS simulators + Android emulators/devices - 40+ tools across session mgmt, element finding (incl. vision-based appium_ai), gestures, app lifecycle, permissions, screenshots, test generation. Embedded UiAutomator2/XCUITest drivers (no separate Appium server). Active by default (heavy - comment out where not needed) - needs Xcode and/or Android SDK + Java; needed mainly for Capacitor/Ionic mobile projects. Pairs with ionic / mobile."],
+  ["sentry", "MCP server (opt-in)", "Error monitoring", "claude mcp add sentry -- npx -y @sentry/mcp-server (version pinned at install; --access-token/--host stay literal and expand at launch)", "https://github.com/getsentry/sentry-mcp", "Official Sentry MCP: query and root-cause the project's Sentry issues, errors, and traces without leaving the session. Opt-in: set SENTRY_ACCESS_TOKEN + SENTRY_HOST in settings.json 'env' (self-hosted host or sentry.io) - comment out where the project has no Sentry."],
 ];
 
 // Subagents: their own top-level section (rendered first). Install + source are uniform, so

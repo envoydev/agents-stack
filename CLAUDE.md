@@ -103,12 +103,15 @@ because the platforms differ:
 
 ## The model these templates encode
 
-- **MCP servers are per-project, never global.** Active baseline (7): `context7` (docs),
+- **MCP servers are per-project, never global.** Active baseline (8): `context7` (docs),
   `serena` (symbol nav + edits + per-project memory), `playwright` (browser), `memory`
   (cross-project recall), plus `angular-cli` (framework-specific - comment out where not
-  applicable), `chrome-devtools` (browser/extension debug) and `appium-mcp` (native mobile E2E -
-  Capacitor/Ionic, needs Xcode/Android SDK + Java). The last two are heavy and fail at launch
-  without their native deps - comment them out where not applicable. The `memory` MCP (one shared
+  applicable), `chrome-devtools` (browser/extension debug), `appium-mcp` (native mobile E2E -
+  Capacitor/Ionic, needs Xcode/Android SDK + Java) and `sentry` (error monitoring - its
+  `--access-token`/`--host` args stay LITERAL `${SENTRY_ACCESS_TOKEN}`/`${SENTRY_HOST}` in the
+  registration and expand at launch: settings.json `env` on Claude, `${env:VAR}` rewrite + OS env
+  on Cursor; comment out where the project has no Sentry). The heavy two (`chrome-devtools`,
+  `appium-mcp`) fail at launch without their native deps - comment them out where not applicable. The `memory` MCP (one shared
   SQLite DB under `$HOME`) is the cross-project store - the per-project transient handoff runs
   on serena's local memory (durable orientation is the committed architecture docs), so comment
   `memory` out in a standalone project.
