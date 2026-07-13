@@ -26,7 +26,7 @@ file is touched and are not listed here - their own `paths:` frontmatter says wh
 | baseline-security | /security-review routing for sensitive diffs, never log PII / secrets, hardcoded-secret protocol, the permissions.deny subprocess caveat |
 | baseline-git | Conventional Commits + branch naming, review-before-commit, never auto-push, no AI attribution, PR shape, force-with-lease, the pre-commit checkpoint |
 | baseline-navigation | serena-first symbol lookup, read-before-edit, ambiguous-reference handling, pasted-code-is-illustrative |
-| baseline-agents-skills | skill-loading discipline, explicit-only subagent dispatch, the seven slash-only orchestration skills |
+| baseline-agents-skills | skill-loading discipline, explicit-only subagent dispatch, the eight slash-only orchestration skills |
 
 ## Related projects
 

@@ -120,10 +120,14 @@ npx skills remove      # uninstall skills
   STRICT, limited ALTER TABLE, connection-per-thread, FTS5.
 - **project-quality-loop** - Autonomous review-and-fix loop pipeline: run a `loops/` folder of
   numbered prompts in order, looping each on a target to zero findings, deciding autonomously.
-- **architecture-quality-loop** - Deliberate architecture analyze-assess-improve loop: architecture-analyzer
-  writes `docs/architecture/ARCHITECTURE.md` + a reasoned strengths/weaknesses `docs/architecture/ASSESSMENT.md`,
+- **architecture-quality-loop** - Deliberate architecture analyze-assess-improve loop: the
+  project-architecture-analyzer capture writes `docs/architecture/ARCHITECTURE.md` + a reasoned strengths/weaknesses `docs/architecture/ASSESSMENT.md`,
   then fixes the weaknesses by tier (small -> implementer, substantial -> designer-led build, structural ->
   flagged for approval) and reconciles the docs. Manual, `/`-only - the heavy counterpart to project-quality-loop.
+- **project-architecture-analyzer** - Deliberate architecture capture: dispatches code-analyzer per
+  module, reasons over the digests in the main session, and writes `docs/architecture/ARCHITECTURE.md` +
+  `docs/architecture/ASSESSMENT.md`. Capture only - fixing the weaknesses is architecture-quality-loop.
+  Manual, `/`-only.
 - **project-code-style-analyzer** - Deliberate project code-style capture: fans out code-style-analyzer
   agents (one per detected language, parallel), merges their reports into `docs/PROJECT-CODE-STYLE.md`
   (the project's actual style - config-enforced rules + idioms a linter cannot encode), then generates

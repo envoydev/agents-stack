@@ -105,7 +105,7 @@ When any lane returns BLOCKED_CONTRACT_CHANGE:
 1. Mark the task blocked in the ledger.
 2. Identify the affected domains.
 3. Pause ONLY the affected lanes - unrelated domains that are safe keep running.
-4. Re-run task-analyzer / architecture-analyzer and cross-stack-contract-designer as needed; consult the affected domain designers.
+4. Re-run task-analyzer / the project-architecture-analyzer capture and cross-stack-contract-designer as needed; consult the affected domain designers.
 5. Produce Contract v2 and freeze it.
 6. Broadcast v2 to the affected seats.
 7. Require each affected seat to report: can continue, needs rework, or must discard stale work.
