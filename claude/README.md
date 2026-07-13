@@ -142,29 +142,46 @@ No other API keys are required by any component.
 ## How to run
 
 The **action** (`install` | `update`) is the one **required** positional argument; everything else is
-a **named flag**, optional with a default.
+a **named flag**, optional with a default. Download the installer **into the project's `.claude/`**
+and keep it there - the downloaded copy is the per-project manifest you trim and re-run for `update`.
+
+macOS / Linux (`claude-stack.sh`):
 
 ```bash
 cd /path/to/your/project        # run inside the target project
-bash claude-stack.sh install
-bash claude-stack.sh update
+
+# 1) download the installer into the project's .claude/
+mkdir -p .claude && curl -fsSL https://raw.githubusercontent.com/envoydev/agents-stack/main/claude/claude-stack.sh -o .claude/claude-stack.sh
+
+# 2) install (first time) / update (later)
+bash .claude/claude-stack.sh install
+bash .claude/claude-stack.sh update
 
 # Named flags (any order): --space (account + memory DB), --scope, --context7, --github-cli, --keep-pins
-bash claude-stack.sh install --space work                    # space 'work' -> ~/.claude-work account + memory_work.db
-bash claude-stack.sh install --github-cli
-bash claude-stack.sh install --space work --scope global --github-cli
-bash claude-stack.sh install --context7 local               # local npx context7 (default: remote hosted server)
-bash claude-stack.sh update --keep-pins                     # refresh, but keep local model/effort pin edits
+bash .claude/claude-stack.sh install --space work                    # space 'work' -> ~/.claude-work account + memory_work.db
+bash .claude/claude-stack.sh install --github-cli
+bash .claude/claude-stack.sh install --space work --scope global --github-cli
+bash .claude/claude-stack.sh install --context7 local                # local npx context7 (default: remote hosted server)
+bash .claude/claude-stack.sh update --keep-pins                      # refresh, but keep local model/effort pin edits
 ```
+
+Windows (`claude-stack.ps1`):
 
 ```powershell
 Set-Location C:\path\to\your\project
-pwsh claude-stack.ps1 install
-pwsh claude-stack.ps1 update
-pwsh claude-stack.ps1 install -Space work                   # space 'work' -> ~/.claude-work + memory_work.db
-pwsh claude-stack.ps1 install -GitHubCli                    # install gh (switch)
-pwsh claude-stack.ps1 install -Scope global -Context7 local # global scope + local npx context7 (default: remote)
-pwsh claude-stack.ps1 update -KeepPins                      # refresh, but keep local model/effort pin edits
+
+# 1) download the installer into the project's .claude\
+New-Item -ItemType Directory -Force .claude | Out-Null
+Invoke-WebRequest -Uri https://raw.githubusercontent.com/envoydev/agents-stack/main/claude/claude-stack.ps1 -OutFile .claude/claude-stack.ps1
+
+# 2) install (first time) / update (later)
+pwsh .claude/claude-stack.ps1 install
+pwsh .claude/claude-stack.ps1 update
+
+pwsh .claude/claude-stack.ps1 install -Space work                   # space 'work' -> ~/.claude-work + memory_work.db
+pwsh .claude/claude-stack.ps1 install -GitHubCli                    # install gh (switch)
+pwsh .claude/claude-stack.ps1 install -Scope global -Context7 local # global scope + local npx context7 (default: remote)
+pwsh .claude/claude-stack.ps1 update -KeepPins                      # refresh, but keep local model/effort pin edits
 ```
 
 > On Windows PowerShell 5.1 use `powershell` instead of `pwsh`. If scripts are blocked, run once:
@@ -195,8 +212,13 @@ the project root this three-step brief:
    mkdir -p .claude && curl -fsSL https://raw.githubusercontent.com/envoydev/agents-stack/main/claude/claude-stack.sh -o .claude/claude-stack.sh
    ```
 
+   ```powershell
+   New-Item -ItemType Directory -Force .claude | Out-Null
+   Invoke-WebRequest -Uri https://raw.githubusercontent.com/envoydev/agents-stack/main/claude/claude-stack.ps1 -OutFile .claude/claude-stack.ps1
+   ```
+
 2. **Analyze the project, then trim the script.** Detect the stacks actually present (languages,
-   frameworks, desktop/mobile surfaces, CI files), open `.claude/claude-stack.sh`, and **comment
+   frameworks, desktop/mobile surfaces, CI files), open the downloaded script, and **comment
    out - never delete -** the manifest entries this project does not need: the per-stack `SKILLS`
    entries, the conditional `MCPS` (`angular-cli` outside Angular, `appium-mcp` / `chrome-devtools`
    without their native deps, `memory` in a standalone project), and the per-stack `AGENTS` +
@@ -209,12 +231,74 @@ the project root this three-step brief:
    bash .claude/claude-stack.sh install
    ```
 
+   ```powershell
+   pwsh .claude/claude-stack.ps1 install
+   ```
+
    (named flags as needed - see Arguments above), then follow the script's printed next steps.
 
 The trimmed copy IS the per-project manifest: keep it (committed or local), and re-run it for
 `update` so the trim survives - a fresh download restores the full manifest. If the project also
 re-pinned any agent/skill `model:`/`effort:`, add `--keep-pins` to that `update` so the local pins
 survive the refresh too.
+
+### Before you start - the first-run captures
+
+After `install`, fill the seeded `CLAUDE.md` `<placeholders>`, then run the capture skills once
+from a Claude Code session at the project root - all four are manual `/`-commands (they never
+auto-fire), in this order:
+
+1. **`/project-capabilities`** - inventories the actually-installed skills / agents / MCPs / plugins
+   and generates `baseline-project-capabilities.md` (the usage policy + the project's real
+   inventory, loaded every session). Re-run after every `update` or manifest trim.
+2. **`/project-related-context <paths/URLs>`** - only when the repo has siblings (a
+   backend/frontend pair, a consumed package): generates the sibling-awareness rule +
+   `docs/PROJECT-RELATED-CONTEXT.md`.
+3. **`/project-architecture-analyzer`** - the architecture capture:
+   `docs/architecture/ARCHITECTURE.md` + `ASSESSMENT.md` + the always-on awareness rule. Every seat
+   orients from this map instead of re-deriving the project.
+4. **`/project-code-style-analyzer`** - `docs/PROJECT-CODE-STYLE.md` + the inject-code-style hook
+   that surfaces it at edit time, filtered to the observed file types.
+
+On a greenfield repo skip 3-4 (no code to characterize yet) - `/project-build-from-scratch` covers
+the design instead; run those two captures once real code exists. All captures are
+deliberate-refresh only: re-run them via their `/`-commands when the project shifts, never after
+each change.
+
+### Before you start - the MCP baseline
+
+The MCPs land in `<repo>/.mcp.json`, pre-approved in `settings.json` (no per-launch trust prompt) -
+**restart Claude Code once after `install`** so they load. What each one is for, so the first
+session reaches for the right tool:
+
+| MCP | Reach for it when |
+| --- | ----------------- |
+| **serena** | Locating any symbol or its references (`find_symbol` / `find_referencing_symbols`) - the shipped guard blocks whole-file `Read`s of large sources, so navigation goes through serena first. Self-activates from the project root on launch (`--project-from-cwd`); its `.serena/` state dir must be gitignored. **Installed? Index the project before the first session** (command below) so symbol/reference navigation is ready from the first query. |
+| **context7** | Any design or upgrade against a library/framework API - current docs beat recalled knowledge. Optional `CONTEXT7_API_KEY` in settings `env` raises rate limits. |
+| **memory** | Cross-project recall (one shared DB under `~/.memory-mcp`). Comment it out in a standalone project - the per-feature subagent hand-off runs on serena's local memory, not this. |
+| **playwright** | Driving a real browser to verify web UI work. |
+| **angular-cli** / **chrome-devtools** / **appium-mcp** | Conditional and/or heavy: Angular workspaces, browser/extension debug, native mobile E2E. Trim them from the manifest where they do not apply - the heavy two die at launch without their native deps. |
+
+**serena: index the project before you start.** With serena in the stack, run its indexer once from
+the project root before the first working session - it builds the symbol/reference index up front,
+so the first `find_symbol` / `find_referencing_symbols` answers instantly instead of cold-starting
+the language server against an unindexed codebase (slow on large repos). `SERENA_HOME` must match
+the registration (`.serena/home`) so the index lands in the project's own serena state:
+
+```bash
+SERENA_HOME=.serena/home uvx --from serena-agent serena project index
+```
+
+```powershell
+$env:SERENA_HOME = '.serena/home'; uvx --from serena-agent serena project index
+```
+
+Re-run it only after a large code drop (a merge, a generated layer) - day-to-day edits keep the
+index current on the fly.
+
+The trim decisions are the Claude-driven install's step 2 above; `/project-capabilities` then bakes
+the surviving inventory + routing into the generated awareness rule, so this table is only the
+day-one orientation.
 
 ---
 
