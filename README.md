@@ -151,7 +151,7 @@ npx skills remove      # uninstall skills
 - **project-verify-plan** - Audit an implementation plan before writing code: a risk-coverage review that
   checks the plan names the traps its stack will hit (routing to the stack skill), matches scope,
   covers the edges, and stays minimal - the cheapest place to catch a design error, upstream of code review.
-- **project-implement** - Single-chat build step: execute a verified plan task by task - honor each
+- **project-implementer** - Single-chat build step: execute a verified plan task by task - honor each
   card's contract, gate every task green (resolver agents absorb stubborn reds), flag scope beyond
   the plan, finish via `/code-review` + the done-gate. Completes the in-session
   design -> audit -> build -> review vertical.
