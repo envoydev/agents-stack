@@ -371,15 +371,13 @@ MCP_CONTEXT7_VER="$(_npm_latest @upstash/context7-mcp)" || true
 MCP_PLAYWRIGHT_VER="$(_npm_latest @playwright/mcp)" || true
 MCP_SERENA_VER="$(_pypi_latest serena-agent)" || true
 MCP_MEMORY_VER="$(_pypi_latest mcp-memory-service)" || true
-MCP_SENTRY_VER="$(_npm_latest @sentry/mcp-server)" || true
 # Version-pin suffix: "@1.2.3" when resolved, "" (unpinned fallback) when offline.
 CTX7_PIN="${MCP_CONTEXT7_VER:+@$MCP_CONTEXT7_VER}"
 PW_PIN="${MCP_PLAYWRIGHT_VER:+@$MCP_PLAYWRIGHT_VER}"
 SERENA_PIN="${MCP_SERENA_VER:+@$MCP_SERENA_VER}"
 MEMORY_PIN="${MCP_MEMORY_VER:+@$MCP_MEMORY_VER}"
-SENTRY_MCP_PIN="${MCP_SENTRY_VER:+@$MCP_SENTRY_VER}"
 # Report what pinned vs. fell back to unpinned - the whole point of this step is 'frozen until update'.
-for _pv in "context7:$MCP_CONTEXT7_VER" "playwright:$MCP_PLAYWRIGHT_VER" "serena:$MCP_SERENA_VER" "memory:$MCP_MEMORY_VER" "sentry:$MCP_SENTRY_VER"; do
+for _pv in "context7:$MCP_CONTEXT7_VER" "playwright:$MCP_PLAYWRIGHT_VER" "serena:$MCP_SERENA_VER" "memory:$MCP_MEMORY_VER"; do
   _pn="${_pv%%:*}"; _pver="${_pv#*:}"
   if [ -n "$_pver" ]; then log "  pinned $_pn@$_pver"
   else log "  !! could not resolve $_pn latest - installing unpinned (re-run when online to pin it)"; fi
@@ -396,6 +394,12 @@ MEMORY_ENTRY="memory|-e MCP_MEMORY_STORAGE_BACKEND=$MEMORY_BACKEND -e MCP_MEMORY
 # and CONTEXT7_BAKE_KEY=1 (with CONTEXT7_API_KEY) bakes --api-key into <repo>/.mcp.json (keep it uncommitted).
 CONTEXT7_REMOTE_URL='https://mcp.context7.com/mcp'
 CONTEXT7_REMOTE_HDR='CONTEXT7_API_KEY: ${CONTEXT7_API_KEY}'
+
+# sentry runs REMOTE only (the hosted MCP at mcp.sentry.dev) - no local process, no pin to resolve;
+# the token stays out of the registration: put SENTRY_ACCESS_TOKEN in settings.json "env" and Claude
+# Code expands the Authorization header at launch.
+SENTRY_REMOTE_URL='https://mcp.sentry.dev/mcp'
+SENTRY_REMOTE_HDR='Authorization: Bearer ${SENTRY_ACCESS_TOKEN}'
 if [ "$CONTEXT7_MODE" = "local" ]; then
   CONTEXT7_SPEC="-- npx -y @upstash/context7-mcp${CTX7_PIN}"
   if [ -n "${CONTEXT7_BAKE_KEY:-}" ] && [ -n "${CONTEXT7_API_KEY:-}" ]; then
@@ -416,7 +420,7 @@ MCPS=(
   "playwright|-- npx -y @playwright/mcp${PW_PIN} --user-data-dir \${CLAUDE_PROJECT_DIR:-.}/.playwright --output-dir \${CLAUDE_PROJECT_DIR:-.}/.playwright/screenshots" # drive a real browser for visual checks / web app verification
   "chrome-devtools|-- npx chrome-devtools-mcp@latest" # OPT-IN browser/extension debug; drives a full Chrome (heavy) - comment out outside web projects; no WS-frame payloads; pin a version
   "appium-mcp|-- npx -y appium-mcp@latest" # OPT-IN native mobile E2E (official Appium MCP); embedded UiAutomator2/XCUITest drivers, needs Xcode and/or Android SDK + Java (heavy) - comment out outside Capacitor/Ionic mobile projects; pin a version
-  "sentry|-- npx -y @sentry/mcp-server${SENTRY_MCP_PIN} --access-token=\${SENTRY_ACCESS_TOKEN} --host=\${SENTRY_HOST}" # OPT-IN Sentry error monitoring - both tokens stay LITERAL in the registration and expand at launch (Claude: settings.json "env"; Cursor: rewritten to ${env:VAR}, OS env); set SENTRY_ACCESS_TOKEN + SENTRY_HOST, comment out where the project has no Sentry
+  "sentry|@HTTP@" # OPT-IN Sentry error monitoring - hosted remote MCP (mcp.sentry.dev); the Authorization header keeps ${SENTRY_ACCESS_TOKEN} LITERAL and expands at launch (Claude: settings.json "env"; Cursor: ${env:VAR}, OS env); comment out where the project has no Sentry
   "$MEMORY_ENTRY"  # memory: cross-project recall - the subagent handoff runs on serena; comment out in a standalone project
   "$CONTEXT7_ENTRY"                           # up-to-date library/framework/SDK docs (beats recalled API knowledge)
 )
@@ -554,7 +558,7 @@ install_plugins() {
 
 install_mcps() {
   command -v claude >/dev/null 2>&1 || { CLAUDE_MISSING=true; return 0; }   # fail-soft: skip, never abort the run
-  local entry name args spec tok_cfg
+  local entry name args spec tok_cfg url hdr
   local -a spec_words
   tok_cfg='${CLAUDE_CONFIG_DIR}'
   for entry in "${MCPS[@]}"; do
@@ -566,7 +570,10 @@ install_mcps() {
     if claude mcp get "$name" >/dev/null 2>&1; then echo "  mcp $name already configured - skipping"; continue; fi
     log "mcp [$CLAUDE_SCOPE]: $name"
     if [ "$spec" = "@HTTP@" ]; then
-      claude mcp add --transport http --scope "$CLAUDE_SCOPE" "$name" "$CONTEXT7_REMOTE_URL" --header "$CONTEXT7_REMOTE_HDR" || note_failure "mcp $name failed"
+      # remote (hosted) server - url/header keyed by name: sentry, else context7
+      if [ "$name" = "sentry" ]; then url="$SENTRY_REMOTE_URL"; hdr="$SENTRY_REMOTE_HDR"
+      else url="$CONTEXT7_REMOTE_URL"; hdr="$CONTEXT7_REMOTE_HDR"; fi
+      claude mcp add --transport http --scope "$CLAUDE_SCOPE" "$name" "$url" --header "$hdr" || note_failure "mcp $name failed"
       continue
     fi
     # ASSUMPTION: no resolved path token ($CONFIG_DIR / $HOME_MEMORY_DIR) contains a space - the MCP
@@ -723,7 +730,7 @@ update_plugins() {
 update_mcps() {
   command -v claude >/dev/null 2>&1 || { CLAUDE_MISSING=true; return 0; }   # fail-soft: skip, never abort the run
   # MCP binaries auto-update at launch (@latest / uvx git+); this re-asserts the config.
-  local entry name args spec tok_cfg
+  local entry name args spec tok_cfg url hdr
   local -a spec_words
   tok_cfg='${CLAUDE_CONFIG_DIR}'
   for entry in "${MCPS[@]}"; do
@@ -734,7 +741,10 @@ update_mcps() {
     log "mcp refresh [$CLAUDE_SCOPE]: $name"
     claude mcp remove "$name" -s "$CLAUDE_SCOPE" >/dev/null 2>&1 || true
     if [ "$spec" = "@HTTP@" ]; then
-      claude mcp add --transport http --scope "$CLAUDE_SCOPE" "$name" "$CONTEXT7_REMOTE_URL" --header "$CONTEXT7_REMOTE_HDR" || note_failure "mcp $name failed"
+      # remote (hosted) server - url/header keyed by name: sentry, else context7
+      if [ "$name" = "sentry" ]; then url="$SENTRY_REMOTE_URL"; hdr="$SENTRY_REMOTE_HDR"
+      else url="$CONTEXT7_REMOTE_URL"; hdr="$CONTEXT7_REMOTE_HDR"; fi
+      claude mcp add --transport http --scope "$CLAUDE_SCOPE" "$name" "$url" --header "$hdr" || note_failure "mcp $name failed"
       continue
     fi
     # Same no-spaces-in-resolved-path assumption + glob-safe array split as install_mcps (see there).

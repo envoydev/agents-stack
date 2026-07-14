@@ -270,13 +270,11 @@ $McpContext7Ver   = Get-NpmLatest  '@upstash/context7-mcp'
 $McpPlaywrightVer = Get-NpmLatest  '@playwright/mcp'
 $McpSerenaVer     = Get-PypiLatest 'serena-agent'
 $McpMemoryVer     = Get-PypiLatest 'mcp-memory-service'
-$McpSentryVer     = Get-NpmLatest  '@sentry/mcp-server'
 # Version-pin suffix: '@1.2.3' when resolved, '' (unpinned fallback) when offline.
 $Ctx7Pin   = if ($McpContext7Ver)   { '@' + $McpContext7Ver }   else { '' }
 $PwPin     = if ($McpPlaywrightVer) { '@' + $McpPlaywrightVer } else { '' }
 $SerenaPin = if ($McpSerenaVer)     { '@' + $McpSerenaVer }     else { '' }
 $MemoryPin = if ($McpMemoryVer)     { '@' + $McpMemoryVer }     else { '' }
-$SentryMcpPin = if ($McpSentryVer)  { '@' + $McpSentryVer }  else { '' }
 
 $MemoryBackend = 'sqlite_vec'  # separation is by DB path (below); backend stays sqlite_vec (the only valid local backend)
 $MemoryDbFile  = if ($Space) { "memory_$Space.db" } else { 'memory.db' }
@@ -311,7 +309,7 @@ $Context7Entry = 'context7|' + $Ctx7Spec
 $AngularCliEntry = 'angular-cli|-- ' + $Npx + ' -y @angular/cli mcp'
 $PlaywrightEntry = 'playwright|-- ' + $Npx + " -y @playwright/mcp$PwPin " + '--user-data-dir ${CLAUDE_PROJECT_DIR:-.}/.playwright --output-dir ${CLAUDE_PROJECT_DIR:-.}/.playwright/screenshots'
 $SerenaEntry     = 'serena|-e SERENA_HOME=.serena/home -- uvx --from serena-agent' + $SerenaPin + ' serena start-mcp-server --context @SERENA_CONTEXT@ --enable-web-dashboard false --project-from-cwd'
-$SentryEntry     = 'sentry|-- ' + $Npx + " -y @sentry/mcp-server$SentryMcpPin " + '--access-token=${SENTRY_ACCESS_TOKEN} --host=${SENTRY_HOST}'
+$SentryEntry     = 'sentry|@HTTP@'
 
 $Mcps = @(
   $AngularCliEntry                            # angular-cli: only for Angular workspaces - comment out elsewhere (unpinned: matches the workspace ng).
@@ -319,7 +317,7 @@ $Mcps = @(
   $PlaywrightEntry                            # drive a real browser for visual checks / web app verification
   'chrome-devtools|-- cmd /c npx chrome-devtools-mcp@latest' # OPT-IN browser/extension debug; drives a full Chrome (heavy) - comment out outside web projects; no WS-frame payloads; pin a version
   'appium-mcp|-- cmd /c npx -y appium-mcp@latest' # OPT-IN native mobile E2E (official Appium MCP); embedded UiAutomator2/XCUITest drivers, needs Xcode and/or Android SDK + Java (heavy) - comment out outside Capacitor/Ionic mobile projects; pin a version
-  $SentryEntry  # OPT-IN Sentry error monitoring - tokens rewritten to ${env:VAR} in .cursor/mcp.json (OS env: SENTRY_ACCESS_TOKEN + SENTRY_HOST); comment out where the project has no Sentry
+  $SentryEntry  # OPT-IN Sentry error monitoring - hosted remote MCP (mcp.sentry.dev); auth via an Authorization: Bearer ${env:SENTRY_ACCESS_TOKEN} header in .cursor/mcp.json (OS env); comment out where the project has no Sentry
   $MemoryEntry  # memory: cross-project recall - the subagent handoff runs on serena; comment out in a standalone project
   $Context7Entry                              # up-to-date library/framework/SDK docs (beats recalled API knowledge)
 )
@@ -431,13 +429,19 @@ function Set-CursorMcps {
     $spec = $spec.Replace('${CLAUDE_PROJECT_DIR:-.}', $projDir).Replace('${CLAUDE_CONFIG_DIR}', $cfgDir)
     $spec = $spec.Replace('${HOME_MEMORY_DIR}', (Join-Path $HOME '.memory-mcp'))
     # Cursor's launch-time interpolation syntax is ${env:VAR} (no shell ${VAR} expansion) - rewrite any
-    # remaining bare ${VAR} token (sentry's --access-token/--host) into it ($$ = literal $ in a .NET
-    # regex replacement; the path tokens above are already resolved).
+    # remaining bare ${VAR} token into it (none in the current baseline - the remote entries below carry
+    # their ${env:VAR} form directly; kept for future stdio entries; $$ = literal $ in a .NET regex
+    # replacement; the path tokens above are already resolved).
     $spec = [regex]::Replace($spec, '\$\{([A-Za-z_][A-Za-z0-9_]*)\}', '$${env:$1}')
     if ($spec -eq '@HTTP@') {
-      $ctx7 = [ordered]@{ url = 'https://mcp.context7.com/mcp'; headers = [ordered]@{ CONTEXT7_API_KEY = '${env:CONTEXT7_API_KEY}' } }
+      # remote (hosted) server - url/header keyed by name: sentry, else context7
+      $server = if ($name -eq 'sentry') {
+        [ordered]@{ url = 'https://mcp.sentry.dev/mcp'; headers = [ordered]@{ Authorization = 'Bearer ${env:SENTRY_ACCESS_TOKEN}' } }
+      } else {
+        [ordered]@{ url = 'https://mcp.context7.com/mcp'; headers = [ordered]@{ CONTEXT7_API_KEY = '${env:CONTEXT7_API_KEY}' } }
+      }
       if ($data.mcpServers.PSObject.Properties[$name]) { $data.mcpServers.PSObject.Properties.Remove($name) }
-      $data.mcpServers | Add-Member -NotePropertyName $name -NotePropertyValue ([pscustomobject]$ctx7)
+      $data.mcpServers | Add-Member -NotePropertyName $name -NotePropertyValue ([pscustomobject]$server)
       Log "  cursor mcp: $name"
       continue
     }

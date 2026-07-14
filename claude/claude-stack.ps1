@@ -384,15 +384,13 @@ $McpContext7Ver   = Get-NpmLatest  '@upstash/context7-mcp'
 $McpPlaywrightVer = Get-NpmLatest  '@playwright/mcp'
 $McpSerenaVer     = Get-PypiLatest 'serena-agent'
 $McpMemoryVer     = Get-PypiLatest 'mcp-memory-service'
-$McpSentryVer     = Get-NpmLatest  '@sentry/mcp-server'
 # Version-pin suffix: '@1.2.3' when resolved, '' (unpinned fallback) when offline.
 $Ctx7Pin   = if ($McpContext7Ver)   { '@' + $McpContext7Ver }   else { '' }
 $PwPin     = if ($McpPlaywrightVer) { '@' + $McpPlaywrightVer } else { '' }
 $SerenaPin = if ($McpSerenaVer)     { '@' + $McpSerenaVer }     else { '' }
 $MemoryPin = if ($McpMemoryVer)     { '@' + $McpMemoryVer }     else { '' }
-$SentryMcpPin = if ($McpSentryVer)  { '@' + $McpSentryVer }  else { '' }
 # Report what pinned vs. fell back to unpinned - the whole point of this step is 'frozen until update'.
-$resolvedVers = [ordered]@{ 'context7' = $McpContext7Ver; 'playwright' = $McpPlaywrightVer; 'serena' = $McpSerenaVer; 'memory' = $McpMemoryVer; 'sentry' = $McpSentryVer }
+$resolvedVers = [ordered]@{ 'context7' = $McpContext7Ver; 'playwright' = $McpPlaywrightVer; 'serena' = $McpSerenaVer; 'memory' = $McpMemoryVer }
 foreach ($k in $resolvedVers.Keys) {
   if ($resolvedVers[$k]) { Log "  pinned $k@$($resolvedVers[$k])" }
   else { Log "  !! could not resolve $k latest - installing unpinned (re-run when online to pin it)" }
@@ -422,6 +420,11 @@ $Npx       = if ($OnWindows) { 'cmd /c npx' } else { 'npx' }
 # the local stdio server - keyless by default too, and $env:CONTEXT7_BAKE_KEY bakes --api-key.
 $Context7RemoteUrl = 'https://mcp.context7.com/mcp'
 $Context7RemoteHdr = 'CONTEXT7_API_KEY: ${CONTEXT7_API_KEY}'
+
+# sentry runs REMOTE only (the hosted MCP at mcp.sentry.dev) - no local process, no pin to resolve;
+# put SENTRY_ACCESS_TOKEN in settings.json "env" and Claude Code expands the Authorization header at launch.
+$SentryRemoteUrl = 'https://mcp.sentry.dev/mcp'
+$SentryRemoteHdr = 'Authorization: Bearer ${SENTRY_ACCESS_TOKEN}'
 if ($Context7 -eq 'local') {
   $Ctx7Cmd = "$Npx -y @upstash/context7-mcp$Ctx7Pin"
   if ($env:CONTEXT7_BAKE_KEY -and $env:CONTEXT7_API_KEY) {
@@ -439,7 +442,7 @@ $Context7Entry = 'context7|' + $Ctx7Spec
 $AngularCliEntry = 'angular-cli|-- ' + $Npx + ' -y @angular/cli mcp'
 $PlaywrightEntry = 'playwright|-- ' + $Npx + " -y @playwright/mcp$PwPin " + '--user-data-dir ${CLAUDE_PROJECT_DIR:-.}/.playwright --output-dir ${CLAUDE_PROJECT_DIR:-.}/.playwright/screenshots'
 $SerenaEntry     = 'serena|-e SERENA_HOME=.serena/home -- uvx --from serena-agent' + $SerenaPin + ' serena start-mcp-server --context @SERENA_CONTEXT@ --enable-web-dashboard false --project-from-cwd'
-$SentryEntry     = 'sentry|-- ' + $Npx + " -y @sentry/mcp-server$SentryMcpPin " + '--access-token=${SENTRY_ACCESS_TOKEN} --host=${SENTRY_HOST}'
+$SentryEntry     = 'sentry|@HTTP@'
 
 $Mcps = @(
   $AngularCliEntry                            # angular-cli: only for Angular workspaces - comment out elsewhere (unpinned: matches the workspace ng).
@@ -447,7 +450,7 @@ $Mcps = @(
   $PlaywrightEntry                            # drive a real browser for visual checks / web app verification
   'chrome-devtools|-- cmd /c npx chrome-devtools-mcp@latest' # OPT-IN browser/extension debug; drives a full Chrome (heavy) - comment out outside web projects; no WS-frame payloads; pin a version
   'appium-mcp|-- cmd /c npx -y appium-mcp@latest' # OPT-IN native mobile E2E (official Appium MCP); embedded UiAutomator2/XCUITest drivers, needs Xcode and/or Android SDK + Java (heavy) - comment out outside Capacitor/Ionic mobile projects; pin a version
-  $SentryEntry  # OPT-IN Sentry error monitoring - tokens stay LITERAL and expand at launch from settings.json "env" (SENTRY_ACCESS_TOKEN + SENTRY_HOST); comment out where the project has no Sentry
+  $SentryEntry  # OPT-IN Sentry error monitoring - hosted remote MCP (mcp.sentry.dev); the Authorization header keeps ${SENTRY_ACCESS_TOKEN} LITERAL, expanded at launch from settings.json "env"; comment out where the project has no Sentry
   $MemoryEntry  # memory: cross-project recall - the subagent handoff runs on serena; comment out in a standalone project
   $Context7Entry                              # up-to-date library/framework/SDK docs (beats recalled API knowledge)
 )
@@ -614,7 +617,10 @@ function Install-Mcps {
     if ($configured) { Write-Host "  mcp $name already configured - skipping"; continue }
     Log "mcp [$ClaudeScope]: $name"
     if ($spec -eq '@HTTP@') {
-      try { & claude mcp add --transport http --scope $ClaudeScope $name $Context7RemoteUrl --header $Context7RemoteHdr } catch {}
+      # remote (hosted) server - url/header keyed by name: sentry, else context7
+      $url = if ($name -eq 'sentry') { $SentryRemoteUrl } else { $Context7RemoteUrl }
+      $hdr = if ($name -eq 'sentry') { $SentryRemoteHdr } else { $Context7RemoteHdr }
+      try { & claude mcp add --transport http --scope $ClaudeScope $name $url --header $hdr } catch {}
       if ($LASTEXITCODE -ne 0) { Add-Failure "mcp $name failed" }
       continue
     }
@@ -815,7 +821,10 @@ function Update-Mcps {
     Log "mcp refresh [$ClaudeScope]: $name"
     try { & claude mcp remove $name -s $ClaudeScope 2>$null } catch {}
     if ($spec -eq '@HTTP@') {
-      try { & claude mcp add --transport http --scope $ClaudeScope $name $Context7RemoteUrl --header $Context7RemoteHdr } catch {}
+      # remote (hosted) server - url/header keyed by name: sentry, else context7
+      $url = if ($name -eq 'sentry') { $SentryRemoteUrl } else { $Context7RemoteUrl }
+      $hdr = if ($name -eq 'sentry') { $SentryRemoteHdr } else { $Context7RemoteHdr }
+      try { & claude mcp add --transport http --scope $ClaudeScope $name $url --header $hdr } catch {}
       if ($LASTEXITCODE -ne 0) { Add-Failure "mcp $name failed" }
       continue
     }

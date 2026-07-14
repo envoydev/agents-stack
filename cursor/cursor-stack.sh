@@ -247,13 +247,11 @@ MCP_CONTEXT7_VER="$(_npm_latest @upstash/context7-mcp)"
 MCP_PLAYWRIGHT_VER="$(_npm_latest @playwright/mcp)"
 MCP_SERENA_VER="$(_pypi_latest serena-agent)"
 MCP_MEMORY_VER="$(_pypi_latest mcp-memory-service)"
-MCP_SENTRY_VER="$(_npm_latest @sentry/mcp-server)"
 # Version-pin suffix: "@1.2.3" when resolved, "" (unpinned fallback) when offline.
 CTX7_PIN="${MCP_CONTEXT7_VER:+@$MCP_CONTEXT7_VER}"
 PW_PIN="${MCP_PLAYWRIGHT_VER:+@$MCP_PLAYWRIGHT_VER}"
 SERENA_PIN="${MCP_SERENA_VER:+@$MCP_SERENA_VER}"
 MEMORY_PIN="${MCP_MEMORY_VER:+@$MCP_MEMORY_VER}"
-SENTRY_MCP_PIN="${MCP_SENTRY_VER:+@$MCP_SENTRY_VER}"
 
 MEMORY_BACKEND="sqlite_vec"; MEMORY_DB_FILE="memory.db"
 if [ -n "$SPACE" ]; then MEMORY_DB_FILE="memory_$SPACE.db"; fi  # space -> per-space DB; backend stays sqlite_vec (the only valid local backend)
@@ -280,7 +278,7 @@ MCPS=(
   "playwright|-- npx -y @playwright/mcp${PW_PIN} --user-data-dir \${CLAUDE_PROJECT_DIR:-.}/.playwright --output-dir \${CLAUDE_PROJECT_DIR:-.}/.playwright/screenshots" # drive a real browser for visual checks / web app verification
   "chrome-devtools|-- npx chrome-devtools-mcp@latest" # OPT-IN browser/extension debug; drives a full Chrome (heavy) - comment out outside web projects; no WS-frame payloads; pin a version
   "appium-mcp|-- npx -y appium-mcp@latest" # OPT-IN native mobile E2E (official Appium MCP); embedded UiAutomator2/XCUITest drivers, needs Xcode and/or Android SDK + Java (heavy) - comment out outside Capacitor/Ionic mobile projects; pin a version
-  "sentry|-- npx -y @sentry/mcp-server${SENTRY_MCP_PIN} --access-token=\${SENTRY_ACCESS_TOKEN} --host=\${SENTRY_HOST}" # OPT-IN Sentry error monitoring - both tokens stay LITERAL in the registration and expand at launch (Claude: settings.json "env"; Cursor: rewritten to ${env:VAR}, OS env); set SENTRY_ACCESS_TOKEN + SENTRY_HOST, comment out where the project has no Sentry
+  "sentry|@HTTP@" # OPT-IN Sentry error monitoring - hosted remote MCP (mcp.sentry.dev); auth via an Authorization: Bearer ${env:SENTRY_ACCESS_TOKEN} header in .cursor/mcp.json (OS env); comment out where the project has no Sentry
   "$MEMORY_ENTRY"  # memory: cross-project recall - the subagent handoff runs on serena; comment out in a standalone project
   "$CONTEXT7_ENTRY"                           # up-to-date library/framework/SDK docs (beats recalled API knowledge)
 )
@@ -412,8 +410,9 @@ set_cursor_mcps() {
     spec="${spec//"$tok_proj"/$proj_dir}"
     spec="${spec//"$tok_cfg"/$CONFIG_DIR}"
     # Cursor's launch-time interpolation syntax is ${env:VAR} (no shell ${VAR} expansion) - rewrite any
-    # remaining bare ${VAR} token (sentry's --access-token/--host) into it; the path tokens above are
-    # already resolved and ${VAR:-default} forms never reach here.
+    # remaining bare ${VAR} token into it (none in the current baseline - the remote entries below carry
+    # their ${env:VAR} form directly; kept for future stdio entries). The path tokens above are already
+    # resolved and ${VAR:-default} forms never reach here.
     spec="$(printf '%s' "$spec" | sed -E 's/\$\{([A-Za-z_][A-Za-z0-9_]*)\}/${env:\1}/g')"
     resolved+=("$name|$spec")
   done
@@ -437,8 +436,13 @@ for line in sys.stdin.read().splitlines():
         print("  cursor mcp " + name + " already configured - skipping")
         continue
     if spec.strip() == "@HTTP@":
-        servers[name] = {"url": "https://mcp.context7.com/mcp",
-                         "headers": {"CONTEXT7_API_KEY": "${env:CONTEXT7_API_KEY}"}}
+        # remote (hosted) server - url/header keyed by name: sentry, else context7
+        if name == "sentry":
+            servers[name] = {"url": "https://mcp.sentry.dev/mcp",
+                             "headers": {"Authorization": "Bearer ${env:SENTRY_ACCESS_TOKEN}"}}
+        else:
+            servers[name] = {"url": "https://mcp.context7.com/mcp",
+                             "headers": {"CONTEXT7_API_KEY": "${env:CONTEXT7_API_KEY}"}}
         print("  cursor mcp: " + name)
         continue
     # ASSUMPTION: no resolved path token (proj_dir / CONFIG_DIR / HOME_MEMORY_DIR) contains a space.
