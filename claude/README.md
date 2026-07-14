@@ -346,6 +346,17 @@ jq -r 'select(.tool|startswith("mcp__")) | .detail' .claude/tool-usage.*.jsonl |
 It only ever observes - it never blocks a call. Verify subagent-call coverage against a known run
 before trusting a tally (whether PreToolUse propagates into dispatched subagents is build-dependent).
 
+The hook can never see tokens - token accounting lives per API message in the transcript JSONL
+Claude Code already writes. For the full consumption report (tokens by scope/model, exact
+per-dispatch subagent cost, skill/MCP/tool call + result volume, context-growth spikes, optional
+join against the hook ledger), run this repo's offline analyzer against a session transcript:
+
+```bash
+node <agents-stack>/scripts/analyze-usage.js ~/.claude/projects/<encoded-project-path>/<session-id>.jsonl
+node <agents-stack>/scripts/analyze-usage.js ~/.claude/projects/<encoded-project-path>/            # per-session rollup
+node <agents-stack>/scripts/analyze-usage.js <session>.jsonl --hook-log .claude/tool-usage.<sid>.jsonl
+```
+
 ---
 
 ## Memory database

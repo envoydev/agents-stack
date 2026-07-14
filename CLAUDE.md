@@ -82,7 +82,10 @@ made only inside a consuming project is throwaway (see Invariants).
     `.cursor/agents/`. No `tools:` allowlist (only a `readonly` bool), so the bodies lean on
     `.cursor/rules` - as the Claude bodies now do too, both stacks having moved to soft convention rules.
   - `README.md`.
-- `scripts/lint-skills.js` - the 4-way parity lint (below). `README.md` - repo overview.
+- `scripts/lint-skills.js` - the 4-way parity lint (below). `scripts/analyze-usage.js` - offline
+  token/tool consumption report over a session's transcript JSONL (+ its `subagents/`), the token
+  side of the flow instrumentation (`instrument-tool-usage.js` is the identity side - hooks never
+  see tokens). `README.md` - repo overview.
 
 ## The two agent stacks - shared skills/MCPs, different delivery
 
