@@ -4,6 +4,11 @@ name: lint
 # across all four installers, PLUGINS claude-only, HTML in sync, references
 # resolve, README counts match). Run it on every push and PR so drift can never
 # land silently.
+#
+# The root package-lock.json is deliberately NOT committed (only examples/ pin a
+# lockfile), so this job runs lock-free: no setup-node `cache: npm` and no
+# `npm ci` - both require a committed lockfile and fail without one. `npm install`
+# resolves the single lint dep (js-yaml) fresh each run.
 on:
   push:
   pull_request:
@@ -16,6 +21,5 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: npm
-      - run: npm ci
+      - run: npm install --no-audit --no-fund
       - run: npm run lint
