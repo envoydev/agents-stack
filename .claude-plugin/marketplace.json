@@ -1,5 +1,5 @@
 {
-  "name": "agents-stack",
+  "name": "claude-stack",
   "owner": {
     "name": "envoydev",
     "url": "https://github.com/envoydev"
@@ -11,7 +11,7 @@
   "plugins": [
     {
       "name": "claude-stack-setup",
-      "source": "./claude/setup-plugin",
+      "source": "./setup-plugin",
       "description": "Bootstrap the personal Claude Code stack into a project: analyse it, curate a dependency-complete selection, check prerequisites, and run the installer.",
       "category": "development",
       "tags": ["setup", "installer", "skills", "agents", "mcp", "bootstrap"]

@@ -1,4 +1,4 @@
-# CLAUDE.md - personal agent-stack repo
+# CLAUDE.md - personal claude-stack repo
 
 ## What this repo is
 
@@ -22,16 +22,15 @@ change made only inside a consuming project is throwaway (see Invariants).
   keywords / file types in consuming projects. Distributed via the stack installers'
   git-clone-and-copy step (or the `claude-stack-setup` plugin) - including `cursor-stack`'s
   installers, which clone this repo.
-- `claude/` - the **Claude Code** stack:
-  - `claude-stack.{sh,ps1}` installer (Unix / Windows) + `claude-stack.html` browser inventory.
-  - `CLAUDE.template.md` - the stack-neutral per-project skeleton (with `<placeholders>`) that each
-    consuming project's `CLAUDE.md` is filled in from; the working conventions ship separately in
-    the `rules/baseline-*.md` set. Content shipped to projects, not this repo's own file.
-  - `hooks/` - `guard-protected-force-push.js` + `guard-catastrophic-rm.js` (PreToolUse `Bash`) +
-    `guard-read-whole-file.js` (PreToolUse `Read`), all wired; plus `instrument-tool-usage.js`,
-    fetched UNWIRED (opt-in per-run tool/skill/MCP stats via STACK_INSTRUMENT=1 + manual wiring).
-    Fetched into a project's `.claude/hooks/`.
-  - `agents/` - the Claude-contract subagents, 33 total: the four build/test resolvers - .NET
+- `claude-stack.{sh,ps1}` - the installer twins (Unix / Windows) + `claude-stack.html` browser inventory.
+- `CLAUDE.template.md` - the stack-neutral per-project skeleton (with `<placeholders>`) that each
+  consuming project's `CLAUDE.md` is filled in from; the working conventions ship separately in
+  the `rules/baseline-*.md` set. Content shipped to projects, not this repo's own file.
+- `hooks/` - `guard-protected-force-push.js` + `guard-catastrophic-rm.js` (PreToolUse `Bash`) +
+  `guard-read-whole-file.js` (PreToolUse `Read`), all wired; plus `instrument-tool-usage.js`,
+  fetched UNWIRED (opt-in per-run tool/skill/MCP stats via STACK_INSTRUMENT=1 + manual wiring).
+  Fetched into a project's `.claude/hooks/`.
+- `agents/` - the Claude-contract subagents, 33 total: the four build/test resolvers - .NET
     (`dotnet-build-error-resolver`, `dotnet-test-failure-resolver`) + Angular (`ng-build-error-resolver`,
     `angular-test-resolver`) - plus four cross-cutting agents (`ci-failure-diagnoser`, `issue-diagnoser`, `security-auditor` - a read-only
     cross-stack security posture audit that routes an OWASP/CWE punch-list to the implementers, complementing
@@ -63,7 +62,7 @@ change made only inside a consuming project is throwaway (see Invariants).
     protocol change to an agent here usually needs the same edit to its twin there (the deliberate
     divergences are only the platform gaps, listed in that repo's CLAUDE.md: `model: inherit`, no
     per-tool `tools:` allowlist, `superpowers` optional, no auto-delegation hard-disable).
-  - `rules/` - fifteen rules, fetched into a project's `.claude/rules/`, each doing ONE job. Five
+- `rules/` - fifteen rules, fetched into a project's `.claude/rules/`, each doing ONE job. Five
     are the always-on `baseline-*.md` set (no `paths:` - the cross-project working conventions grouped
     by exclusion affinity: interaction (communication + proposal review + planning), quality-gates
     (code quality + definition of done), security, git + pre-commit, navigation - loaded every session and
@@ -78,11 +77,11 @@ change made only inside a consuming project is throwaway (see Invariants).
     each glob-attaching ONE file family to its house-style skill - single-job so a stack a project
     lacks is simply not installed; the soft replacement for the retired require-convention-skill
     hard gate.
-  - `README.md`.
+- `setup-plugin/` - the `claude-stack-setup` plugin (the guided `/claude-stack` bootstrap).
 - `scripts/lint-skills.js` - the parity lint (below). `scripts/analyze-usage.js` - offline
   token/tool consumption report over a session's transcript JSONL (+ its `subagents/`), the token
   side of the flow instrumentation (`instrument-tool-usage.js` is the identity side - hooks never
-  see tokens). `README.md` - repo overview.
+  see tokens). `README.md` - repo overview + the full stack installer docs (single README since the repo flatten).
 
 The **Cursor** delivery - installers, the 33 agent twins, `.mdc` rules, hooks,
 `AGENTS.template.md` - lives in the `cursor-stack` repo (its own CLAUDE.md documents the
@@ -177,11 +176,11 @@ documented there.
   only a generated `.mcp.json` or a consuming project's copy - the installer
   regenerates and silently wipes it.
 - **One home per piece, no duplication.** A deterministic gate at a discrete event → a hook
-  (`claude/hooks/`). A per-file-type convention → a path-scoped rule that glob-attaches
+  (`hooks/`). A per-file-type convention → a path-scoped rule that glob-attaches
   its house-style skill (`.claude/rules/`). A keyword capability → the skill's own description.
   Cross-cutting guidance → the always-on `baseline-*.md` set (fleet-updatable): interaction,
   quality-gates, security, git, navigation - each with an `.mdc` twin in `cursor-stack` that a
-  content change must be mirrored to. The base template (`claude/CLAUDE.template.md`)
+  content change must be mirrored to. The base template (`CLAUDE.template.md`)
   carries only per-project structure + platform routing, never the baseline conventions. Never state one
   trigger twice.
 - **Prove a behavioral change, don't assert it.** A change to a model / effort pin, a routing rule, or a
@@ -196,10 +195,10 @@ documented there.
 
 - The installer regenerates `.mcp.json` on every run - fix the template, not the output.
 - Editing a consuming project's installed copy is local-only; mirror the change into this repo's
-  `claude/` stack scripts (both shells) or the next install wipes it - and into `cursor-stack`
+  installer twins (both shells) or the next install wipes it - and into `cursor-stack`
   when the change touches the shared skills/MCP baseline or a twinned agent/rule.
-- Hooks and rules are **fetched from GitHub** at install (`…/main/claude/hooks`,
-  `…/main/claude/rules`), so a change ships only once committed + pushed;
+- Hooks and rules are **fetched from GitHub** at install (`…/main/hooks`,
+  `…/main/rules`), so a change ships only once committed + pushed;
   until then the per-hook / per-rule fail-soft keeps any existing copy.
 - Authoring or editing a house skill in skills/? The superpowers writing-skills method is a useful
   reference - subordinate it to the parity lint, the HTML + skill-count sync, and the house

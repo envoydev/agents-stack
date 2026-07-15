@@ -136,7 +136,7 @@ test('CLI closure -> emitted file -> installer --print-plan agrees', () => {
         // aspnet-implementer pulls csharp (a skill) - the emitted file must list it
         assert.ok(emitted.split('\n').includes('skill csharp'));
 
-        const sh = path.join(__dirname, '..', 'claude', 'claude-stack.sh');
+        const sh = path.join(__dirname, '..', 'claude-stack.sh');
         const plan = execFileSync('bash', [sh, 'install', '--scope', 'project', '--selection', selFile, '--print-plan'], { encoding: 'utf8' });
         const planSkills = (plan.match(/^plan skills:(.*)$/m) || [,''])[1].trim().split(/\s+/);
         assert.ok(planSkills.includes('csharp'), 'installer plan reflects the closed selection');

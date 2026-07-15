@@ -9,8 +9,8 @@
   "commands": [
     "./commands/claude-stack.md"
   ],
-  "homepage": "https://github.com/envoydev/agents-stack",
-  "repository": "https://github.com/envoydev/agents-stack",
+  "homepage": "https://github.com/envoydev/claude-stack",
+  "repository": "https://github.com/envoydev/claude-stack",
   "license": "MIT",
   "keywords": ["setup", "installer", "bootstrap", "skills", "agents", "mcp", "claude-code"]
 }

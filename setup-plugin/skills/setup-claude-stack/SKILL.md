@@ -1,14 +1,14 @@
 ---
 name: setup-claude-stack
-description: "Bootstrap the personal agents-stack into the CURRENT project - detect the OS + analyse the project, ask the scalar install choices, fetch the tools, curate a dependency-complete selection with a prerequisite check, and run the installer. Trigger by invoking /claude-stack or 'set up the claude stack here'. Runs the installer against a curated subset; not for editing the stack source itself."
+description: "Bootstrap the personal claude-stack into the CURRENT project - detect the OS + analyse the project, ask the scalar install choices, fetch the tools, curate a dependency-complete selection with a prerequisite check, and run the installer. Trigger by invoking /claude-stack or 'set up the claude stack here'. Runs the installer against a curated subset; not for editing the stack source itself."
 disable-model-invocation: true
 ---
 
 # Set up the Claude stack in this project
 
-You are bootstrapping the agents-stack into the CURRENT project. Work in the project root, in order, and drive it interactively: ask the scalar choices, always show the resolved selection and the prerequisite report before installing, and never install past an unmet blocker. The deterministic work is done by `stack-select.js`; you orchestrate.
+You are bootstrapping the claude-stack into the CURRENT project. Work in the project root, in order, and drive it interactively: ask the scalar choices, always show the resolved selection and the prerequisite report before installing, and never install past an unmet blocker. The deterministic work is done by `stack-select.js`; you orchestrate.
 
-Everything is fetched from `https://raw.githubusercontent.com/envoydev/agents-stack/main`. Use a temp working dir (e.g. `mktemp -d`) for the fetched tools; never write them into the project.
+Everything is fetched from `https://raw.githubusercontent.com/envoydev/claude-stack/main`. Use a temp working dir (e.g. `mktemp -d`) for the fetched tools; never write them into the project.
 
 ## 1. Preconditions
 - Confirm the cwd is the target project's root and it is a git repo. If not, stop and ask.
@@ -25,7 +25,7 @@ Everything is fetched from `https://raw.githubusercontent.com/envoydev/agents-st
 Ask with the question tool (one screen): scope (`project` default / `global`), space (optional account name), context7 transport (`remote` default / `local`), install the GitHub CLI? (default no), keep local pins? (`--keep-pins`, default no).
 
 ## 4. Fetch the tools
-Into the temp dir, download from `.../main`: the right installer (`claude/claude-stack.sh` or `claude/claude-stack.ps1`), `scripts/stack-select.js`, and `scripts/stack-graph.json`.
+Into the temp dir, download from `.../main`: the right installer (`claude-stack.sh` or `claude-stack.ps1`), `scripts/stack-select.js`, and `scripts/stack-graph.json`.
 
 ## 5. Build the recommended selection and close it
 - Read this skill's `references/recommendations.json`. Union `always` with the seed of each confirmed stack into a raw selection `{ agents: [...], rules: [...], skills: [...], plugins: [...] }`; write it to `raw.json` in the temp dir.

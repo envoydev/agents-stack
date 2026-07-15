@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Repo lint: keep the registration surfaces and all cross-skill references in
-// sync. The installer is split into two manifests: claude/claude-stack.{sh,ps1}.
+// sync. The installer is split into two manifests: claude-stack.{sh,ps1}.
 // SKILLS and MCPS must be identical across both twins - and they are ALSO shared
 // with the Cursor stack (the separate cursor-stack repo, whose installers clone
 // this repo for skills); that cross-repo parity is held by discipline (a baseline
@@ -18,19 +18,19 @@
 //      README drifting from the actual installer/on-disk set sizes (those prose
 //      numbers can no longer lie);
 //   6. a backticked skill name that resolves to nothing - scanned in skill files,
-//      claude/agents/*.md subagents, AND the base template + claude rules
-//      (CLAUDE.template.md / claude/rules/*.md), where a renamed skill would
+//      agents/*.md subagents, AND the base template + claude rules
+//      (CLAUDE.template.md / rules/*.md), where a renamed skill would
 //      otherwise rot silently; tokens there resolve against
 //      skills + plugins + MCPs + agent names + NON_SKILL_TOKENS;
 //   7. a false 'Vendored from' label on a house dotnet-* skill (they are
 //      original work; honest 'Adapted from'/attribution is allowed);
 //   8. the two installers listing the SKILLS block in a DIFFERENT
 //      ORDER (not just a different set);
-//   9. the on-disk claude/agents/*.md set diverging from the agents the
+//   9. the on-disk agents/*.md set diverging from the agents the
 //      installers fetch (the AGENTS manifest array).
 // Also verifies the require-convention-skill hook only demands skills that exist,
 // that every NON_SKILL_TOKENS allowlist entry is still actually used (no dead
-// config), that claude/rules/*.md + claude/agents/*.md frontmatter parses as
+// config), that rules/*.md + agents/*.md frontmatter parses as
 // strict YAML with the required keys (an unquoted ': ' scalar breaks GitHub
 // rendering and strict parsers - the skills already get this via check 1),
 // and warns (soft) on over-long SKILL.md descriptions.
@@ -43,15 +43,15 @@ const yaml = require('js-yaml');
 
 const ROOT = path.resolve(__dirname, '..');
 const SKILLS_DIR = path.join(ROOT, 'skills');
-const CLAUDE_SH = path.join(ROOT, 'claude', 'claude-stack.sh');
-const CLAUDE_PS1 = path.join(ROOT, 'claude', 'claude-stack.ps1');
+const CLAUDE_SH = path.join(ROOT, 'claude-stack.sh');
+const CLAUDE_PS1 = path.join(ROOT, 'claude-stack.ps1');
 const README = path.join(ROOT, 'README.md');
-const CLAUDE_README = path.join(ROOT, 'claude', 'README.md');
-const STACK_HTML = path.join(ROOT, 'claude', 'claude-stack.html');
-const AGENTS_DIR = path.join(ROOT, 'claude', 'agents');
-const CLAUDE_TEMPLATE = path.join(ROOT, 'claude', 'CLAUDE.template.md');
-const CLAUDE_RULES_DIR = path.join(ROOT, 'claude', 'rules');
-const CONVENTION_HOOK = path.join(ROOT, 'claude', 'hooks', 'require-convention-skill.js');
+const CLAUDE_README = README;   // merged into the root README at the repo flatten
+const STACK_HTML = path.join(ROOT, 'claude-stack.html');
+const AGENTS_DIR = path.join(ROOT, 'agents');
+const CLAUDE_TEMPLATE = path.join(ROOT, 'CLAUDE.template.md');
+const CLAUDE_RULES_DIR = path.join(ROOT, 'rules');
+const CONVENTION_HOOK = path.join(ROOT, 'hooks', 'require-convention-skill.js');
 const PLUGIN_MARKETPLACE_URLS = new Set([
     'https://github.com/anthropics/claude-plugins-official',
     'https://github.com/jarrodwatts/claude-hud',
@@ -410,9 +410,9 @@ function main()
     // 3. Every active envoydev manifest entry has a local directory.
     for (const [skill, repo] of primary.active)
     {
-        if (repo === 'envoydev/agents-stack' && !dirs.includes(skill))
+        if (repo === 'envoydev/claude-stack' && !dirs.includes(skill))
         {
-            flag(`SKILLS registers envoydev/agents-stack|${skill} but skills/${skill}/ does not exist`);
+            flag(`SKILLS registers envoydev/claude-stack|${skill} but skills/${skill}/ does not exist`);
         }
     }
 
@@ -631,7 +631,7 @@ function main()
         }
     }
 
-    const thirdPartyActive = new Set([...primary.active.keys()].filter(s => primary.active.get(s) !== 'envoydev/agents-stack'));
+    const thirdPartyActive = new Set([...primary.active.keys()].filter(s => primary.active.get(s) !== 'envoydev/claude-stack'));
     const inventory = new Set([...thirdPartyActive, ...primary.commented.keys()]);
     for (const name of thirdPartyActive)
     {
@@ -768,14 +768,14 @@ function main()
         ['Rules', claudeRuleCount],
     ])
     {
-        const got = readmeCount(CLAUDE_README, 'claude/README.md', rowLabel);
+        const got = readmeCount(CLAUDE_README, 'README.md', rowLabel);
         if (got !== null && got !== expected)
         {
-            flag(`claude/README.md: headline ${rowLabel} count is ${got} but the installer holds ${expected}`);
+            flag(`README.md: headline ${rowLabel} count is ${got} but the installer holds ${expected}`);
         }
     }
 
-    // 12b. The on-disk claude/agents/*.md set must equal the agents the installers
+    // 12b. The on-disk agents/*.md set must equal the agents the installers
     //      fetch (the AGENTS manifest array - both claude shells agree). A drift
     //      means a committed subagent never installs, or the installer fetches an
     //      agent that no longer exists in-repo.
@@ -785,9 +785,9 @@ function main()
     const agentDiskSet = fs.existsSync(AGENTS_DIR)
         ? new Set(fs.readdirSync(AGENTS_DIR).filter(f => f.endsWith('.md')))
         : new Set();
-    assertSameSet('agent file', { 'claude/agents/': agentDiskSet, 'claude-stack.sh AGENTS': agentManifestSh });
+    assertSameSet('agent file', { 'agents/': agentDiskSet, 'claude-stack.sh AGENTS': agentManifestSh });
 
-    // 12d. Same parity for the CLAUDE rules: the on-disk claude/rules/*.md set must equal the
+    // 12d. Same parity for the CLAUDE rules: the on-disk rules/*.md set must equal the
     //      CLAUDE_RULES manifest array in BOTH claude shells (both shells agree first, then the
     //      on-disk set equals them). A drift means a committed rule never installs, or the
     //      installer fetches a rule that no longer exists in-repo.
@@ -795,7 +795,7 @@ function main()
     const ruleManifestPs1 = new Set(parseStringArray(CLAUDE_PS1, "'", '$ClaudeRules = @('));
     assertSameSet('rule', { 'claude-stack.sh': ruleManifestSh, 'claude-stack.ps1': ruleManifestPs1 });
     assertSameSet('rule file', {
-        'claude/rules/': new Set(fs.existsSync(CLAUDE_RULES_DIR) ? fs.readdirSync(CLAUDE_RULES_DIR).filter(f => f.endsWith('.md')) : []),
+        'rules/': new Set(fs.existsSync(CLAUDE_RULES_DIR) ? fs.readdirSync(CLAUDE_RULES_DIR).filter(f => f.endsWith('.md')) : []),
         'claude-stack.sh CLAUDE_RULES': ruleManifestSh,
     });
 
@@ -814,7 +814,7 @@ function main()
                 const token = m[1];
                 if (!known.has(token) && !NON_SKILL_TOKENS.has(token))
                 {
-                    flag(`claude/agents/${agentFile} references skill \`${token}\` - not a local skill dir or a manifest selector`);
+                    flag(`agents/${agentFile} references skill \`${token}\` - not a local skill dir or a manifest selector`);
                 }
             }
         }
@@ -904,12 +904,12 @@ function main()
             const tools = toolsLine ? toolsLine[1].split(',').map(t => t.trim()) : [];
             if (/invoke the Skill tool/i.test(text) && !tools.includes('Skill'))
             {
-                flag(`claude/agents/${agentFile} tells the agent to invoke the Skill tool but 'Skill' is not in its tools: allowlist - it would deadlock on the convention gate`);
+                flag(`agents/${agentFile} tells the agent to invoke the Skill tool but 'Skill' is not in its tools: allowlist - it would deadlock on the convention gate`);
             }
         }
     }
 
-    // 18. claude/rules/*.md and claude/agents/*.md frontmatter must be strict
+    // 18. rules/*.md and agents/*.md frontmatter must be strict
     //     YAML - the same failure mode check 1 guards for skills: an unquoted
     //     scalar containing ': ' breaks GitHub rendering AND any strict
     //     frontmatter parser. Rules need a non-empty description (pathless
@@ -918,13 +918,13 @@ function main()
     let rulesChecked = 0;
     let agentsChecked = 0;
     for (const target of [
-        { dir: path.join(ROOT, 'claude', 'rules'), kind: 'rule' },
-        { dir: path.join(ROOT, 'claude', 'agents'), kind: 'agent' },
+        { dir: path.join(ROOT, 'rules'), kind: 'rule' },
+        { dir: path.join(ROOT, 'agents'), kind: 'agent' },
     ])
     {
         for (const file of fs.readdirSync(target.dir).filter(f => f.endsWith('.md')).sort())
         {
-            const rel = `claude/${target.kind === 'rule' ? 'rules' : 'agents'}/${file}`;
+            const rel = `${target.kind === 'rule' ? 'rules' : 'agents'}/${file}`;
             if (target.kind === 'rule') rulesChecked++; else agentsChecked++;
             const fm = fs.readFileSync(path.join(target.dir, file), 'utf8').match(/^---\r?\n([\s\S]*?)\r?\n---/);
             if (!fm)

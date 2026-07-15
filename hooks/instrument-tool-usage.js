@@ -13,7 +13,7 @@
 // The installer FETCHES this file but deliberately does NOT wire it (its HOOKS entry has an
 // empty matcher) - a wired '.*' hook costs a node spawn on every tool call, so the wiring is
 // opt-in per run. Inert unless STACK_INSTRUMENT is set. To enable for a benchmark / audit run,
-// see claude/README.md ('Optional: tool-usage instrumentation'):
+// see README.md ('Optional: tool-usage instrumentation'):
 //   1. add a PreToolUse hook wired to it in .claude/settings.json with matcher ".*" (all tools; use "Skill|mcp__.*" to scope to skills/MCP only)
 //   2. run with STACK_INSTRUMENT=1 (optionally STACK_INSTRUMENT_LOG=<path>)
 //

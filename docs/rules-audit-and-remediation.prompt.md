@@ -37,7 +37,7 @@ If any of these mechanics appear to have changed in the repo you are auditing or
 - `MAX_ITERATIONS`: max remediation passes per file (default: `4`).
 - `WRITE`: `true` edits files in place, `false` produces the report only (default: `true`).
 
-Source vs deployed layout: this repository stores the stack under `./claude/` and installs it into target projects via the `claude/claude-stack.sh` and `claude/claude-stack.ps1` scripts, where rules live at `.claude/rules/` and load by the mechanics above. Audit the source files under `./claude/`, but reason about loading, `paths` globs, and cross-file references in terms of the deployed layout, and read the installer scripts to confirm the source-to-deployed mapping instead of assuming it. The enforcement-layer inventory in discovery reads hooks from their source at `./claude/hooks`.
+Source vs deployed layout: this repository stores the stack at the repo root and installs it into target projects via the `claude-stack.sh` and `claude-stack.ps1` scripts, where rules live at `.claude/rules/` and load by the mechanics above. Audit the source files at the repo root (`rules/`, `hooks/`), but reason about loading, `paths` globs, and cross-file references in terms of the deployed layout, and read the installer scripts to confirm the source-to-deployed mapping instead of assuming it. The enforcement-layer inventory in discovery reads hooks from their source at `./hooks`.
 
 Scope boundary: when this prompt runs alongside the dedicated CLAUDE.md audit prompt, this prompt still reads the CLAUDE.md template to build the conflict and duplication maps (both maps are meaningless without it), but edits only rule files; template edits belong to that prompt. When run alone, this prompt owns both.
 
