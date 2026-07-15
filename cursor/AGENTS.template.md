@@ -89,6 +89,21 @@ The never-`Read`-a-whole-file-to-locate-a-symbol hard rule is the always-on `bas
 rule; serena (`find_symbol` / `find_referencing_symbols`) or the `LSP` is the locator, `Read` is for
 code you have *already* located. Name the enabled LSP extension(s) under `## Per-project additions`.
 
+## Generated docs root
+
+The skill-generated project docs - the architecture map (`architecture/`), `PROJECT-CODE-STYLE.md`,
+`PROJECT-RELATED-CONTEXT.md`, and the quality-loop prompts (`loops/`) - all live under a single
+**docs root**, `docs/` by default. To relocate them, set the root here:
+
+- **Docs root:** `docs/`
+
+Wherever a skill or agent instruction names a generated project doc as `docs/<name>` (for example
+`docs/architecture/ARCHITECTURE.md`), resolve it under the configured root instead - so with the
+default the path is unchanged. Relocating to `.cursor/docs/` keeps the docs local: `.cursor/` is
+gitignored, so they will NOT be committed, will not survive a fresh clone, and will not reach a
+teammate - keep the root under a committed path (the `docs/` default) unless you specifically want
+them machine-local.
+
 ## Related projects
 
 When this repo is one of several that make up a product (a backend and its frontend, an app and a

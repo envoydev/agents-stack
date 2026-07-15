@@ -34,6 +34,21 @@ rules in the same directory attach on a matching file touch - their own `paths:`
 | `.claude/rules/baseline-project-related-context.md` (GENERATED - run /project-related-context with the sibling paths/URLs) | sibling-repo awareness - name / location / relation / seam per sibling |
 | inject-code-style hook (GENERATED - run /project-code-style-analyzer; a hook + doc, not a rule) | the project's actual code style - docs/PROJECT-CODE-STYLE.md surfaced at edit time, filtered to the observed file types |
 
+### Generated docs root
+
+The skill-generated project docs - the architecture map (`architecture/`), `PROJECT-CODE-STYLE.md`,
+`PROJECT-RELATED-CONTEXT.md`, and the quality-loop prompts (`loops/`) - all live under a single
+**docs root**, `docs/` by default. To relocate them, set the root here:
+
+- **Docs root:** `docs/`
+
+Wherever a skill or agent instruction names a generated project doc as `docs/<name>` (for example
+`docs/architecture/ARCHITECTURE.md`), resolve it under the configured root instead - so with the
+default the path is unchanged. Relocating to `.claude/docs/` keeps the docs local: `.claude/` is
+gitignored, so they will NOT be committed, will not survive a fresh clone, and will not reach a
+teammate - keep the root under a committed path (the `docs/` default) unless you specifically want
+them machine-local.
+
 <!-- Authoring outline - write these sections into the project-specific top of this file
 (each section lean; interleave as reads best - the project intro usually comes first, above
 ## Rules), then delete this comment block. Comments are stripped from injection, so this
