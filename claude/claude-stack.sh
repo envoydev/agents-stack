@@ -941,4 +941,8 @@ Add these stack-generated, machine-local artifacts to the project's .gitignore (
   .mcp.json        generated MCP server config (machine-local)
   skill-lock.json  skills CLI lock file
   docs/superpowers superpowers / brainstorming scratch specs (docs/ itself - the committed architecture map - stays tracked)
+
+If the project's CLAUDE.md 'Generated docs root' is relocated under .claude/, the generated docs
+inherit the .claude ignore above and become local-only - not committed, not shared. Keep the docs
+root at its committed docs/ default unless that machine-local tradeoff is wanted.
 GITIGNORE

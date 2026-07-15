@@ -1064,3 +1064,7 @@ Write-Host '  .playwright      playwright MCP user-data-dir + screenshots'
 Write-Host '  .mcp.json        generated MCP server config (machine-local)'
 Write-Host '  skill-lock.json  skills CLI lock file'
 Write-Host '  docs/superpowers superpowers / brainstorming scratch specs (docs/ itself - the committed architecture map - stays tracked)'
+Write-Host ''
+Write-Host "If the project's CLAUDE.md 'Generated docs root' is relocated under .claude\, the generated docs"
+Write-Host 'inherit the .claude ignore above and become local-only - not committed, not shared. Keep the docs'
+Write-Host 'root at its committed docs/ default unless that machine-local tradeoff is wanted.'

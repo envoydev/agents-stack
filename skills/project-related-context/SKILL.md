@@ -9,7 +9,7 @@ disable-model-invocation: true
 You drive the deliberate capture of a project's related repositories, and you own both tiers of the house related-projects model:
 
 1. `.claude/rules/baseline-project-related-context.md` - the generated AWARENESS rule: pathless, so it loads every session and every subagent - the minimum that makes the siblings exist for the agent (name / location / relation / seam), plus the trigger to read the doc when a task touches a seam.
-2. `docs/PROJECT-RELATED-CONTEXT.md` - the on-demand ORIENTATION doc: the full entries including `first_read` and the evidence behind each relation and seam, read when actually working near a seam.
+2. `docs/PROJECT-RELATED-CONTEXT.md` - the on-demand ORIENTATION doc: the full entries including `first_read` and the evidence behind each relation and seam, read when actually working near a seam. Lives under the project's configured docs root (default `docs/`, per its CLAUDE.md).
 
 Both are committed files; a re-run refreshes both in place. The rule's name is deliberately NOT in the stack installer's fetch manifest (and never may be - a fetch would overwrite the generated copy) and nothing prunes the rules directory, so both survive `stack update`.
 
