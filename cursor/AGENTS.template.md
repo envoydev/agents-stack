@@ -91,9 +91,12 @@ code you have *already* located. Name the enabled LSP extension(s) under `## Per
 
 ## Generated docs root
 
-The skill-generated project docs - the architecture map (`architecture/`), `PROJECT-CODE-STYLE.md`,
-`PROJECT-RELATED-CONTEXT.md`, and the quality-loop prompts (`loops/`) - all live under a single
-**docs root**, `docs/` by default. To relocate them, set the root here:
+**Any documentation a skill or agent generates lives under a single docs root, `docs/` by default** -
+the architecture map (`architecture/`), `PROJECT-CODE-STYLE.md`, `PROJECT-RELATED-CONTEXT.md`, the
+quality-loop prompts (`loops/`), superpowers plans/specs, and any other generated markdown. This is
+the default home for generated project docs; a first-class repo doc with a conventional home (the
+top-level `README.md`, ADRs where the project keeps them) stays where it belongs. To relocate the
+generated docs, set the root here:
 
 - **Docs root:** `docs/`
 
