@@ -573,7 +573,7 @@ $ClaudeRules = @(
 # (one 'category name' per line; '#' comments and blank lines ignored). Hooks
 # are never filtered. -PrintPlan prints the resolved set and exits (dry run).
 if ($Selection) {
-  if (-not (Test-Path $Selection)) { Write-Error "selection file not found: $Selection"; exit 1 }
+  if (-not (Test-Path $Selection)) { Write-Host "selection file not found: $Selection" -ForegroundColor Red; exit 1 }
   $sel = @{}
   foreach ($line in Get-Content $Selection) {
     $t = $line.Trim()
@@ -591,11 +591,11 @@ if ($Selection) {
 }
 
 if ($PrintPlan) {
-  'plan skills: '  + (($Skills      | ForEach-Object { ($_ -replace '^[^|]*\|', '') }) -join ' ')
-  'plan plugins: ' + (($Plugins     | ForEach-Object { ($_ -split '@', 2)[0] }) -join ' ')
-  'plan mcps: '    + (($Mcps        | ForEach-Object { ($_ -split '\|', 2)[0] }) -join ' ')
-  'plan agents: '  + (($Agents      | ForEach-Object { ((($_ -split '::', 2)[0]) -replace '\.md$', '') }) -join ' ')
-  'plan rules: '   + (($ClaudeRules | ForEach-Object { ((($_ -split '::', 2)[0]) -replace '\.md$', '') }) -join ' ')
+  'plan skills:'  + (($Skills      | ForEach-Object { ' ' + ($_ -replace '^[^|]*\|', '') }) -join '')
+  'plan plugins:' + (($Plugins     | ForEach-Object { ' ' + ($_ -split '@', 2)[0] }) -join '')
+  'plan mcps:'    + (($Mcps        | ForEach-Object { ' ' + ($_ -split '\|', 2)[0] }) -join '')
+  'plan agents:'  + (($Agents      | ForEach-Object { ' ' + ((($_ -split '::', 2)[0]) -replace '\.md$', '') }) -join '')
+  'plan rules:'   + (($ClaudeRules | ForEach-Object { ' ' + ((($_ -split '::', 2)[0]) -replace '\.md$', '') }) -join '')
   exit 0
 }
 
