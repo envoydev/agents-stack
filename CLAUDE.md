@@ -12,7 +12,7 @@ repo for the shared skills, so the skill + MCP baseline stays single-sourced her
 baseline change is a TWO-REPO commit (the manifest lists are mirrored there in the same
 sitting; each repo lints its own `.sh`/`.ps1` twins). Consuming projects pull from here -
 they do not own their copy. Skills install via a git-clone-and-copy step built into the
-stack installers (or the `claude-stack-setup` plugin's `/claude-stack`); the rest is laid
+stack installers (or the claude-stack plugin's `/claude-stack:setup`); the rest is laid
 down by the same installers. The durable change always lives in *this* repo's source; a
 change made only inside a consuming project is throwaway (see Invariants).
 
@@ -20,10 +20,10 @@ change made only inside a consuming project is throwaway (see Invariants).
 
 - `skills/` - the personal house-style skills, each a `SKILL.md`. Auto-activate on their own
   keywords / file types in consuming projects. Distributed via the stack installers'
-  git-clone-and-copy step (or the `claude-stack-setup` plugin) - including `cursor-stack`'s
+  git-clone-and-copy step (or the claude-stack plugin) - including `cursor-stack`'s
   installers, which clone this repo.
-- `claude-stack.{sh,ps1}` - the installer twins (Unix / Windows) + `claude-stack.html` browser inventory.
-- `CLAUDE.template.md` - the stack-neutral per-project skeleton (with `<placeholders>`) that each
+- `scripts/claude-stack.{sh,ps1}` - the installer twins (Unix / Windows); `docs/claude-stack.html` is the browser inventory.
+- `templates/CLAUDE.template.md` - the stack-neutral per-project skeleton (with `<placeholders>`) that each
   consuming project's `CLAUDE.md` is filled in from; the working conventions ship separately in
   the `rules/baseline-*.md` set. Content shipped to projects, not this repo's own file.
 - `hooks/` - `guard-protected-force-push.js` + `guard-catastrophic-rm.js` (PreToolUse `Bash`) +
@@ -77,7 +77,7 @@ change made only inside a consuming project is throwaway (see Invariants).
     each glob-attaching ONE file family to its house-style skill - single-job so a stack a project
     lacks is simply not installed; the soft replacement for the retired require-convention-skill
     hard gate.
-- `setup-plugin/` - the `claude-stack-setup` plugin (the guided `/claude-stack` bootstrap).
+- `setup-plugin/` - the claude-stack plugin: two guided skills, `/claude-stack:setup` (fresh install from scratch) and `/claude-stack:configure` (update an existing install - refresh, add, or drop), plus the `/claude-stack` router command.
 - `scripts/lint-skills.js` - the parity lint (below). `scripts/analyze-usage.js` - offline
   token/tool consumption report over a session's transcript JSONL (+ its `subagents/`), the token
   side of the flow instrumentation (`instrument-tool-usage.js` is the identity side - hooks never
@@ -180,7 +180,7 @@ documented there.
   its house-style skill (`.claude/rules/`). A keyword capability → the skill's own description.
   Cross-cutting guidance → the always-on `baseline-*.md` set (fleet-updatable): interaction,
   quality-gates, security, git, navigation - each with an `.mdc` twin in `cursor-stack` that a
-  content change must be mirrored to. The base template (`CLAUDE.template.md`)
+  content change must be mirrored to. The base template (`templates/CLAUDE.template.md`)
   carries only per-project structure + platform routing, never the baseline conventions. Never state one
   trigger twice.
 - **Prove a behavioral change, don't assert it.** A change to a model / effort pin, a routing rule, or a

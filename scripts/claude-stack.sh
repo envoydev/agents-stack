@@ -668,7 +668,7 @@ download_rules() {  # fetch each rule .md into .claude/rules/; per-rule fail-sof
   done
 }
 
-CLAUDE_MD_URL="https://raw.githubusercontent.com/envoydev/claude-stack/main/CLAUDE.template.md"
+CLAUDE_MD_URL="https://raw.githubusercontent.com/envoydev/claude-stack/main/templates/CLAUDE.template.md"
 seed_claude_md() {  # INSTALL: lay down a starter .claude/CLAUDE.md from the template when the project has none (never clobber a filled one)
   command -v curl >/dev/null || { log "  !! curl not found - create .claude/CLAUDE.md by hand from CLAUDE.template.md"; return 0; }
   local root dest tmp

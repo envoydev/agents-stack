@@ -5,16 +5,23 @@
     "url": "https://github.com/envoydev"
   },
   "metadata": {
-    "description": "Personal Claude Code agent stack - the setup plugin that bootstraps skills, agents, rules, hooks, and MCP servers into a project.",
+    "description": "Personal Claude Code agent stack - skills, agents, rules, hooks, and MCP servers, installed and updated via the claude-stack plugin.",
     "version": "0.1.0"
   },
   "plugins": [
     {
-      "name": "claude-stack-setup",
+      "name": "claude-stack",
       "source": "./setup-plugin",
-      "description": "Bootstrap the personal Claude Code stack into a project: analyse it, curate a dependency-complete selection, check prerequisites, and run the installer.",
+      "description": "The personal Claude Code stack, guided: setup (fresh install from scratch) + configure (update an existing install), both selection-driven with prerequisite checks.",
       "category": "development",
-      "tags": ["setup", "installer", "skills", "agents", "mcp", "bootstrap"]
+      "tags": [
+        "setup",
+        "installer",
+        "skills",
+        "agents",
+        "mcp",
+        "bootstrap"
+      ]
     }
   ]
 }

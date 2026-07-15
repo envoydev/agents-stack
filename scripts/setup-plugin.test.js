@@ -12,14 +12,14 @@ test('marketplace.json is valid and points at the setup-plugin subdir', () => {
     assert.strictEqual(mp.name, 'claude-stack');
     assert.ok(Array.isArray(mp.plugins) && mp.plugins.length === 1);
     const p = mp.plugins[0];
-    assert.strictEqual(p.name, 'claude-stack-setup');
+    assert.strictEqual(p.name, 'claude-stack');
     assert.strictEqual(p.source, './setup-plugin');
     assert.ok(typeof p.description === 'string' && p.description.trim() !== '');
 });
 
 test('plugin.json is valid and the command exists', () => {
     const pj = JSON.parse(fs.readFileSync(path.join(PLUGIN_DIR, '.claude-plugin', 'plugin.json'), 'utf8'));
-    assert.strictEqual(pj.name, 'claude-stack-setup');
+    assert.strictEqual(pj.name, 'claude-stack');
     assert.ok(typeof pj.version === 'string' && pj.version.trim() !== '');
     assert.ok(typeof pj.description === 'string' && pj.description.trim() !== '');
     assert.ok(fs.existsSync(path.join(PLUGIN_DIR, 'commands', 'claude-stack.md')), 'the /claude-stack command exists');
@@ -37,7 +37,7 @@ test('no tracked plugin file leaks an email address', () => {
 const { computeClosure } = require('./stack-select.js');
 const graph = require('./stack-graph.json');
 
-const RECS = path.join(PLUGIN_DIR, 'skills', 'setup-claude-stack', 'references', 'recommendations.json');
+const RECS = path.join(PLUGIN_DIR, 'skills', 'setup', 'references', 'recommendations.json');
 
 test('every recommendation name resolves in the dependency graph', () => {
     const recs = JSON.parse(fs.readFileSync(RECS, 'utf8'));
@@ -92,11 +92,14 @@ test('a single-stack (aspnet) recommendation does not pull cross-stack skills', 
     assert.ok(closed.skills.includes('csharp') && closed.skills.includes('dotnet-web-backend'), 'still pulls its own vertical');
 });
 
-test('the setup skill exists with valid manual-only frontmatter', () => {
-    const skill = path.join(PLUGIN_DIR, 'skills', 'setup-claude-stack', 'SKILL.md');
-    assert.ok(fs.existsSync(skill), 'SKILL.md exists');
-    const fm = fs.readFileSync(skill, 'utf8').match(/^---\r?\n([\s\S]*?)\r?\n---/);
-    assert.ok(fm, 'has frontmatter');
-    assert.match(fm[1], /name:\s*setup-claude-stack/, 'name is setup-claude-stack');
-    assert.match(fm[1], /disable-model-invocation:\s*true/, 'manual-only');
-});
+for (const name of ['setup', 'configure'])
+{
+    test(`the ${name} skill exists with valid manual-only frontmatter`, () => {
+        const skill = path.join(PLUGIN_DIR, 'skills', name, 'SKILL.md');
+        assert.ok(fs.existsSync(skill), 'SKILL.md exists');
+        const fm = fs.readFileSync(skill, 'utf8').match(/^---\r?\n([\s\S]*?)\r?\n---/);
+        assert.ok(fm, 'has frontmatter');
+        assert.match(fm[1], new RegExp(`name:\\s*${name}`), `name is ${name}`);
+        assert.match(fm[1], /disable-model-invocation:\s*true/, 'manual-only');
+    });
+}

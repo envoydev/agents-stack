@@ -12,7 +12,7 @@ single-sourced here.
 Install just the skills into the current project (no MCP servers, hooks, rules, or plugins):
 
 ```bash
-mkdir -p .claude && curl -fsSL https://raw.githubusercontent.com/envoydev/claude-stack/main/claude-stack.sh -o .claude/claude-stack.sh
+mkdir -p .claude && curl -fsSL https://raw.githubusercontent.com/envoydev/claude-stack/main/scripts/claude-stack.sh -o .claude/claude-stack.sh
 bash .claude/claude-stack.sh install --skills-only   # Claude Code -> .claude/skills/
 ```
 
@@ -31,10 +31,10 @@ Install the setup plugin once, then run it inside any project to install a curat
 
 ```
 claude plugin marketplace add envoydev/claude-stack
-claude plugin install claude-stack-setup@claude-stack
+claude plugin install claude-stack@claude-stack
 ```
 
-Then, in a target project, run `/claude-stack` (the `setup-claude-stack` skill): it detects the OS, analyses the project, checks prerequisites, lets you review a dependency-complete selection, and runs the installer against just that subset. The installer scripts and `stack-select.js` remain the source of truth; the plugin is the guided front end.
+Then run `/claude-stack:setup` for a fresh install (in a project it decides the selection FROM the project; outside one it offers a global install seeded from the recommended set) or `/claude-stack:configure` to update an existing install (refresh as-is, add stacks/items, or drop them). Both detect the OS, check prerequisites, and let you review a dependency-complete selection before running the installer against just that subset; `/claude-stack` alone routes by state. The installer scripts and `stack-select.js` remain the source of truth; the plugin is the guided front end.
 
 ## Managing installed skills
 
@@ -53,7 +53,7 @@ Built-in/system CLI skills are excluded (they ship with the CLI). The agent is t
 run, so there is **no agent argument**.
 
 > The subagent roster - the per-domain specialist team and the cross-cutting agents - is laid out
-> visually at the top of [`claude-stack.html`](claude-stack.html), above the full stack inventory it now folds in.
+> visually at the top of [`docs/claude-stack.html`](docs/claude-stack.html), above the full stack inventory it now folds in.
 
 | Script             | System        | Shell                                   |
 | ------------------ | ------------- | --------------------------------------- |
@@ -76,7 +76,7 @@ everything below applies to both unless a row is marked otherwise.
 
 | Component | Count | Notes |
 | --------- | ----- | ----- |
-| **Skills**  | 65 | conventions + utilities (ticket writers, C#/.NET, Angular/TS, SQL, `project-task-flow` orchestration + routing (single-stack trios + cross-domain), `project-quality-loop` + `project-architecture-quality-loop` review loops) - git-clone + copy from `envoydev/claude-stack` (`claude-stack.sh install --skills-only`, or the `claude-stack-setup` plugin) |
+| **Skills**  | 65 | conventions + utilities (ticket writers, C#/.NET, Angular/TS, SQL, `project-task-flow` orchestration + routing (single-stack trios + cross-domain), `project-quality-loop` + `project-architecture-quality-loop` review loops) - git-clone + copy from `envoydev/claude-stack` (`claude-stack.sh install --skills-only`, or the claude-stack plugin) |
 | **Plugins** | 7  | `superpowers`, `claude-md-management`, `csharp-lsp`, `typescript-lsp`, `security-guidance`, `claude-hud`, `ponytail` - `claude plugin install` (needs the `claude` CLI) |
 | **MCP servers** | 8 | `angular-cli`, `serena`, `playwright`, `memory`, `context7`, plus `chrome-devtools` + `appium-mcp` (heavy - active; comment out where not needed) and `sentry` (error monitoring - hosted remote MCP, needs `SENTRY_ACCESS_TOKEN` in settings `env`; comment out without Sentry). `memory` is cross-project recall (the subagent handoff runs on serena) - comment it out in a standalone project → `<repo>/.mcp.json` |
 | **Hooks** | 4 | `guard-protected-force-push` (blocks force-push to main/master/develop) + `guard-catastrophic-rm` (blocks recursive rm of /, ~, $HOME, or a bare *) + `guard-read-whole-file` (PreToolUse Read - blocks a whole-file Read of a >100-line source file, locate via serena first) → `.claude/hooks/` + wired into `.claude/settings.json`; plus `instrument-tool-usage` fetched UNWIRED (opt-in per-run stats - see the instrumentation section) |
@@ -203,7 +203,7 @@ macOS / Linux (`claude-stack.sh`):
 cd /path/to/your/project        # run inside the target project
 
 # 1) download the installer into the project's .claude/
-mkdir -p .claude && curl -fsSL https://raw.githubusercontent.com/envoydev/claude-stack/main/claude-stack.sh -o .claude/claude-stack.sh
+mkdir -p .claude && curl -fsSL https://raw.githubusercontent.com/envoydev/claude-stack/main/scripts/claude-stack.sh -o .claude/claude-stack.sh
 
 # 2) install (first time) / update (later)
 bash .claude/claude-stack.sh install
@@ -224,7 +224,7 @@ Set-Location C:\path\to\your\project
 
 # 1) download the installer into the project's .claude\
 New-Item -ItemType Directory -Force .claude | Out-Null
-Invoke-WebRequest -Uri https://raw.githubusercontent.com/envoydev/claude-stack/main/claude-stack.ps1 -OutFile .claude/claude-stack.ps1
+Invoke-WebRequest -Uri https://raw.githubusercontent.com/envoydev/claude-stack/main/scripts/claude-stack.ps1 -OutFile .claude/claude-stack.ps1
 
 # 2) install (first time) / update (later)
 pwsh .claude/claude-stack.ps1 install
@@ -261,12 +261,12 @@ the project root this three-step brief:
 1. **Download the installer into `.claude/`:**
 
    ```bash
-   mkdir -p .claude && curl -fsSL https://raw.githubusercontent.com/envoydev/claude-stack/main/claude-stack.sh -o .claude/claude-stack.sh
+   mkdir -p .claude && curl -fsSL https://raw.githubusercontent.com/envoydev/claude-stack/main/scripts/claude-stack.sh -o .claude/claude-stack.sh
    ```
 
    ```powershell
    New-Item -ItemType Directory -Force .claude | Out-Null
-   Invoke-WebRequest -Uri https://raw.githubusercontent.com/envoydev/claude-stack/main/claude-stack.ps1 -OutFile .claude/claude-stack.ps1
+   Invoke-WebRequest -Uri https://raw.githubusercontent.com/envoydev/claude-stack/main/scripts/claude-stack.ps1 -OutFile .claude/claude-stack.ps1
    ```
 
 2. **Analyze the project, then trim the script.** Detect the stacks actually present (languages,
@@ -629,17 +629,17 @@ The trio loop is `project-solution-design` -> `project-verify-plan` -> build und
 
 The inverse path runs the same flow as a dispatched team of 33 model-pinned subagents - the
 `project-task-flow` orchestration skill owns that ladder (the roster is laid out at the top of
-[claude-stack.html](claude-stack.html)). Pick by size: stay in chat for small
+[docs/claude-stack.html](docs/claude-stack.html)). Pick by size: stay in chat for small
 single-stack work, dispatch the team for large, parallel, cross-domain, or log-heavy work.
 
 ## Repository layout
 
 ```text
 skills/                 # the personal skills - one <skill-name>/SKILL.md per skill (some carry a references/ subfolder)
-claude-stack.{sh,ps1}   # the stack installer twins; claude-stack.html is the agent-roster viz + full inventory
-CLAUDE.template.md      # the stack-neutral per-project skeleton you copy into a project and fill in
+scripts/claude-stack.{sh,ps1}  # the stack installer twins; docs/claude-stack.html is the agent-roster viz + full inventory
+templates/CLAUDE.template.md   # the stack-neutral per-project skeleton you copy into a project and fill in
 agents/ hooks/ rules/   # the 33 subagents, the guard hooks, and the 15 rules the installers fetch
-setup-plugin/           # the claude-stack-setup plugin (guided bootstrap via /claude-stack)
+setup-plugin/           # the claude-stack plugin (setup = fresh install, configure = update; /claude-stack routes)
 scripts/lint-skills.js  # repo lint (keeps skills / manifests / HTML in sync)
 ```
 

@@ -1,6 +1,6 @@
 {
-  "name": "claude-stack-setup",
-  "description": "Bootstrap the personal Claude Code stack into a project: analyse it, curate a dependency-complete selection, check prerequisites, and run the installer.",
+  "name": "claude-stack",
+  "description": "The personal Claude Code stack, guided: setup installs it from scratch into a project (or globally), configure updates an existing install - both drive a dependency-complete selection with a prerequisite check.",
   "version": "0.1.0",
   "author": {
     "name": "envoydev",
@@ -12,5 +12,13 @@
   "homepage": "https://github.com/envoydev/claude-stack",
   "repository": "https://github.com/envoydev/claude-stack",
   "license": "MIT",
-  "keywords": ["setup", "installer", "bootstrap", "skills", "agents", "mcp", "claude-code"]
+  "keywords": [
+    "setup",
+    "installer",
+    "bootstrap",
+    "skills",
+    "agents",
+    "mcp",
+    "claude-code"
+  ]
 }

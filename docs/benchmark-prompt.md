@@ -64,7 +64,7 @@ the source repo:
    handoff).
 4. **Create each project's `CLAUDE.md` from the template.** The installer lays down skills / MCPs /
    hooks / rules / agents / plugins but does NOT write the project instructions - fill those in from
-   `<STACK>/claude/CLAUDE.template.md`, the stack-neutral base with `<placeholders>`. Copy it to the
+   `<STACK>/templates/CLAUDE.template.md`, the stack-neutral base with `<placeholders>`. Copy it to the
    project's `CLAUDE.md` and resolve every placeholder for that project's stack:
    - `aspnet-api-project` = .NET 10, Minimal API + vertical slice, EF Core + SQLite (the `aspnet` + `data`
      domains); point the convention and secret/config-glob placeholders at the real stack.

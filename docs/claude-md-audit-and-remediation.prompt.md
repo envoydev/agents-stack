@@ -28,7 +28,7 @@ If observed reality in the repo or current docs contradicts any of these, prefer
 
 ## Parameters
 
-- `CLAUDE_MD_PATHS`: the CLAUDE.md files in scope (default: `./claude/CLAUDE.template.md`, the template the installer deploys into target projects). The repository's root `./CLAUDE.md` is the stack repo's own working file: it may be read for context but must never be scored or edited by this prompt.
+- `CLAUDE_MD_PATHS`: the CLAUDE.md files in scope (default: `./templates/CLAUDE.template.md`, the template the installer deploys into target projects). The repository's root `./CLAUDE.md` is the stack repo's own working file: it may be read for context but must never be scored or edited by this prompt.
 - `RULES_ROOT`: folder containing rule files (default: `./claude/rules`). Required, because the hub dimension is scored against the real rules catalog and you may only link rules that exist.
 - `SKILLS_ROOT`: folder containing skills (default: `./skills`). Required, for detecting procedures that belong in skills and validating skill pointers.
 - `AGENTS_ROOT`: folder containing subagents (default: `./claude/agents`). Used to detect content an agent already owns.
@@ -38,7 +38,7 @@ If observed reality in the repo or current docs contradicts any of these, prefer
 
 Scope boundary: when this prompt runs alongside the rules audit prompt, this prompt still reads all rule files to build the linkage, conflict, and duplication maps, but edits only CLAUDE.md files; rule-file edits belong to that prompt. When run alone, misplaced content may be moved into new rule files, and any rule file this prompt creates must meet the bar in the rules audit prompt.
 
-Template mode: when the audited file is a template that installers copy into target projects (here `./CLAUDE.template.md`, deployed by `claude-stack.sh` and `claude-stack.ps1`), two rubric points change meaning. Fact verification becomes placeholder verification: project-specific facts such as build commands, paths, and stack names must be clearly marked placeholders in one consistent format that the installer or the adopting team fills in, and no concrete fact that would be wrong in a target project may be baked into the template; a hardcoded project-specific command scores as a wrong fact. Rule linkage is validated against the deployed layout: links in the template use the paths that exist after installation (`.claude/rules/...`), while existence is checked against the source catalog at `./rules`. Read the installer scripts to confirm the source-to-deployed mapping instead of assuming it.
+Template mode: when the audited file is a template that installers copy into target projects (here `./templates/CLAUDE.template.md`, deployed by `claude-stack.sh` and `claude-stack.ps1`), two rubric points change meaning. Fact verification becomes placeholder verification: project-specific facts such as build commands, paths, and stack names must be clearly marked placeholders in one consistent format that the installer or the adopting team fills in, and no concrete fact that would be wrong in a target project may be baked into the template; a hardcoded project-specific command scores as a wrong fact. Rule linkage is validated against the deployed layout: links in the template use the paths that exist after installation (`.claude/rules/...`), while existence is checked against the source catalog at `./rules`. Read the installer scripts to confirm the source-to-deployed mapping instead of assuming it.
 
 ## Operating principles
 

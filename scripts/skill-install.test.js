@@ -7,7 +7,7 @@ const os = require('node:os');
 const path = require('node:path');
 
 const ROOT = path.join(__dirname, '..');
-const SH = path.join(ROOT, 'claude-stack.sh');
+const SH = path.join(ROOT, 'scripts', 'claude-stack.sh');
 
 // Invoke ONLY the skill-copy logic by sourcing the installer's function in a
 // subshell with a stubbed environment, cloning from the LOCAL repo (no network).

@@ -758,7 +758,7 @@ function Get-Rules {
   }
 }
 
-$ClaudeMdUrl = 'https://raw.githubusercontent.com/envoydev/claude-stack/main/CLAUDE.template.md'
+$ClaudeMdUrl = 'https://raw.githubusercontent.com/envoydev/claude-stack/main/templates/CLAUDE.template.md'
 function New-ClaudeMd {
   # INSTALL: lay down a starter .claude/CLAUDE.md from the template when the project has none (never clobber a filled one).
   $root = Get-RepoRoot
