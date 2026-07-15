@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// PreToolUse gate (matcher: Read): enforce CLAUDE.md's hard rule - "Read is for
+// PreToolUse gate (matcher: Read): enforce baseline-navigation.md's hard rule - "Read is for
 // code you've ALREADY located, never to find a symbol." Blocks a whole-file Read
 // of a large source file so navigation goes through serena (get_symbols_overview
 // -> find_symbol) first. exit 2 = block (stderr fed back to the model); exit 0 = allow.

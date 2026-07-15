@@ -4,8 +4,8 @@
      same as a root CLAUDE.md; keeps the repo root tidy). To keep it committed, the project's .gitignore must
      ignore the .claude contents but track this file: '.claude/*' then '!.claude/CLAUDE.md' (git cannot
      re-include a file when its parent dir is wholesale-ignored via '.claude/'). Then:
-1. Write the project top from the authoring outline in the comment below - the project intro
-   usually comes first, above ## Rules - then delete that comment.
+1. Write the project top from the authoring outline in the comment below - replace the H1 title
+   with the project's own name, put the intro above ## Rules - then delete that comment.
 2. Trim the ## Rules table to what the installer actually laid down.
 3. Run the four captures that write the rows marked GENERATED: /project-capabilities,
    /project-architecture-analyzer, /project-code-style-analyzer, /project-related-context.
@@ -37,7 +37,7 @@ rules in the same directory attach on a matching file touch - their own `paths:`
 | `.claude/rules/baseline-project-related-context.md` (GENERATED - run /project-related-context with the sibling paths/URLs) | sibling-repo awareness - name / location / relation / seam per sibling |
 | inject-code-style hook (GENERATED - run /project-code-style-analyzer; a hook + doc, not a rule) | the project's actual code style - docs/PROJECT-CODE-STYLE.md surfaced at edit time, filtered to the observed file types |
 
-### Generated docs root
+## Generated docs root
 
 **Any documentation a skill or agent generates lives under a single docs root, `docs/` by default** -
 the architecture map (`architecture/`), `PROJECT-CODE-STYLE.md`, `PROJECT-RELATED-CONTEXT.md`, the
@@ -49,15 +49,13 @@ generated docs, set the root here:
 - **Docs root:** `docs/`
 
 Wherever a skill or agent instruction names a generated project doc as `docs/<name>` (for example
-`docs/architecture/ARCHITECTURE.md`), resolve it under the configured root instead - so with the
-default the path is unchanged. Relocating to `.claude/docs/` keeps the docs local: `.claude/` is
-gitignored, so they will NOT be committed, will not survive a fresh clone, and will not reach a
-teammate - keep the root under a committed path (the `docs/` default) unless you specifically want
-them machine-local.
+`docs/architecture/ARCHITECTURE.md`), resolve it under the configured root instead. Relocating to
+`.claude/docs/` makes the docs machine-local (`.claude/` is gitignored, so nothing there is
+committed or reaches a teammate) - keep the root under a committed path (the `docs/` default)
+unless you specifically want them machine-local.
 
-Superpowers writes its implementation plans and design specs under this root too -
-`<root>/superpowers/plans/` and `<root>/superpowers/specs/` (default `docs/superpowers/plans/` and
-`docs/superpowers/specs/`) - overriding its own default location so they are committed alongside the
+Superpowers (when installed) writes its implementation plans and design specs under this root too -
+`<root>/superpowers/plans/` and `<root>/superpowers/specs/` - so they are committed alongside the
 other project docs, not left as local scratch. Track them: do NOT gitignore `docs/superpowers/`.
 
 <!-- Authoring outline - write these sections into the project-specific top of this file

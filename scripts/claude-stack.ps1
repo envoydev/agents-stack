@@ -826,14 +826,14 @@ function New-ClaudeMd {
   $root = Get-RepoRoot
   if (-not $root) { Log '  !! not in a git repo - skipping CLAUDE.md'; return }
   # Auto-loaded from either ./CLAUDE.md or ./.claude/CLAUDE.md - skip if EITHER exists so we never leave two copies.
-  if ((Test-Path -LiteralPath (Join-Path $root 'CLAUDE.md')) -or (Test-Path -LiteralPath (Join-Path $root '.claude/CLAUDE.md'))) { Log '  CLAUDE.md: already present - left as-is (fill any remaining <placeholders>)'; return }
+  if ((Test-Path -LiteralPath (Join-Path $root 'CLAUDE.md')) -or (Test-Path -LiteralPath (Join-Path $root '.claude/CLAUDE.md'))) { Log '  CLAUDE.md: already present - left as-is (finish its authoring outline if not done)'; return }
   if (-not (Get-StackSrc)) { Log '  !! stack source unavailable - create .claude/CLAUDE.md by hand from CLAUDE.template.md'; return }
   $src = Join-Path $script:StackSrc (Join-Path 'templates' 'CLAUDE.template.md')
   if (-not (Test-Path -LiteralPath $src -PathType Leaf)) { Add-Failure "CLAUDE.template.md not found in $StackRepoUrl"; return }
   $dest = Join-Path $root '.claude/CLAUDE.md'
   New-Item -ItemType Directory -Force -Path (Join-Path $root '.claude') | Out-Null
   Copy-Item -LiteralPath $src -Destination $dest -Force
-  Log '  CLAUDE.md: seeded to .claude/CLAUDE.md - FILL its <placeholders>, and keep the .claude/* + !.claude/CLAUDE.md gitignore lines so it stays committed'
+  Log '  CLAUDE.md: seeded to .claude/CLAUDE.md - write the project top from its authoring-outline comment, and keep the .claude/* + !.claude/CLAUDE.md gitignore lines so it stays committed'
 }
 
 # ===========================================================================
@@ -1197,7 +1197,7 @@ if ($script:ClaudeMissing) { Log "  !! claude CLI absent - plugins, MCPs, and se
 if ($script:FailCount -gt 0) { Log "  !! $($script:FailCount) item(s) failed above - re-run '$Action' to retry" }
 
 Log 'next steps:'
-Log "  - fill your project's CLAUDE.md <placeholders> (framework, stack, conventions, secret/config globs) - install seeds a starter from the template when the project has none; the claude-md-management plugin can help audit it"
+Log "  - write your project's CLAUDE.md top from the template's authoring-outline comment (framework, stack, conventions, secret/config globs) - install seeds a starter from the template when the project has none; the claude-md-management plugin can help audit it"
 Log "  - if this repo has sibling projects (a backend/frontend pair, a consumed package), run /project-related-context with their paths/URLs - it generates the awareness rule (baseline-project-related-context.md) + docs/PROJECT-RELATED-CONTEXT.md"
 Log "  - run /project-capabilities once - it inventories the installed skills/agents/MCPs and generates baseline-project-capabilities.md (re-run after update or a manifest trim)"
 Log "  - once oriented, run the other two captures the CLAUDE.md rules table names: /project-architecture-analyzer (architecture map + assessment + awareness rule) and /project-code-style-analyzer (docs/PROJECT-CODE-STYLE.md + the inject-code-style hook)"

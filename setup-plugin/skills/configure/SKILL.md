@@ -103,8 +103,8 @@ rule reflects the new inventory.
 ## 10. Reconcile the project's CLAUDE.md with the template (project mode)
 Reconcile the project's CLAUDE.md against the fetched `templates/CLAUDE.template.md`: add the
 sections the template gained since the install, update the selection-tied parts - the rules
-table and any capability mentions - for what this run added or dropped, and fill any
-still-empty `<placeholders>` from what the inventory established. Reconcile ADDITIVELY: never
+table and any capability mentions - for what this run added or dropped, and complete any
+still-unwritten authoring-outline sections from what the inventory established. Reconcile ADDITIVELY: never
 overwrite the project's own prose, and show the changes before writing. Skip in global mode
 (no project file to reconcile).
 

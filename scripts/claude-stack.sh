@@ -745,12 +745,12 @@ seed_claude_md() {  # INSTALL: lay down a starter .claude/CLAUDE.md from the tem
   local root dest src
   root="$(git rev-parse --show-toplevel 2>/dev/null)" || { log "  !! not in a git repo - skipping CLAUDE.md"; return 0; }
   # Auto-loaded from either ./CLAUDE.md or ./.claude/CLAUDE.md - skip if EITHER exists so we never leave two copies.
-  if [ -f "$root/CLAUDE.md" ] || [ -f "$root/.claude/CLAUDE.md" ]; then log "  CLAUDE.md: already present - left as-is (fill any remaining <placeholders>)"; return 0; fi
+  if [ -f "$root/CLAUDE.md" ] || [ -f "$root/.claude/CLAUDE.md" ]; then log "  CLAUDE.md: already present - left as-is (finish its authoring outline if not done)"; return 0; fi
   stack_src || { log "  !! stack source unavailable - create .claude/CLAUDE.md by hand from CLAUDE.template.md"; return 0; }
   src="$STACK_SRC/templates/CLAUDE.template.md"
   [ -f "$src" ] || { note_failure "CLAUDE.template.md not found in $STACK_REPO_URL"; return 0; }
   dest="$root/.claude/CLAUDE.md"; mkdir -p "$root/.claude"
-  cp "$src" "$dest"; log "  CLAUDE.md: seeded to .claude/CLAUDE.md - FILL its <placeholders>, and keep the '.claude/*' + '!.claude/CLAUDE.md' gitignore lines so it stays committed"
+  cp "$src" "$dest"; log "  CLAUDE.md: seeded to .claude/CLAUDE.md - write the project top from its authoring-outline comment, and keep the '.claude/*' + '!.claude/CLAUDE.md' gitignore lines so it stays committed"
 }
 
 # ===========================================================================
@@ -1057,7 +1057,7 @@ if [ "$FAIL_COUNT" -gt 0 ]; then
 fi
 
 log "next steps:"
-log "  - fill your project's CLAUDE.md <placeholders> (framework, stack, conventions, secret/config globs) - install seeds a starter from the template when the project has none; the claude-md-management plugin can help audit it"
+log "  - write your project's CLAUDE.md top from the template's authoring-outline comment (framework, stack, conventions, secret/config globs) - install seeds a starter from the template when the project has none; the claude-md-management plugin can help audit it"
 log "  - if this repo has sibling projects (a backend/frontend pair, a consumed package), run /project-related-context with their paths/URLs - it generates the awareness rule (baseline-project-related-context.md) + docs/PROJECT-RELATED-CONTEXT.md"
 log "  - run /project-capabilities once - it inventories the installed skills/agents/MCPs and generates baseline-project-capabilities.md (re-run after update or a manifest trim)"
 log "  - once oriented, run the other two captures the CLAUDE.md rules table names: /project-architecture-analyzer (architecture map + assessment + awareness rule) and /project-code-style-analyzer (docs/PROJECT-CODE-STYLE.md + the inject-code-style hook)"
