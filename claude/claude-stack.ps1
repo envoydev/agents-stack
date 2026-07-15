@@ -46,10 +46,15 @@
 .PARAMETER PrintPlan
   With -Selection, print the resolved per-category install set and exit (dry run).
 
+.PARAMETER SkillsOnly
+  Run only the skill install/update step, then exit (testability; skips prerequisites/plugins/mcps/
+  hooks/agents/rules).
+
 .NOTES
   Environment variables:
     SCOPE=project|global  fallback for -Scope when the flag is absent (default project).
     CLAUDE_CONFIG_DIR     target a specific account when no -Space is given (default ~/.claude).
+    STACK_SKILLS_REPO     skills source repo for git clone (default https://github.com/envoydev/agents-stack).
     CONTEXT7_API_KEY      context7 API key; add it to settings.json 'env' for higher rate limits.
     CONTEXT7_BAKE_KEY     with -Context7 local, bake CONTEXT7_API_KEY into the registration (keep .mcp.json uncommitted).
 
@@ -95,7 +100,10 @@ param(
   # per line; hooks always install). e.g.: .\claude-stack.ps1 install -Selection selection.txt
   [string]$Selection = '',
   # Optional: with -Selection, print the resolved per-category install set and exit (dry run).
-  [switch]$PrintPlan
+  [switch]$PrintPlan,
+  # Optional: run only the skill install/update step, then exit (testability; skips prerequisites/
+  # plugins/mcps/hooks/agents/rules). e.g.: .\claude-stack.ps1 install -SkillsOnly -Scope project
+  [switch]$SkillsOnly
 )
 
 $ErrorActionPreference = 'Stop'
@@ -608,22 +616,41 @@ function Get-RepoRoot {
 # ===========================================================================
 # INSTALL - skills re-add UNCONDITIONALLY (clean copy each run); MCPs and plugins SKIP if already present
 # ===========================================================================
+function Get-SkillsDest {
+  # Scope-resolved skill destination, matching the .sh twin's `case "$CLAUDE_SCOPE"` inline check.
+  if ($ClaudeScope -eq 'user') { return (Join-Path $ConfigDir 'skills') }
+  return (Join-Path (Get-Location).Path '.claude\skills')
+}
+
 function Install-Skills {
-  if (-not (Get-Command npx -ErrorAction SilentlyContinue)) { Add-Failure 'npx not found - skills not installed'; return }
-  $seen = @{}
-  foreach ($entry in $Skills) {
-    $repo = $entry.Split('|')[0]
-    if ($seen.ContainsKey($repo)) { continue }   # repo already done
-    $seen[$repo] = $true
-    $names = @($Skills | Where-Object { $_.Split('|')[0] -eq $repo } | ForEach-Object { $_.Split('|', 2)[1] })
-    $sargs = @('-y', 'skills', 'add', $repo)      # one --skill flag per skill (CLI rejects comma lists)
-    foreach ($n in $names) { $sargs += '--skill'; $sargs += $n }
-    $sargs += @('--agent', $Agent)
-    if ($SkillsAddFlag) { $sargs += $SkillsAddFlag }
-    $sargs += '--yes'
-    Log "skills [$Scope -> $Agent]: $repo -> $($names -join ',')"
-    & npx @sargs
-    if ($LASTEXITCODE -ne 0) { Add-Failure "$repo ($Agent) failed - check selectors (npx skills add $repo --list)" }
+  # git-copy: clone the stack repo (depth 1) and copy each selected skills/<name>/ into the scope
+  # dest directly - all house skills live in ONE repo (envoydev/agents-stack), so a plain copy fully
+  # reproduces what the skills CLI used to stage; no npx/network-registry dependency.
+  if (-not (Get-Command git -ErrorAction SilentlyContinue)) { Add-Failure 'git not found - skills not installed'; return }   # fail-soft: skip, never abort
+  $repoUrl = if ($env:STACK_SKILLS_REPO) { $env:STACK_SKILLS_REPO } else { 'https://github.com/envoydev/agents-stack' }
+  $dest = Get-SkillsDest
+  $tmp = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString())
+  New-Item -ItemType Directory -Path $tmp -Force | Out-Null
+  try {
+    & git clone --depth 1 $repoUrl $tmp *> $null
+    if ($LASTEXITCODE -ne 0) { Add-Failure "clone of $repoUrl failed - skills not installed"; return }
+    New-Item -ItemType Directory -Path $dest -Force | Out-Null
+    foreach ($entry in $Skills) {
+      $name = $entry.Split('|', 2)[1]
+      $src = Join-Path $tmp "skills\$name"
+      if (Test-Path -LiteralPath $src -PathType Container) {
+        $target = Join-Path $dest $name
+        if (Test-Path -LiteralPath $target) { Remove-Item -LiteralPath $target -Recurse -Force }
+        Copy-Item -LiteralPath $src -Destination $target -Recurse -Force
+        Log "skill [$ClaudeScope]: $name -> $target"
+      }
+      else {
+        Add-Failure "skill '$name' not found in $repoUrl"
+      }
+    }
+  }
+  finally {
+    Remove-Item -LiteralPath $tmp -Recurse -Force -ErrorAction SilentlyContinue
   }
 }
 
@@ -823,20 +850,17 @@ function Set-HookSettings {
 # UPDATE - bring everything to latest
 # ===========================================================================
 function Remove-Skills {
-  # Uninstall the manifest skills so the following re-add lands as fresh COPIES.
-  if (-not (Get-Command npx -ErrorAction SilentlyContinue)) { return }
-  $sargs = @('-y', 'skills', 'remove')
-  foreach ($e in $Skills) { $sargs += '--skill'; $sargs += $e.Split('|', 2)[1] }
-  $sargs += @('--agent', $Agent)
-  if ($SkillsAddFlag) { $sargs += $SkillsAddFlag }
-  $sargs += '--yes'
-  Log "skills [$Scope -> $Agent]: removing $($Skills.Count) for clean reinstall"
-  & npx @sargs 2>$null
+  # rm the manifest skills under the scope dest, so update starts from a clean slate.
+  $dest = Get-SkillsDest
+  Log "skills [$ClaudeScope]: removing $($Skills.Count) for clean reinstall"
+  foreach ($entry in $Skills) {
+    $name = $entry.Split('|', 2)[1]
+    Remove-Item -LiteralPath (Join-Path $dest $name) -Recurse -Force -ErrorAction SilentlyContinue
+  }
 }
 
 function Update-Skills {
-  # Clean reinstall (remove + add), NOT `npx skills update`: keeps .claude/skills as real COPIES
-  # instead of symlinks into .agents/, and `npx skills add` re-clones each repo = latest.
+  # Fresh clone + copy - the same as install (the copy overwrites), just cleared first.
   Remove-Skills
   Install-Skills
 }
@@ -1025,6 +1049,13 @@ function Repair-SerenaTsLspWindows {
 # ===========================================================================
 # DISPATCH
 # ===========================================================================
+# -SkillsOnly: run ONLY the skill step and exit, before any prerequisite check or claude-CLI-
+# dependent step (testability - drives just the git-copy with no claude/gh/network dependency).
+if ($SkillsOnly) {
+  if ($Action -eq 'install') { Install-Skills } else { Update-Skills }
+  exit 0
+}
+
 Test-Prerequisites
 Install-GitHubCli
 

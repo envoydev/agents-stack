@@ -26,6 +26,10 @@
     project -> skills project-scoped, cursor tree -> <repo>/.cursor/
     global  -> skills -g, cursor tree -> ~/.cursor/
 
+  Skills install by a depth-1 git clone of $env:STACK_SKILLS_REPO (default
+  https://github.com/envoydev/agents-stack), copied straight into .cursor/skills - no npx/skills-CLI
+  dependency. -SkillsOnly runs only that step, then exits (testability).
+
   Windows differences vs cursor-stack.sh:
     - .cursor/mcp.json / .cursor/hooks.json are merged natively (ConvertFrom/To-Json), no python dependency.
     - Cursor does NOT do shell interpolation, so ${CLAUDE_PROJECT_DIR:-.} / ${CLAUDE_CONFIG_DIR} tokens
@@ -50,7 +54,10 @@ param(
   [string]$Context7 = 'remote',
   # Optional: install the GitHub CLI (gh) via winget if missing; prompts for `gh auth login`
   # when unauthenticated. e.g.: .\cursor-stack.ps1 install -GitHubCli
-  [switch]$GitHubCli
+  [switch]$GitHubCli,
+  # Optional: run only the skill install/update step, then exit (testability; skips
+  # prerequisites/mcps/hooks/rules/agents). e.g.: .\cursor-stack.ps1 install -SkillsOnly
+  [switch]$SkillsOnly
 )
 
 $ErrorActionPreference = 'Stop'
@@ -418,22 +425,43 @@ function Get-RepoRoot {
 # INSTALL - skills re-add UNCONDITIONALLY (clean copy each run); the .cursor tree is refreshed
 # (mcp.json: install skips an already-present server / update re-writes it; hooks.json / rules skip if already wired)
 # ===========================================================================
+function Get-CursorSkillsDest {
+  # Scope-resolved skill destination, matching the .sh twin's `case "$SCOPE"` inline check.
+  if ($Scope -eq 'project') { return (Join-Path (Get-Location).Path '.cursor\skills') }
+  return (Join-Path $ConfigDir 'skills')
+}
+
 function Install-Skills {
-  if (-not (Get-Command npx -ErrorAction SilentlyContinue)) { Write-Host 'npx not found'; return }
-  $seen = @{}
-  foreach ($entry in $Skills) {
-    $repo = $entry.Split('|')[0]
-    if ($seen.ContainsKey($repo)) { continue }   # repo already done
-    $seen[$repo] = $true
-    $names = @($Skills | Where-Object { $_.Split('|')[0] -eq $repo } | ForEach-Object { $_.Split('|', 2)[1] })
-    $sargs = @('-y', 'skills', 'add', $repo)      # one --skill flag per skill (CLI rejects comma lists)
-    foreach ($n in $names) { $sargs += '--skill'; $sargs += $n }
-    $sargs += @('--agent', $Agent)
-    if ($SkillsAddFlag) { $sargs += $SkillsAddFlag }
-    $sargs += '--yes'
-    Log "skills [$Scope -> $Agent]: $repo -> $($names -join ',')"
-    & npx @sargs
-    if ($LASTEXITCODE -ne 0) { Log "  !! $repo ($Agent) failed - check selectors (npx skills add $repo --list)" }
+  # git-copy: clone the stack repo (depth 1) and copy each selected skills/<name>/ straight into
+  # .cursor/skills - all house skills live in ONE repo (envoydev/agents-stack), so a plain copy fully
+  # reproduces what the skills CLI used to stage. STRICT independence preserved: the dest is
+  # .cursor/skills as real copies, never a dependency on .claude/skills or a shared .agents/ store
+  # (no separate npx-then-copy step needed any more - this writes .cursor/skills directly).
+  if (-not (Get-Command git -ErrorAction SilentlyContinue)) { Log '  !! git not found - skills not installed'; return }   # fail-soft: skip, never abort
+  $repoUrl = if ($env:STACK_SKILLS_REPO) { $env:STACK_SKILLS_REPO } else { 'https://github.com/envoydev/agents-stack' }
+  $dest = Get-CursorSkillsDest
+  $tmp = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString())
+  New-Item -ItemType Directory -Path $tmp -Force | Out-Null
+  try {
+    & git clone --depth 1 $repoUrl $tmp *> $null
+    if ($LASTEXITCODE -ne 0) { Log "  !! clone of $repoUrl failed - skills not installed"; return }
+    New-Item -ItemType Directory -Path $dest -Force | Out-Null
+    foreach ($entry in $Skills) {
+      $name = $entry.Split('|', 2)[1]
+      $src = Join-Path $tmp "skills\$name"
+      if (Test-Path -LiteralPath $src -PathType Container) {
+        $target = Join-Path $dest $name
+        if (Test-Path -LiteralPath $target) { Remove-Item -LiteralPath $target -Recurse -Force }
+        Copy-Item -LiteralPath $src -Destination $target -Recurse -Force
+        Log "skill [$Scope]: $name -> $target"
+      }
+      else {
+        Log "  !! skill '$name' not found in $repoUrl"
+      }
+    }
+  }
+  finally {
+    Remove-Item -LiteralPath $tmp -Recurse -Force -ErrorAction SilentlyContinue
   }
 }
 
@@ -521,36 +549,6 @@ function Set-CursorMcps {
   }
   Write-JsonFile $data $mcpPath
   Log "  cursor mcp.json -> $mcpPath"
-}
-
-function Copy-CursorSkills {
-  # STRICT independence: copy each manifest skill into .cursor/skills as REAL copies so Cursor never
-  # depends on .claude/skills or the shared .agents/ store. Source is the npx staging (.agents/skills)
-  # with a .claude/skills fallback. Idempotent: an existing destination skill is replaced.
-  $root = Get-RepoRoot
-  if ($Scope -eq 'project') {
-    if (-not $root) { Log '  !! not in a git repo - skipping cursor skills'; return }
-    $base = $root
-  }
-  else {
-    $base = $HOME
-  }
-  $dest = Join-Path $base '.cursor/skills'
-  $srcRoots = @((Join-Path $base '.agents/skills'), (Join-Path $base '.claude/skills'))
-  if (-not (Test-Path -LiteralPath $dest)) { New-Item -ItemType Directory -Path $dest -Force | Out-Null }
-
-  $names = @($Skills | ForEach-Object { $_.Split('|', 2)[1] } | Select-Object -Unique)
-  $copied = 0
-  foreach ($n in $names) {
-    $src = $null
-    foreach ($r in $srcRoots) { $cand = Join-Path $r $n; if (Test-Path -LiteralPath $cand) { $src = $cand; break } }
-    if (-not $src) { Log "  !! cursor skill source missing: $n (install skills first)"; continue }
-    $target = Join-Path $dest $n
-    if (Test-Path -LiteralPath $target) { Remove-Item -LiteralPath $target -Recurse -Force -ErrorAction SilentlyContinue }
-    Copy-Item -LiteralPath $src -Destination $target -Recurse -Force
-    $copied++
-  }
-  Log "  cursor skills -> $dest ($copied/$($names.Count) copied)"
 }
 
 function Set-CursorHooks {
@@ -686,30 +684,28 @@ function Install-CursorAgents {
 # UPDATE - bring everything to latest
 # ===========================================================================
 function Remove-Skills {
-  # Uninstall the manifest skills so the following re-add lands as fresh COPIES.
-  if (-not (Get-Command npx -ErrorAction SilentlyContinue)) { return }
-  $sargs = @('-y', 'skills', 'remove')
-  foreach ($e in $Skills) { $sargs += '--skill'; $sargs += $e.Split('|', 2)[1] }
-  $sargs += @('--agent', $Agent)
-  if ($SkillsAddFlag) { $sargs += $SkillsAddFlag }
-  $sargs += '--yes'
-  Log "skills [$Scope -> $Agent]: removing $($Skills.Count) for clean reinstall"
-  & npx @sargs 2>$null
+  # rm the manifest skills under the scope dest, so update starts from a clean slate.
+  $dest = Get-CursorSkillsDest
+  Log "skills [$Scope]: removing $($Skills.Count) for clean reinstall"
+  foreach ($entry in $Skills) {
+    $name = $entry.Split('|', 2)[1]
+    Remove-Item -LiteralPath (Join-Path $dest $name) -Recurse -Force -ErrorAction SilentlyContinue
+  }
 }
 
 function Update-Skills {
-  # Clean reinstall (remove + add), NOT `npx skills update`: keeps .claude/skills as real COPIES
-  # instead of symlinks into .agents/, and `npx skills add` re-clones each repo = latest.
+  # Fresh clone + copy - the same as install (the copy overwrites), just cleared first.
   Remove-Skills
   Install-Skills
 }
 
 function Remove-AgentsCache {
-  # npx skills stages an agent-neutral .agents/ store. With a STRICT per-agent copy (.cursor/skills is
-  # a real copy), nothing reads .agents/ anymore - prune it. Guard: keep it if any skill entry under
-  # .cursor/skills is a symlink (a symlinked tree still depends on .agents/; removing it would dangle).
-  # BASE must match the copy step (Copy-CursorSkills): repo root for SCOPE=project, $HOME for global -
-  # otherwise a global install leaves $HOME\.agents unpruned while we check the wrong (repo) base.
+  # Legacy cleanup: an npx-skills-era install staged an agent-neutral .agents/ store. The git-copy
+  # Install-Skills never creates one, so this is a no-op on a fresh install and only matters for a
+  # project upgrading from the old flow. Guard: keep it if any skill entry under .cursor/skills is a
+  # symlink (a symlinked tree still depends on .agents/; removing it would dangle).
+  # BASE must match Install-Skills's dest: repo root for SCOPE=project, $HOME for global - otherwise
+  # a global install leaves $HOME\.agents unpruned while we check the wrong (repo) base.
   $root = Get-RepoRoot
   if ($Scope -eq 'project') {
     if (-not $root) { return }
@@ -734,12 +730,18 @@ function Remove-AgentsCache {
 # ===========================================================================
 # DISPATCH
 # ===========================================================================
+# -SkillsOnly: run ONLY the skill step and exit, before any prerequisite check (testability -
+# drives just the git-copy with no gh/other-tool dependency).
+if ($SkillsOnly) {
+  if ($Action -eq 'install') { Install-Skills } else { Update-Skills }
+  exit 0
+}
+
 Test-Prerequisites
 Install-GitHubCli
 
 # Cursor path: 100% claude-free. install == update (clean re-add of skills, then refresh the .cursor tree).
 if ($Action -eq 'install') { Install-Skills } else { Update-Skills }
-Copy-CursorSkills
 Set-CursorMcps
 Set-CursorHooks
 Install-CursorRules
