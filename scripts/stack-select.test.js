@@ -39,3 +39,44 @@ test('empty selection yields empty closure', () => {
     const c = computeClosure(graph, {});
     assert.deepStrictEqual(c, { skills: [], agents: [], rules: [], mcps: [], plugins: [], reasons: {} });
 });
+
+const { evaluatePrereqs } = require('./stack-select.js');
+
+const fullEnv = { bins: { node: true, npx: true, git: true, claude: true, uvx: true, dotnet: true, 'csharp-ls': true }, envs: { SENTRY_ACCESS_TOKEN: true, CONTEXT7_API_KEY: true } };
+const emptyEnv = { bins: {}, envs: {} };
+
+test('phase-1 hard prereqs are blockers when the binary is absent', () => {
+    const r = evaluatePrereqs({ skills: [], mcps: [], plugins: [] }, emptyEnv, {});
+    const needs = r.blockers.map(b => b.need).join(' ');
+    for (const label of ['Node.js', 'git', 'Claude Code CLI', 'uv (uvx)'])
+    {
+        assert.ok(needs.includes(label), `expected hard blocker ${label}`);
+    }
+    assert.strictEqual(r.ok, false);
+});
+
+test('a selected sentry mcp without its token is a blocker; with it, clean', () => {
+    const sel = { skills: [], mcps: ['sentry'], plugins: [] };
+    const missing = evaluatePrereqs(sel, { bins: { node: true, npx: true, git: true, claude: true, uvx: true }, envs: {} }, {});
+    assert.ok(missing.blockers.some(b => /Sentry/i.test(b.need)), 'sentry token blocker');
+    const present = evaluatePrereqs(sel, { bins: { node: true, npx: true, git: true, claude: true, uvx: true }, envs: { SENTRY_ACCESS_TOKEN: true } }, {});
+    assert.ok(!present.blockers.some(b => /Sentry/i.test(b.need)), 'sentry token satisfied');
+});
+
+test('a .NET skill without the dotnet SDK is a blocker', () => {
+    const r = evaluatePrereqs({ skills: ['dotnet-web-backend'], mcps: [], plugins: [] }, { bins: { node: true, npx: true, git: true, claude: true, uvx: true }, envs: {} }, {});
+    assert.ok(r.blockers.some(b => /\.NET SDK/.test(b.need)), 'dotnet SDK blocker for a dotnet-* skill');
+});
+
+test('full env with no risky selection is clean', () => {
+    const r = evaluatePrereqs({ skills: ['csharp'], mcps: [], plugins: [] }, fullEnv, {});
+    assert.strictEqual(r.ok, true);
+    assert.deepStrictEqual(r.blockers, []);
+});
+
+test('chrome-devtools mcp missing Chrome is a warning, not a blocker', () => {
+    const r = evaluatePrereqs({ skills: [], mcps: ['chrome-devtools'], plugins: [] }, { bins: { node: true, npx: true, git: true, claude: true, uvx: true }, envs: {} }, {});
+    assert.ok(r.warnings.some(w => /Chrome/i.test(w.need)));
+    assert.ok(!r.blockers.some(b => /Chrome/i.test(b.need)));
+    assert.strictEqual(r.ok, true, 'a warning alone keeps ok true');
+});
