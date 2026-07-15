@@ -52,6 +52,8 @@ Named flags (any order, each optional with a default):
   --github-cli             install the GitHub CLI (gh) if missing
   --keep-pins              keep local model/effort frontmatter edits on installed agents/skills across
                            the refresh (an update resets them to upstream otherwise)
+  --selection <file>       install ONLY the skills/plugins/mcps/agents/rules named in <file> (one 'category name' per line); hooks always install
+  --print-plan             with --selection, print the resolved per-category install set and exit (dry run)
 
 Environment variables:
   SCOPE=project|global   fallback for --scope when the flag is absent (default project)
@@ -91,6 +93,8 @@ SCOPE_FLAG=""
 INSTALL_GITHUB_CLI=false
 KEEP_PINS=false
 CONTEXT7_MODE="remote"
+SELECTION=""
+PRINT_PLAN=false
 _flag_val() {  # $1 = flag name, $2 = the arg meant to be its value ('' when the flag was last)
   [ -n "$2" ] || { usage >&2; echo "error: $1 needs a value" >&2; exit 1; }
 }
@@ -104,6 +108,9 @@ while [ $# -gt 0 ]; do
     --context7=*) CONTEXT7_MODE="${1#*=}";                     shift ;;
     --github-cli) INSTALL_GITHUB_CLI=true;                     shift ;;
     --keep-pins)  KEEP_PINS=true;                              shift ;;
+    --selection)   _flag_val "$1" "${2:-}"; SELECTION="$2";     shift 2 ;;
+    --selection=*) SELECTION="${1#*=}";                          shift ;;
+    --print-plan)  PRINT_PLAN=true;                              shift ;;
     *) usage >&2; echo "error: unknown argument '$1' (named flags only: --space, --scope, --context7, --github-cli, --keep-pins)" >&2; exit 1 ;;
   esac
 done
@@ -523,6 +530,33 @@ CLAUDE_RULES=(
   "sql-conventions.md"        # sql: .sql -> database-conventions
   "devops-conventions.md"     # rest (devops): Dockerfile/compose/workflow -> devops
 )
+
+# --- Selection subset filter (Component B) --------------------------------
+# With --selection <file>, keep only the SKILLS / PLUGINS / MCPS / AGENTS /
+# CLAUDE_RULES entries whose name appears in the file (one 'category name' per
+# line; '#' comments and blank lines ignored). HOOKS are never filtered - they
+# are foundational. --print-plan prints the resolved per-category set and exits
+# (a dry run) before any prerequisite or install step runs.
+if [ -n "$SELECTION" ]; then
+  [ -f "$SELECTION" ] || { printf 'selection file not found: %s\n' "$SELECTION" >&2; exit 1; }
+
+  _sel_has() { grep -qxF "$1 $2" "$SELECTION"; }   # 0 if 'category name' is a line
+
+  _f=(); for e in ${SKILLS[@]+"${SKILLS[@]}"};             do _sel_has skill  "${e#*|}"                                    && _f+=("$e"); done; SKILLS=(${_f[@]+"${_f[@]}"})
+  _f=(); for e in ${PLUGINS[@]+"${PLUGINS[@]}"};           do _sel_has plugin "${e%%@*}"                                   && _f+=("$e"); done; PLUGINS=(${_f[@]+"${_f[@]}"})
+  _f=(); for e in ${MCPS[@]+"${MCPS[@]}"};                 do _sel_has mcp    "${e%%|*}"                                   && _f+=("$e"); done; MCPS=(${_f[@]+"${_f[@]}"})
+  _f=(); for e in ${AGENTS[@]+"${AGENTS[@]}"};             do n="${e%%::*}"; _sel_has agent "${n%.md}"                     && _f+=("$e"); done; AGENTS=(${_f[@]+"${_f[@]}"})
+  _f=(); for e in ${CLAUDE_RULES[@]+"${CLAUDE_RULES[@]}"}; do n="${e%%::*}"; _sel_has rule  "${n%.md}"                     && _f+=("$e"); done; CLAUDE_RULES=(${_f[@]+"${_f[@]}"})
+fi
+
+if [ "$PRINT_PLAN" = true ]; then
+  printf 'plan skills:';  for e in ${SKILLS[@]+"${SKILLS[@]}"};             do printf ' %s' "${e#*|}";                 done; printf '\n'
+  printf 'plan plugins:'; for e in ${PLUGINS[@]+"${PLUGINS[@]}"};           do printf ' %s' "${e%%@*}";                done; printf '\n'
+  printf 'plan mcps:';    for e in ${MCPS[@]+"${MCPS[@]}"};                 do printf ' %s' "${e%%|*}";                done; printf '\n'
+  printf 'plan agents:';  for e in ${AGENTS[@]+"${AGENTS[@]}"};             do n="${e%%::*}"; printf ' %s' "${n%.md}"; done; printf '\n'
+  printf 'plan rules:';   for e in ${CLAUDE_RULES[@]+"${CLAUDE_RULES[@]}"}; do n="${e%%::*}"; printf ' %s' "${n%.md}"; done; printf '\n'
+  exit 0
+fi
 
 # ===========================================================================
 # INSTALL - skills re-add UNCONDITIONALLY (clean copy each run); MCPs and plugins SKIP if already present
