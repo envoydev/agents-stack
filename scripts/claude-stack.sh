@@ -56,11 +56,16 @@ Named flags (any order, each optional with a default):
   --print-plan             with --selection, print the resolved per-category install set and exit (dry run)
   --skills-only            run only the skill install/update step, then exit (testability; skips
                            prerequisites/plugins/mcps/hooks/agents/rules)
+  --source <dir>           install FROM an existing claude-stack checkout instead of cloning one.
+                           The caller owns <dir> - this script never deletes it. Used by the
+                           /claude-stack setup+configure skills, which clone once and pass it here
+                           so a guided run takes one clone, not two. Omit it and the script clones
+                           its own source (and removes it on exit) - the standalone path.
 
 Environment variables:
   SCOPE=project|global   fallback for --scope when the flag is absent (default project)
   CLAUDE_CONFIG_DIR      target a specific account when no --space is given (default ~/.claude)
-  STACK_SKILLS_REPO      skills source repo for git clone (default https://github.com/envoydev/claude-stack)
+  STACK_SKILLS_REPO      source repo to clone (default https://github.com/envoydev/claude-stack); ignored with --source
   CONTEXT7_API_KEY       context7 API key, read from the environment at launch (higher rate limits)
   CONTEXT7_BAKE_KEY      with --context7 local, bake CONTEXT7_API_KEY into the registration (keep .mcp.json uncommitted)
 
@@ -99,6 +104,7 @@ CONTEXT7_MODE="remote"
 SELECTION=""
 PRINT_PLAN=false
 SKILLS_ONLY=false
+SOURCE_DIR=""
 _flag_val() {  # $1 = flag name, $2 = the arg meant to be its value ('' when the flag was last)
   [ -n "$2" ] || { usage >&2; echo "error: $1 needs a value" >&2; exit 1; }
 }
@@ -116,7 +122,9 @@ while [ $# -gt 0 ]; do
     --selection=*) SELECTION="${1#*=}";                          shift ;;
     --print-plan)  PRINT_PLAN=true;                              shift ;;
     --skills-only) SKILLS_ONLY=true;                              shift ;;
-    *) usage >&2; echo "error: unknown argument '$1' (named flags only: --space, --scope, --context7, --github-cli, --keep-pins, --selection, --print-plan, --skills-only)" >&2; exit 1 ;;
+    --source)      _flag_val "$1" "${2:-}"; SOURCE_DIR="$2";      shift 2 ;;
+    --source=*)    SOURCE_DIR="${1#*=}";                          shift ;;
+    *) usage >&2; echo "error: unknown argument '$1' (named flags only: --space, --scope, --context7, --github-cli, --keep-pins, --selection, --print-plan, --skills-only, --source)" >&2; exit 1 ;;
   esac
 done
 
@@ -435,11 +443,10 @@ MCPS=(
   "$CONTEXT7_ENTRY"                           # up-to-date library/framework/SDK docs (beats recalled API knowledge)
 )
 
-# (4) PreToolUse hooks (claude-code): fetched into the repo from envoydev/claude-stack/claude/hooks on BOTH actions
-# (per-hook fail-soft - a hook not yet upstream keeps its committed repo copy); on INSTALL each is also
-# wired into .claude/settings.json. UPDATE refreshes files only (never settings).
+# (4) PreToolUse hooks (claude-code): copied into the repo from the run's source clone (hooks/) on BOTH
+# actions (per-hook fail-soft - a hook not yet upstream keeps its committed repo copy); on INSTALL each is
+# also wired into .claude/settings.json. UPDATE refreshes files only (never settings).
 # Each entry: "filename::matcher::args" - args (if any) are appended to the hook command.
-HOOK_BASE_URL="https://raw.githubusercontent.com/envoydev/claude-stack/main/hooks"
 HOOKS=(
   "guard-protected-force-push.js::Bash::"         # block force-push to main/master/develop
   "guard-catastrophic-rm.js::Bash::"              # block recursive rm of /, ~, $HOME, or a bare *
@@ -462,10 +469,10 @@ SECRET_DENY=(
   "Read(*.key)"
 )
 
-# (5) Subagents (claude-code): specialist agents fetched into .claude/agents/ on BOTH actions
-# (per-agent fail-soft - an agent not yet upstream keeps its committed repo copy). Claude Code auto-discovers
-# .claude/agents/*.md; no settings.json wiring needed. (Cursor's twins of these live in the cursor-stack repo.)
-AGENT_BASE_URL="https://raw.githubusercontent.com/envoydev/claude-stack/main/agents"
+# (5) Subagents (claude-code): specialist agents copied into .claude/agents/ from the run's source clone
+# (agents/) on BOTH actions (per-agent fail-soft - an agent not yet upstream keeps its committed repo copy).
+# Claude Code auto-discovers .claude/agents/*.md; no settings.json wiring needed. (Cursor's twins of these
+# live in the cursor-stack repo.)
 AGENTS=(
   "dotnet-build-error-resolver.md"   # implement phase (sonnet/high): dotnet build -> categorize errors -> minimal fix loop (serena/csharp-lsp), capped
   "dotnet-test-failure-resolver.md"  # implement phase (sonnet/high): dotnet test -> red->green repair loop, anti-reward-hacking guard, capped
@@ -503,14 +510,14 @@ AGENTS=(
   "devops-verifier.md"               # verify phase (sonnet/xhigh): gates the devops build vs plan + quality
 )
 
-# (6) Path-scoped rules (claude-code): fetched into .claude/rules/ on BOTH actions - lazy-load on
-# matching file reads; conventions stay with the convention-gate hook, rules carry only glob-scoped routing.
+# (6) Path-scoped rules (claude-code): copied into .claude/rules/ from the run's source clone (rules/)
+# on BOTH actions - lazy-load on matching file reads; conventions stay with the convention-gate hook,
+# rules carry only glob-scoped routing.
 # NOTE: baseline-project-related-context.md, baseline-project-architecture.md and
 # baseline-project-capabilities.md are GENERATED per-project (by /project-related-context,
 # /project-architecture-analyzer and /project-capabilities) - NEVER add those names to this
-# manifest (a fetch would overwrite the generated copies); nothing prunes the rules dir, so
+# manifest (the copy would overwrite the generated copies); nothing prunes the rules dir, so
 # they survive update.
-RULES_BASE_URL="https://raw.githubusercontent.com/envoydev/claude-stack/main/rules"
 CLAUDE_RULES=(
   # Always-on baseline (no paths) - loads every session like CLAUDE.md; one job per file, comment out what a project doesn't want.
   "baseline-interaction.md"    # communication + evaluating-proposals + planning (merged by exclusion affinity)
@@ -560,31 +567,99 @@ if [ "$PRINT_PLAN" = true ]; then
 fi
 
 # ===========================================================================
+# SOURCE CLONE - the ONE revision every artifact in a run comes from
+# ===========================================================================
+# Every file the stack installs (skills, hooks, agents, rules, the CLAUDE.md template) lives in
+# this one repo, so a run takes ONE shallow clone and copies out of it. Two reasons it is a clone
+# and not the per-file raw.githubusercontent.com fetches this replaced:
+#   - ATOMIC. A clone is a single revision. The raw URLs are per-file and CDN-cached (a push takes
+#     ~5 min to propagate), so a raw run could mix revisions - and then claude-stack.stamp, which
+#     records the revision this install came from, would be a lie. The clone makes the stamp true
+#     by construction.
+#   - CHEAP. One clone replaces ~50 round trips (the HOOKS + AGENTS + CLAUDE_RULES arrays).
+# Fail-soft, like the fetches were: no git / a failed clone means callers keep the copies already
+# on disk and the run carries on. STACK_SHA stays empty, which is what suppresses the stamp write.
+#
+# --source <dir> hands in a checkout the CALLER already made. That is the plugin path: the setup /
+# configure skills must clone anyway (they need stack-select.js, stack-graph.json, the CLAUDE.md
+# template and the stamp diff before the install runs), so they pass that same clone here and the
+# guided run costs ONE clone instead of two. A caller-provided dir is borrowed, never deleted.
+# Standalone (no --source) is unchanged: the script clones its own source and cleans it up.
+STACK_REPO_URL="${STACK_SKILLS_REPO:-https://github.com/envoydev/claude-stack}"
+STACK_SRC=""            # the source worktree; empty until stack_src runs
+STACK_SHA=""            # the exact commit every artifact this run installs was copied from
+STACK_REF=""            # the branch that commit is the tip of (whatever the source's HEAD is)
+STACK_SRC_TRIED=false   # memoises the OUTCOME, so a dead source costs one clone attempt, not one per caller
+STACK_SRC_OWNED=false   # true only when WE cloned it - the EXIT trap removes ours, never the caller's
+
+_cleanup_stack_src() {
+  if $STACK_SRC_OWNED && [ -n "$STACK_SRC" ]; then rm -rf "$STACK_SRC"; fi
+  return 0
+}
+trap _cleanup_stack_src EXIT
+
+stack_src() {
+  # Resolves on the first call; every later caller reuses the worktree. Returns non-zero (never
+  # aborts) when the source is unavailable, so each caller applies its own fail-soft.
+  # Memoise BOTH outcomes: five steps call this, and without the failure latch an offline run
+  # would pay five clone timeouts and report five failures for one root cause.
+  [ -n "$STACK_SRC" ] && return 0
+  $STACK_SRC_TRIED && return 1
+  STACK_SRC_TRIED=true
+  command -v git >/dev/null 2>&1 || { note_failure "git not found - stack source unavailable"; return 1; }
+
+  if [ -n "$SOURCE_DIR" ]; then
+    # Borrowed checkout. Sanity-check it IS the stack (a wrong --source would otherwise 'install'
+    # nothing and report 117 per-file failures), then read its revision like we would our own.
+    if [ ! -d "$SOURCE_DIR/skills" ] || [ ! -d "$SOURCE_DIR/agents" ]; then
+      note_failure "--source '$SOURCE_DIR' is not a claude-stack checkout (no skills/ + agents/) - stack source unavailable"
+      return 1
+    fi
+    STACK_SRC="$SOURCE_DIR"; STACK_SRC_OWNED=false
+    STACK_SHA="$(git -C "$SOURCE_DIR" rev-parse HEAD 2>/dev/null || true)"
+    STACK_REF="$(git -C "$SOURCE_DIR" rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
+    # Stamp the URL the caller actually cloned from, not our default - they may have used a fork.
+    STACK_REPO_URL="$(git -C "$SOURCE_DIR" remote get-url origin 2>/dev/null || echo "$STACK_REPO_URL")"
+    if [ -z "$STACK_SHA" ]; then
+      log "source: $SOURCE_DIR (provided; not a git checkout - no revision, so no stamp)"
+    else
+      log "source: $SOURCE_DIR (provided) @ ${STACK_REF:-?} $(printf '%.12s' "$STACK_SHA")"
+    fi
+    return 0
+  fi
+
+  local tmp; tmp="$(mktemp -d)"
+  if ! git clone --depth 1 "$STACK_REPO_URL" "$tmp" >/dev/null 2>&1; then
+    note_failure "clone of $STACK_REPO_URL failed - stack source unavailable (nothing refreshed; existing copies kept)"
+    rm -rf "$tmp"; return 1
+  fi
+  STACK_SRC="$tmp"; STACK_SRC_OWNED=true
+  STACK_SHA="$(git -C "$tmp" rev-parse HEAD 2>/dev/null)"
+  STACK_REF="$(git -C "$tmp" rev-parse --abbrev-ref HEAD 2>/dev/null)"
+  log "source: $STACK_REPO_URL @ ${STACK_REF:-?} $(printf '%.12s' "${STACK_SHA:-unknown}")"
+  return 0
+}
+
+# ===========================================================================
 # INSTALL - skills re-add UNCONDITIONALLY (clean copy each run); MCPs and plugins SKIP if already present
 # ===========================================================================
 install_skills() {
-  # git-copy: clone the stack repo (depth 1) and copy each selected skills/<name>/ into the scope
-  # dest directly - all 64 house skills live in ONE repo (envoydev/claude-stack), so a plain copy
-  # fully reproduces what the skills CLI used to stage; no npx/network-registry dependency.
-  command -v git >/dev/null 2>&1 || { note_failure "git not found - skills not installed"; return 0; }   # fail-soft: skip, never abort
-  local repo_url tmp name dest entry
-  repo_url="${STACK_SKILLS_REPO:-https://github.com/envoydev/claude-stack}"
+  # Copy each selected skills/<name>/ out of the run's clone into the scope dest - all 65 house
+  # skills live in ONE repo, so a plain copy fully reproduces what the skills CLI used to stage;
+  # no npx/network-registry dependency.
+  stack_src || { note_failure "skills not installed"; return 0; }   # fail-soft: skip, never abort
+  local name dest entry
   case "$CLAUDE_SCOPE" in user) dest="$CONFIG_DIR/skills" ;; *) dest="$PWD/.claude/skills" ;; esac
-  tmp="$(mktemp -d)"
-  if ! git clone --depth 1 "$repo_url" "$tmp" >/dev/null 2>&1; then
-    note_failure "clone of $repo_url failed - skills not installed"; rm -rf "$tmp"; return 0
-  fi
   mkdir -p "$dest"
   for entry in ${SKILLS[@]+"${SKILLS[@]}"}; do
     name="${entry#*|}"
-    if [ -d "$tmp/skills/$name" ]; then
-      rm -rf "$dest/$name"; cp -R "$tmp/skills/$name" "$dest/$name"
+    if [ -d "$STACK_SRC/skills/$name" ]; then
+      rm -rf "$dest/$name"; cp -R "$STACK_SRC/skills/$name" "$dest/$name"
       log "skill [$CLAUDE_SCOPE]: $name -> $dest/$name"
     else
-      note_failure "skill '$name' not found in $repo_url"
+      note_failure "skill '$name' not found in $STACK_REPO_URL"
     fi
   done
-  rm -rf "$tmp"
 }
 
 install_plugins() {
@@ -628,57 +703,100 @@ install_mcps() {
   done
 }
 
-download_hooks() {  # fetch each hook file into the repo; per-hook fail-soft (keeps repo copy)
-  command -v curl >/dev/null || { log "  !! curl not found - skipping hook fetch"; return 0; }
-  local root entry file dest tmp
+# _install_from_src <subdir> <label> <dest-dir> <executable?> <file...>
+# Shared body of the hook/agent/rule steps: copy each named file out of the run's clone. Per-file
+# fail-soft (a file not yet upstream keeps its committed copy), and an unchanged file is reported
+# 'current' rather than rewritten, so a no-op run leaves mtimes alone.
+_install_from_src() {
+  local subdir="$1" label="$2" dest_dir="$3" exec_bit="$4"; shift 4
+  stack_src || { log "  !! stack source unavailable - kept existing $label copies"; return 0; }
+  local file src dest
+  for file in "$@"; do
+    src="$STACK_SRC/$subdir/$file"
+    [ -f "$src" ] || { note_failure "$label '$file' not found in $STACK_REPO_URL"; continue; }
+    dest="$dest_dir/$file"; mkdir -p "$(dirname "$dest")"
+    if [ -f "$dest" ] && cmp -s "$src" "$dest"; then log "  $label current: $file"; continue; fi
+    cp "$src" "$dest"
+    [ "$exec_bit" = "exec" ] && chmod +x "$dest"
+    log "  $label installed -> $file"
+  done
+}
+
+download_hooks() {  # copy each hook file into the repo; per-hook fail-soft (keeps repo copy)
+  local root entry file; local -a files=()
   root="$(git rev-parse --show-toplevel 2>/dev/null)" || { log "  !! not in a git repo - skipping hooks"; return 0; }
-  for entry in "${HOOKS[@]}"; do
-    file="${entry%%::*}"
-    dest="$root/.claude/hooks/$file"; mkdir -p "$(dirname "$dest")"
-    tmp="$(mktemp)"
-    if ! curl -fsSL "$HOOK_BASE_URL/$file" -o "$tmp"; then log "  !! fetch failed (kept repo copy if any): $file"; rm -f "$tmp"; continue; fi
-    if [ -f "$dest" ] && cmp -s "$tmp" "$dest"; then rm -f "$tmp"; log "  hook current: $file"
-    else mv "$tmp" "$dest"; chmod +x "$dest"; log "  hook fetched -> $file"; fi
-  done
+  for entry in "${HOOKS[@]}"; do file="${entry%%::*}"; files+=("$file"); done
+  _install_from_src hooks hook "$root/.claude/hooks" exec ${files[@]+"${files[@]}"}
 }
 
-download_agents() {  # fetch each subagent .md into .claude/agents/; per-agent fail-soft (keeps repo copy)
-  command -v curl >/dev/null || { log "  !! curl not found - skipping agent fetch"; return 0; }
-  local root file dest tmp
+download_agents() {  # copy each subagent .md into .claude/agents/; per-agent fail-soft (keeps repo copy)
+  local root
   root="$(git rev-parse --show-toplevel 2>/dev/null)" || { log "  !! not in a git repo - skipping agents"; return 0; }
-  for file in ${AGENTS[@]+"${AGENTS[@]}"}; do
-    dest="$root/.claude/agents/$file"; mkdir -p "$(dirname "$dest")"
-    tmp="$(mktemp)"
-    if ! curl -fsSL "$AGENT_BASE_URL/$file" -o "$tmp"; then log "  !! fetch failed (kept repo copy if any): $file"; rm -f "$tmp"; continue; fi
-    if [ -f "$dest" ] && cmp -s "$tmp" "$dest"; then rm -f "$tmp"; log "  agent current: $file"
-    else mv "$tmp" "$dest"; log "  agent fetched -> $file"; fi
-  done
+  _install_from_src agents agent "$root/.claude/agents" no ${AGENTS[@]+"${AGENTS[@]}"}
 }
 
-download_rules() {  # fetch each rule .md into .claude/rules/; per-rule fail-soft (keeps repo copy)
-  command -v curl >/dev/null || { log "  !! curl not found - skipping rule fetch"; return 0; }
-  local root file dest tmp
+download_rules() {  # copy each rule .md into .claude/rules/; per-rule fail-soft (keeps repo copy)
+  local root
   root="$(git rev-parse --show-toplevel 2>/dev/null)" || { log "  !! not in a git repo - skipping rules"; return 0; }
-  for file in ${CLAUDE_RULES[@]+"${CLAUDE_RULES[@]}"}; do
-    dest="$root/.claude/rules/$file"; mkdir -p "$(dirname "$dest")"
-    tmp="$(mktemp)"
-    if ! curl -fsSL "$RULES_BASE_URL/$file" -o "$tmp"; then log "  !! fetch failed (kept repo copy if any): $file"; rm -f "$tmp"; continue; fi
-    if [ -f "$dest" ] && cmp -s "$tmp" "$dest"; then rm -f "$tmp"; log "  rule current: $file"
-    else mv "$tmp" "$dest"; log "  rule fetched -> $file"; fi
-  done
+  _install_from_src rules rule "$root/.claude/rules" no ${CLAUDE_RULES[@]+"${CLAUDE_RULES[@]}"}
 }
 
-CLAUDE_MD_URL="https://raw.githubusercontent.com/envoydev/claude-stack/main/templates/CLAUDE.template.md"
 seed_claude_md() {  # INSTALL: lay down a starter .claude/CLAUDE.md from the template when the project has none (never clobber a filled one)
-  command -v curl >/dev/null || { log "  !! curl not found - create .claude/CLAUDE.md by hand from CLAUDE.template.md"; return 0; }
-  local root dest tmp
+  local root dest src
   root="$(git rev-parse --show-toplevel 2>/dev/null)" || { log "  !! not in a git repo - skipping CLAUDE.md"; return 0; }
   # Auto-loaded from either ./CLAUDE.md or ./.claude/CLAUDE.md - skip if EITHER exists so we never leave two copies.
   if [ -f "$root/CLAUDE.md" ] || [ -f "$root/.claude/CLAUDE.md" ]; then log "  CLAUDE.md: already present - left as-is (fill any remaining <placeholders>)"; return 0; fi
+  stack_src || { log "  !! stack source unavailable - create .claude/CLAUDE.md by hand from CLAUDE.template.md"; return 0; }
+  src="$STACK_SRC/templates/CLAUDE.template.md"
+  [ -f "$src" ] || { note_failure "CLAUDE.template.md not found in $STACK_REPO_URL"; return 0; }
   dest="$root/.claude/CLAUDE.md"; mkdir -p "$root/.claude"
-  tmp="$(mktemp)"
-  if ! curl -fsSL "$CLAUDE_MD_URL" -o "$tmp"; then log "  !! CLAUDE.md template fetch failed - create .claude/CLAUDE.md by hand from CLAUDE.template.md"; rm -f "$tmp"; return 0; fi
-  mv "$tmp" "$dest"; log "  CLAUDE.md: seeded to .claude/CLAUDE.md - FILL its <placeholders>, and keep the '.claude/*' + '!.claude/CLAUDE.md' gitignore lines so it stays committed"
+  cp "$src" "$dest"; log "  CLAUDE.md: seeded to .claude/CLAUDE.md - FILL its <placeholders>, and keep the '.claude/*' + '!.claude/CLAUDE.md' gitignore lines so it stays committed"
+}
+
+# ===========================================================================
+# INSTALL STAMP - which revision this install came from
+# ===========================================================================
+# Claude Code has no per-artifact version: `version:` is in the plugin.json schema and NOWHERE else
+# (not skills, not agents, not rules, not hooks - an added key there parses but is ignored). So the
+# stack versions the INSTALL, not the file: one stamp naming the commit every artifact was copied
+# from. That is what /claude-stack:configure diffs against to answer 'what changed since I
+# installed?' - exactly, for all ~117 artifacts, with nothing to hand-bump:
+#     git diff --name-only <sha>..<ref> -- skills/ agents/ rules/ hooks/ templates/
+# Machine-local by design (it describes THIS checkout's install) and already covered by the
+# '.claude/*' gitignore line the run prints.
+write_stamp() {
+  # No SHA means no clone happened this run (git absent, or the clone failed and every step
+  # fail-softly kept its existing copy). Stamping then would claim an install that did not occur,
+  # and a wrong stamp is worse than none - so leave any previous stamp untouched.
+  [ -n "$STACK_SHA" ] || { log "  stamp: skipped - no source revision resolved this run"; return 0; }
+  local dir dest root
+  case "$CLAUDE_SCOPE" in
+    user) dir="$CONFIG_DIR" ;;
+    # Prefer the repo root - that is where hooks/agents/rules land. Outside a repo fall back to
+    # $PWD, which is where install_skills puts .claude/skills: the stamp belongs next to whatever
+    # this run actually installed, and a skills-only install into a plain directory still gets one.
+    *)    root="$(git rev-parse --show-toplevel 2>/dev/null || true)"
+          [ -n "$root" ] || root="$PWD"
+          dir="$root/.claude" ;;
+  esac
+  mkdir -p "$dir"; dest="$dir/claude-stack.stamp"
+  cat > "$dest" <<STAMP
+# claude-stack install stamp - machine-local, written by claude-stack.sh / claude-stack.ps1.
+# The revision every artifact of this install was copied from. To see what changed since
+# (a shallow clone has no history, so fetch this exact commit before diffing it):
+#   git clone --depth 1 $STACK_REPO_URL /tmp/cs
+#   git -C /tmp/cs fetch --depth 1 origin $STACK_SHA
+#   git -C /tmp/cs diff --name-only $STACK_SHA HEAD -- skills/ agents/ rules/ hooks/ templates/
+# /claude-stack:configure runs exactly this and reports it. Then re-run the installer's
+# '$ACTION' action (or that skill) to take the changes.
+source: $STACK_REPO_URL
+ref: $STACK_REF
+sha: $STACK_SHA
+installed: $(date -u +%Y-%m-%dT%H:%M:%SZ)
+action: $ACTION
+scope: $CLAUDE_SCOPE
+STAMP
+  log "  stamp: $dest @ $(printf '%.12s' "$STACK_SHA")"
 }
 
 wire_hooks_settings() {  # INSTALL: ensure the hook PreToolUse blocks + secret-read deny-list + mcp allow-list are in settings.json (idempotent)
@@ -907,6 +1025,7 @@ prune_agents_cache() {
 # dependent step (testability - drives just the git-copy with no claude/gh/network dependency).
 if [ "$SKILLS_ONLY" = true ]; then
   if [ "$ACTION" = "install" ]; then install_skills; else update_skills; fi
+  write_stamp   # a skills-only run still installs FROM a revision - record it
   exit 0
 fi
 
@@ -921,6 +1040,7 @@ else
   update_skills; update_plugins; update_mcps; update_hooks; update_agents; update_rules
 fi
 restore_pins
+write_stamp   # after every copy step, so the stamp only ever names a revision that fully landed
 
 prune_agents_cache
 echo

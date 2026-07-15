@@ -50,6 +50,12 @@
   Run only the skill install/update step, then exit (testability; skips prerequisites/plugins/mcps/
   hooks/agents/rules).
 
+.PARAMETER Source
+  Install FROM an existing claude-stack checkout instead of cloning one. The caller owns the
+  directory - this script never deletes it. Used by the /claude-stack setup+configure skills, which
+  clone once and pass it here so a guided run takes one clone, not two. Omit it and the script
+  clones its own source (and removes it on exit) - the standalone path.
+
 .NOTES
   Environment variables:
     SCOPE=project|global  fallback for -Scope when the flag is absent (default project).
@@ -103,7 +109,10 @@ param(
   [switch]$PrintPlan,
   # Optional: run only the skill install/update step, then exit (testability; skips prerequisites/
   # plugins/mcps/hooks/agents/rules). e.g.: .\claude-stack.ps1 install -SkillsOnly -Scope project
-  [switch]$SkillsOnly
+  [switch]$SkillsOnly,
+  # Optional: install FROM an existing claude-stack checkout instead of cloning one. The caller owns
+  # <dir> - this script never deletes it. e.g.: .\claude-stack.ps1 install -Source C:\tmp\repo
+  [string]$Source = ''
 )
 
 $ErrorActionPreference = 'Stop'
@@ -480,7 +489,6 @@ $Mcps = @(
 #     Windows note: the .js has no shebang/exec bit here, so it is invoked via `node`.
 #     $CLAUDE_PROJECT_DIR is substituted by Claude Code; if your Windows build needs
 #     %CLAUDE_PROJECT_DIR% instead, change that one token in Set-HookSettings below.
-$HookBaseUrl = 'https://raw.githubusercontent.com/envoydev/claude-stack/main/hooks'
 $Hooks = @(
   'guard-protected-force-push.js::Bash::'         # block force-push to main/master/develop
   'guard-catastrophic-rm.js::Bash::'              # block recursive rm of /, ~, $HOME, or a bare *
@@ -503,10 +511,9 @@ $SecretDeny = @(
   'Read(*.key)'
 )
 
-# (5) Subagents (claude-code): specialist agents fetched into .claude/agents/ on BOTH actions
-# (per-agent fail-soft). Claude Code auto-discovers .claude/agents/*.md; no settings.json wiring.
-# (Cursor's twins of these live in the cursor-stack repo.)
-$AgentBaseUrl = 'https://raw.githubusercontent.com/envoydev/claude-stack/main/agents'
+# (5) Subagents (claude-code): specialist agents copied into .claude/agents/ from the run's source
+# clone (agents/) on BOTH actions (per-agent fail-soft). Claude Code auto-discovers
+# .claude/agents/*.md; no settings.json wiring. (Cursor's twins of these live in the cursor-stack repo.)
 $Agents = @(
   'dotnet-build-error-resolver.md'   # implement phase (sonnet/high): dotnet build -> minimal fix loop (serena/csharp-lsp), capped
   'dotnet-test-failure-resolver.md'  # implement phase (sonnet/high): dotnet test -> red->green repair loop, anti-reward-hacking, capped
@@ -549,9 +556,8 @@ $Agents = @(
 # NOTE: baseline-project-related-context.md, baseline-project-architecture.md and
 # baseline-project-capabilities.md are GENERATED per-project (by /project-related-context,
 # /project-architecture-analyzer and /project-capabilities) - NEVER add those names to this
-# manifest (a fetch would overwrite the generated copies); nothing prunes the rules dir, so
+# manifest (the copy would overwrite the generated copies); nothing prunes the rules dir, so
 # they survive update.
-$RulesBaseUrl = 'https://raw.githubusercontent.com/envoydev/claude-stack/main/rules'
 $ClaudeRules = @(
   # Always-on baseline (no paths) - loads every session like CLAUDE.md; one job per file, comment out what a project doesn't want.
   'baseline-interaction.md'    # communication + evaluating-proposals + planning (merged by exclusion affinity)
@@ -619,35 +625,131 @@ function Get-SkillsDest {
   return (Join-Path (Get-Location).Path '.claude\skills')
 }
 
-function Install-Skills {
-  # git-copy: clone the stack repo (depth 1) and copy each selected skills/<name>/ into the scope
-  # dest directly - all house skills live in ONE repo (envoydev/claude-stack), so a plain copy fully
-  # reproduces what the skills CLI used to stage; no npx/network-registry dependency.
-  if (-not (Get-Command git -ErrorAction SilentlyContinue)) { Add-Failure 'git not found - skills not installed'; return }   # fail-soft: skip, never abort
-  $repoUrl = if ($env:STACK_SKILLS_REPO) { $env:STACK_SKILLS_REPO } else { 'https://github.com/envoydev/claude-stack' }
-  $dest = Get-SkillsDest
+# ===========================================================================
+# SOURCE CLONE - the ONE revision every artifact in a run comes from
+# ===========================================================================
+# Every file the stack installs (skills, hooks, agents, rules, the CLAUDE.md template) lives in
+# this one repo, so a run takes ONE shallow clone and copies out of it. Two reasons it is a clone
+# and not the per-file raw.githubusercontent.com fetches this replaced:
+#   - ATOMIC. A clone is a single revision. The raw URLs are per-file and CDN-cached (a push takes
+#     ~5 min to propagate), so a raw run could mix revisions - and then claude-stack.stamp, which
+#     records the revision this install came from, would be a lie. The clone makes the stamp true
+#     by construction.
+#   - CHEAP. One clone replaces ~50 round trips (the Hooks + Agents + ClaudeRules arrays).
+# Fail-soft, like the fetches were: no git / a failed clone means callers keep the copies already
+# on disk and the run carries on. $StackSha stays empty, which is what suppresses the stamp write.
+#
+# -Source <dir> hands in a checkout the CALLER already made. That is the plugin path: the setup /
+# configure skills must clone anyway (they need stack-select.js, stack-graph.json, the CLAUDE.md
+# template and the stamp diff before the install runs), so they pass that same clone here and the
+# guided run costs ONE clone instead of two. A caller-provided dir is borrowed, never deleted.
+# Standalone (no -Source) is unchanged: the script clones its own source and cleans it up.
+$StackRepoUrl = if ($env:STACK_SKILLS_REPO) { $env:STACK_SKILLS_REPO } else { 'https://github.com/envoydev/claude-stack' }
+$script:StackSrc = ''          # the source worktree; empty until Get-StackSrc runs
+$script:StackSha = ''          # the exact commit every artifact this run installs was copied from
+$script:StackRef = ''          # the branch that commit is the tip of (whatever the source's HEAD is)
+$script:StackSrcTried = $false # memoises the OUTCOME, so a dead source costs one clone attempt, not one per caller
+$script:StackSrcOwned = $false # true only when WE cloned it - Remove-StackSrc removes ours, never the caller's
+
+function Get-StackSrc {
+  # Resolves on the first call; every later caller reuses the worktree. Returns $false (never throws)
+  # when the source is unavailable, so each caller applies its own fail-soft.
+  # Memoise BOTH outcomes: five steps call this, and without the failure latch an offline run
+  # would pay five clone timeouts and report five failures for one root cause.
+  if ($script:StackSrc) { return $true }
+  if ($script:StackSrcTried) { return $false }
+  $script:StackSrcTried = $true
+  if (-not (Get-Command git -ErrorAction SilentlyContinue)) { Add-Failure 'git not found - stack source unavailable'; return $false }
+
+  if ($Source) {
+    # Borrowed checkout. Sanity-check it IS the stack (a wrong -Source would otherwise 'install'
+    # nothing and report 117 per-file failures), then read its revision like we would our own.
+    if (-not ((Test-Path -LiteralPath (Join-Path $Source 'skills') -PathType Container) -and
+              (Test-Path -LiteralPath (Join-Path $Source 'agents') -PathType Container))) {
+      Add-Failure "-Source '$Source' is not a claude-stack checkout (no skills/ + agents/) - stack source unavailable"
+      return $false
+    }
+    $script:StackSrc = $Source
+    $script:StackSrcOwned = $false
+    $script:StackSha = (& git -C $Source rev-parse HEAD 2>$null)
+    $script:StackRef = (& git -C $Source rev-parse --abbrev-ref HEAD 2>$null)
+    # Stamp the URL the caller actually cloned from, not our default - they may have used a fork.
+    $originUrl = (& git -C $Source remote get-url origin 2>$null)
+    if ($originUrl) { $script:StackRepoUrl = $originUrl }
+    if (-not $script:StackSha) { Log "source: $Source (provided; not a git checkout - no revision, so no stamp)" }
+    else {
+      $shortSha = $script:StackSha.Substring(0, [Math]::Min(12, $script:StackSha.Length))
+      $refName = if ($script:StackRef) { $script:StackRef } else { '?' }
+      Log "source: $Source (provided) @ $refName $shortSha"
+    }
+    return $true
+  }
+
   $tmp = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString())
   New-Item -ItemType Directory -Path $tmp -Force | Out-Null
-  try {
-    & git clone --depth 1 $repoUrl $tmp *> $null
-    if ($LASTEXITCODE -ne 0) { Add-Failure "clone of $repoUrl failed - skills not installed"; return }
-    New-Item -ItemType Directory -Path $dest -Force | Out-Null
-    foreach ($entry in $Skills) {
-      $name = $entry.Split('|', 2)[1]
-      $src = Join-Path $tmp "skills\$name"
-      if (Test-Path -LiteralPath $src -PathType Container) {
-        $target = Join-Path $dest $name
-        if (Test-Path -LiteralPath $target) { Remove-Item -LiteralPath $target -Recurse -Force }
-        Copy-Item -LiteralPath $src -Destination $target -Recurse -Force
-        Log "skill [$ClaudeScope]: $name -> $target"
-      }
-      else {
-        Add-Failure "skill '$name' not found in $repoUrl"
-      }
-    }
-  }
-  finally {
+  & git clone --depth 1 $StackRepoUrl $tmp *> $null
+  if ($LASTEXITCODE -ne 0) {
+    Add-Failure "clone of $StackRepoUrl failed - stack source unavailable (nothing refreshed; existing copies kept)"
     Remove-Item -LiteralPath $tmp -Recurse -Force -ErrorAction SilentlyContinue
+    return $false
+  }
+  $script:StackSrc = $tmp
+  $script:StackSrcOwned = $true
+  $script:StackSha = (& git -C $tmp rev-parse HEAD 2>$null)
+  $script:StackRef = (& git -C $tmp rev-parse --abbrev-ref HEAD 2>$null)
+  $shortSha = if ($script:StackSha) { $script:StackSha.Substring(0, [Math]::Min(12, $script:StackSha.Length)) } else { 'unknown' }
+  $refName = if ($script:StackRef) { $script:StackRef } else { '?' }
+  Log "source: $StackRepoUrl @ $refName $shortSha"
+  return $true
+}
+
+function Remove-StackSrc {
+  # Only ever removes a clone WE took - a -Source checkout belongs to the caller.
+  if ($script:StackSrcOwned -and $script:StackSrc) {
+    Remove-Item -LiteralPath $script:StackSrc -Recurse -Force -ErrorAction SilentlyContinue
+    $script:StackSrc = ''
+  }
+}
+
+function Copy-FromStackSrc {
+  # Shared body of the hook/agent/rule steps: copy each named file out of the run's clone. Per-file
+  # fail-soft (a file not yet upstream keeps its committed copy), and an unchanged file is reported
+  # 'current' rather than rewritten, so a no-op run leaves timestamps alone.
+  param([string]$SubDir, [string]$Label, [string]$DestDir, [string[]]$Files)
+  if (-not (Get-StackSrc)) { Log "  !! stack source unavailable - kept existing $Label copies"; return }
+  foreach ($file in $Files) {
+    $src = Join-Path $script:StackSrc (Join-Path $SubDir $file)
+    if (-not (Test-Path -LiteralPath $src -PathType Leaf)) { Add-Failure "$Label '$file' not found in $StackRepoUrl"; continue }
+    $dest = Join-Path $DestDir $file
+    $dir = Split-Path -Parent $dest
+    if (-not (Test-Path -LiteralPath $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
+    if ((Test-Path -LiteralPath $dest) -and ((Get-FileHash -LiteralPath $src).Hash -eq (Get-FileHash -LiteralPath $dest).Hash)) {
+      Log "  $Label current: $file"; continue
+    }
+    Copy-Item -LiteralPath $src -Destination $dest -Force
+    Log "  $Label installed -> $file"
+  }
+}
+
+function Install-Skills {
+  # Copy each selected skills/<name>/ out of the run's clone into the scope dest - all house skills
+  # live in ONE repo, so a plain copy fully reproduces what the skills CLI used to stage; no
+  # npx/network-registry dependency.
+  if (-not (Get-StackSrc)) { Add-Failure 'skills not installed'; return }   # fail-soft: skip, never abort
+  $dest = Get-SkillsDest
+  New-Item -ItemType Directory -Path $dest -Force | Out-Null
+  foreach ($entry in $Skills) {
+    $name = $entry.Split('|', 2)[1]
+    $src = Join-Path $script:StackSrc (Join-Path 'skills' $name)
+    if (Test-Path -LiteralPath $src -PathType Container) {
+      $target = Join-Path $dest $name
+      if (Test-Path -LiteralPath $target) { Remove-Item -LiteralPath $target -Recurse -Force }
+      Copy-Item -LiteralPath $src -Destination $target -Recurse -Force
+      Log "skill [$ClaudeScope]: $name -> $target"
+    }
+    else {
+      Add-Failure "skill '$name' not found in $StackRepoUrl"
+    }
   }
 }
 
@@ -698,79 +800,89 @@ function Install-Mcps {
 }
 
 function Get-Hooks {
-  # Fetch each hook file into the repo; per-hook fail-soft (keeps repo copy).
+  # Copy each hook file into the repo from the run's clone; per-hook fail-soft (keeps repo copy).
   $root = Get-RepoRoot
   if (-not $root) { Log '  !! not in a git repo - skipping hooks'; return }
-  foreach ($entry in $Hooks) {
-    $file = ($entry -split '::', 2)[0]
-    $dest = Join-Path $root ".claude/hooks/$file"
-    $dir = Split-Path -Parent $dest
-    if (-not (Test-Path -LiteralPath $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
-    $tmp = [System.IO.Path]::GetTempFileName()
-    try { Invoke-WebRequest -Uri "$HookBaseUrl/$file" -OutFile $tmp -UseBasicParsing -ErrorAction Stop }
-    catch { Log "  !! fetch failed (kept repo copy if any): $file"; Remove-Item -LiteralPath $tmp -Force -ErrorAction SilentlyContinue; continue }
-    if ((Test-Path -LiteralPath $dest) -and ((Get-FileHash -LiteralPath $tmp).Hash -eq (Get-FileHash -LiteralPath $dest).Hash)) {
-      Remove-Item -LiteralPath $tmp -Force; Log "  hook current: $file"
-    }
-    else {
-      Move-Item -LiteralPath $tmp -Destination $dest -Force; Log "  hook fetched -> $file"
-    }
-  }
+  $files = @(foreach ($entry in $Hooks) { ($entry -split '::', 2)[0] })
+  Copy-FromStackSrc -SubDir 'hooks' -Label 'hook' -DestDir (Join-Path $root '.claude/hooks') -Files $files
 }
 
 function Get-Agents {
-  # Fetch each subagent .md into the repo; per-agent fail-soft (keeps repo copy).
+  # Copy each subagent .md into the repo from the run's clone; per-agent fail-soft (keeps repo copy).
   $root = Get-RepoRoot
   if (-not $root) { Log '  !! not in a git repo - skipping agents'; return }
-  foreach ($file in $Agents) {
-    $dest = Join-Path $root ".claude/agents/$file"
-    $dir = Split-Path -Parent $dest
-    if (-not (Test-Path -LiteralPath $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
-    $tmp = [System.IO.Path]::GetTempFileName()
-    try { Invoke-WebRequest -Uri "$AgentBaseUrl/$file" -OutFile $tmp -UseBasicParsing -ErrorAction Stop }
-    catch { Log "  !! fetch failed (kept repo copy if any): $file"; Remove-Item -LiteralPath $tmp -Force -ErrorAction SilentlyContinue; continue }
-    if ((Test-Path -LiteralPath $dest) -and ((Get-FileHash -LiteralPath $tmp).Hash -eq (Get-FileHash -LiteralPath $dest).Hash)) {
-      Remove-Item -LiteralPath $tmp -Force; Log "  agent current: $file"
-    }
-    else {
-      Move-Item -LiteralPath $tmp -Destination $dest -Force; Log "  agent fetched -> $file"
-    }
-  }
+  Copy-FromStackSrc -SubDir 'agents' -Label 'agent' -DestDir (Join-Path $root '.claude/agents') -Files $Agents
 }
 
 function Get-Rules {
-  # Fetch each rule .md into the repo; per-rule fail-soft (keeps repo copy).
+  # Copy each rule .md into the repo from the run's clone; per-rule fail-soft (keeps repo copy).
   $root = Get-RepoRoot
   if (-not $root) { Log '  !! not in a git repo - skipping rules'; return }
-  foreach ($file in $ClaudeRules) {
-    $dest = Join-Path $root ".claude/rules/$file"
-    $dir = Split-Path -Parent $dest
-    if (-not (Test-Path -LiteralPath $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
-    $tmp = [System.IO.Path]::GetTempFileName()
-    try { Invoke-WebRequest -Uri "$RulesBaseUrl/$file" -OutFile $tmp -UseBasicParsing -ErrorAction Stop }
-    catch { Log "  !! fetch failed (kept repo copy if any): $file"; Remove-Item -LiteralPath $tmp -Force -ErrorAction SilentlyContinue; continue }
-    if ((Test-Path -LiteralPath $dest) -and ((Get-FileHash -LiteralPath $tmp).Hash -eq (Get-FileHash -LiteralPath $dest).Hash)) {
-      Remove-Item -LiteralPath $tmp -Force; Log "  rule current: $file"
-    }
-    else {
-      Move-Item -LiteralPath $tmp -Destination $dest -Force; Log "  rule fetched -> $file"
-    }
-  }
+  Copy-FromStackSrc -SubDir 'rules' -Label 'rule' -DestDir (Join-Path $root '.claude/rules') -Files $ClaudeRules
 }
 
-$ClaudeMdUrl = 'https://raw.githubusercontent.com/envoydev/claude-stack/main/templates/CLAUDE.template.md'
 function New-ClaudeMd {
   # INSTALL: lay down a starter .claude/CLAUDE.md from the template when the project has none (never clobber a filled one).
   $root = Get-RepoRoot
   if (-not $root) { Log '  !! not in a git repo - skipping CLAUDE.md'; return }
   # Auto-loaded from either ./CLAUDE.md or ./.claude/CLAUDE.md - skip if EITHER exists so we never leave two copies.
   if ((Test-Path -LiteralPath (Join-Path $root 'CLAUDE.md')) -or (Test-Path -LiteralPath (Join-Path $root '.claude/CLAUDE.md'))) { Log '  CLAUDE.md: already present - left as-is (fill any remaining <placeholders>)'; return }
+  if (-not (Get-StackSrc)) { Log '  !! stack source unavailable - create .claude/CLAUDE.md by hand from CLAUDE.template.md'; return }
+  $src = Join-Path $script:StackSrc (Join-Path 'templates' 'CLAUDE.template.md')
+  if (-not (Test-Path -LiteralPath $src -PathType Leaf)) { Add-Failure "CLAUDE.template.md not found in $StackRepoUrl"; return }
   $dest = Join-Path $root '.claude/CLAUDE.md'
   New-Item -ItemType Directory -Force -Path (Join-Path $root '.claude') | Out-Null
-  $tmp = [System.IO.Path]::GetTempFileName()
-  try { Invoke-WebRequest -Uri $ClaudeMdUrl -OutFile $tmp -UseBasicParsing -ErrorAction Stop }
-  catch { Log '  !! CLAUDE.md template fetch failed - create .claude/CLAUDE.md by hand from CLAUDE.template.md'; Remove-Item -LiteralPath $tmp -Force -ErrorAction SilentlyContinue; return }
-  Move-Item -LiteralPath $tmp -Destination $dest -Force; Log '  CLAUDE.md: seeded to .claude/CLAUDE.md - FILL its <placeholders>, and keep the .claude/* + !.claude/CLAUDE.md gitignore lines so it stays committed'
+  Copy-Item -LiteralPath $src -Destination $dest -Force
+  Log '  CLAUDE.md: seeded to .claude/CLAUDE.md - FILL its <placeholders>, and keep the .claude/* + !.claude/CLAUDE.md gitignore lines so it stays committed'
+}
+
+# ===========================================================================
+# INSTALL STAMP - which revision this install came from
+# ===========================================================================
+# Claude Code has no per-artifact version: `version:` is in the plugin.json schema and NOWHERE else
+# (not skills, not agents, not rules, not hooks - an added key there parses but is ignored). So the
+# stack versions the INSTALL, not the file: one stamp naming the commit every artifact was copied
+# from. That is what /claude-stack:configure diffs against to answer 'what changed since I
+# installed?' - exactly, for all ~117 artifacts, with nothing to hand-bump:
+#     git diff --name-only <sha>..<ref> -- skills/ agents/ rules/ hooks/ templates/
+# Machine-local by design (it describes THIS checkout's install) and already covered by the
+# '.claude/*' gitignore line the run prints.
+function Write-Stamp {
+  # No SHA means no clone happened this run (git absent, or the clone failed and every step
+  # fail-softly kept its existing copy). Stamping then would claim an install that did not occur,
+  # and a wrong stamp is worse than none - so leave any previous stamp untouched.
+  if (-not $script:StackSha) { Log '  stamp: skipped - no source revision resolved this run'; return }
+  if ($ClaudeScope -eq 'user') { $dir = $ConfigDir }
+  else {
+    # Prefer the repo root - that is where hooks/agents/rules land. Outside a repo fall back to the
+    # cwd, which is where Install-Skills puts .claude/skills: the stamp belongs next to whatever
+    # this run actually installed, and a skills-only install into a plain directory still gets one.
+    $root = Get-RepoRoot
+    if (-not $root) { $root = (Get-Location).Path }
+    $dir = Join-Path $root '.claude'
+  }
+  if (-not (Test-Path -LiteralPath $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
+  $dest = Join-Path $dir 'claude-stack.stamp'
+  $stampedAt = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
+  $lines = @(
+    '# claude-stack install stamp - machine-local, written by claude-stack.sh / claude-stack.ps1.'
+    '# The revision every artifact of this install was copied from. To see what changed since'
+    '# (a shallow clone has no history, so fetch this exact commit before diffing it):'
+    "#   git clone --depth 1 $StackRepoUrl /tmp/cs"
+    "#   git -C /tmp/cs fetch --depth 1 origin $($script:StackSha)"
+    "#   git -C /tmp/cs diff --name-only $($script:StackSha) HEAD -- skills/ agents/ rules/ hooks/ templates/"
+    '# /claude-stack:configure runs exactly this and reports it. Then re-run the installer''s'
+    "# '$Action' action (or that skill) to take the changes."
+    "source: $StackRepoUrl"
+    "ref: $($script:StackRef)"
+    "sha: $($script:StackSha)"
+    "installed: $stampedAt"
+    "action: $Action"
+    "scope: $ClaudeScope"
+  )
+  Set-Content -LiteralPath $dest -Value $lines -Encoding utf8
+  $shortSha = $script:StackSha.Substring(0, [Math]::Min(12, $script:StackSha.Length))
+  Log "  stamp: $dest @ $shortSha"
 }
 
 function Set-HookSettings {
@@ -1036,14 +1148,15 @@ function Repair-SerenaTsLspWindows {
   # command runs, so the exit code is irrelevant); $SerenaPin keeps it the same version the MCP uses.
   try { & uvx --from ('serena-agent' + $SerenaPin) serena --help *> $null } catch {}
 
-  $fixUrl = 'https://raw.githubusercontent.com/envoydev/claude-stack/main/scripts/fix-serena-ts-windows.ps1'
-  $fixTmp = Join-Path ([System.IO.Path]::GetTempPath()) 'fix-serena-ts-windows.ps1'
+  # From the run's source clone, like every other repo-owned file - so this patch is the same
+  # revision as the rest of the install rather than whatever the raw CDN happens to be serving.
+  if (-not (Get-StackSrc)) { Write-Warning '  serena TS-LSP fix skipped - stack source unavailable'; return }
+  $fixSrc = Join-Path $script:StackSrc (Join-Path 'scripts' 'fix-serena-ts-windows.ps1')
+  if (-not (Test-Path -LiteralPath $fixSrc -PathType Leaf)) { Write-Warning '  serena TS-LSP fix skipped - fix-serena-ts-windows.ps1 not found in the source'; return }
   try {
-    Invoke-WebRequest -Uri $fixUrl -OutFile $fixTmp -UseBasicParsing -ErrorAction Stop
-    & powershell -NoProfile -ExecutionPolicy Bypass -File $fixTmp   # child process: its `exit` won't kill this installer
+    & powershell -NoProfile -ExecutionPolicy Bypass -File $fixSrc   # child process: its `exit` won't kill this installer
   }
-  catch { Write-Warning "  serena TS-LSP fix skipped (fetch/run failed): $($_.Exception.Message)" }
-  finally { Remove-Item -LiteralPath $fixTmp -Force -ErrorAction SilentlyContinue }
+  catch { Write-Warning "  serena TS-LSP fix skipped (run failed): $($_.Exception.Message)" }
 }
 
 # ===========================================================================
@@ -1053,6 +1166,8 @@ function Repair-SerenaTsLspWindows {
 # dependent step (testability - drives just the git-copy with no claude/gh/network dependency).
 if ($SkillsOnly) {
   if ($Action -eq 'install') { Install-Skills } else { Update-Skills }
+  Write-Stamp      # a skills-only run still installs FROM a revision - record it
+  Remove-StackSrc
   exit 0
 }
 
@@ -1061,9 +1176,15 @@ Install-GitHubCli
 
 # claude-only steps fail soft (Get-Command claude) if the CLI is not installed.
 Save-Pins   # -KeepPins only: no-op without the switch (install re-adds skills unconditionally too, so both actions refresh)
-if ($Action -eq 'install') { Install-Skills; Install-Plugins; Install-Mcps; Get-Hooks; Set-HookSettings; Get-Agents; Get-Rules; New-ClaudeMd; Repair-SerenaTsLspWindows }
-else { Update-Skills; Update-Plugins; Update-Mcps; Update-Hooks; Update-Agents; Update-Rules; Repair-SerenaTsLspWindows }
-Restore-Pins
+# try/finally is the .ps1 stand-in for the .sh EXIT trap: the source clone is removed even if a step
+# throws. Write-Stamp runs after every copy step, so the stamp only ever names a revision that fully landed.
+try {
+  if ($Action -eq 'install') { Install-Skills; Install-Plugins; Install-Mcps; Get-Hooks; Set-HookSettings; Get-Agents; Get-Rules; New-ClaudeMd; Repair-SerenaTsLspWindows }
+  else { Update-Skills; Update-Plugins; Update-Mcps; Update-Hooks; Update-Agents; Update-Rules; Repair-SerenaTsLspWindows }
+  Restore-Pins
+  Write-Stamp
+}
+finally { Remove-StackSrc }
 
 Remove-AgentsCache
 Write-Host ''

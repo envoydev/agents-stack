@@ -12,8 +12,23 @@ before running, never run past an unmet blocker. `stack-select.js` does the dete
 you orchestrate. The one difference from `setup`: the baseline selection is what is INSTALLED,
 not the recommendations - and the action is `update`, not `install`.
 
-Everything is fetched from `https://raw.githubusercontent.com/envoydev/claude-stack/main`. Use a
-temp working dir (e.g. `mktemp -d`) for the fetched tools; never write them into the project.
+**ONE shallow clone is the entire download** - nothing is fetched from a raw URL, and the installer
+runs FROM that clone so it does not take a second one:
+
+```bash
+TMP=$(mktemp -d); git clone --depth 1 https://github.com/envoydev/claude-stack "$TMP/repo"
+```
+
+The clone is the tip of `main` as one self-consistent snapshot; the `raw.githubusercontent.com`
+URLs are per-file and sit behind a CDN that serves a cached copy for ~5 min after a push, so raw
+can hand back a stale installer or a skewed mix of versions. Everything comes out of `$TMP/repo` -
+the installer, `scripts/stack-select.js`, `scripts/stack-graph.json`,
+`templates/CLAUDE.template.md`, and the history step 3 diffs the stamp against - and step 8 hands
+the same clone back via `--source "$TMP/repo"` (`-Source` on Windows), which is what keeps a guided
+run at one clone instead of two. `git` is a hard prerequisite (the installer needs it regardless,
+and without it there is nothing to update FROM): if it is missing, say so and stop - do not fall
+back to raw URLs. Never write the clone into the project tree, and always remove it when the run
+ends - see step 12.
 
 ## 1. Preconditions - find the install
 - Project mode: cwd is a project root with a populated `.claude/` (skills/agents/rules dirs, or
@@ -31,42 +46,74 @@ Build the CURRENT selection from disk - never from memory or assumption:
   the CLI).
 Show the inventory grouped by category, with counts.
 
-## 3. Ask what to change
+## 3. Report what changed since the install (the stamp)
+`.claude/claude-stack.stamp` (or the account's, in global mode) records the commit every artifact
+of the current install was copied from - the stack versions the INSTALL, not the file, because
+Claude Code has no per-artifact `version:` field. Use it to tell the user what an update would
+actually bring, BEFORE they choose:
+
+```bash
+SHA=$(sed -n 's/^sha: //p' .claude/claude-stack.stamp)
+# the depth-1 clone has no history - fetch just the stamped commit so it can be diffed
+git -C "$TMP/repo" fetch --depth 1 origin "$SHA" 2>/dev/null &&
+  git -C "$TMP/repo" diff --name-only "$SHA" HEAD -- skills/ agents/ rules/ hooks/ templates/
+```
+
+Summarise the result by category (`N skills, N agents, N rules changed`), naming the items - that
+is the honest answer to 'what does updating get me'. Two cases to handle, neither an error:
+- **No stamp** - an install predating stamping, or one whose source never resolved. Say the
+  baseline is unknown, so an update's effect cannot be previewed; the update itself is unaffected
+  and will write a stamp.
+- **The fetch or diff fails** - the commit is gone (history rewritten, or a fork/`STACK_SKILLS_REPO`
+  source that never had it). Report that the baseline is unreachable and move on; never guess a
+  diff, and never treat this as a reason to skip the update.
+
+Nothing changed since the stamp and no adds/drops wanted? Say so plainly and offer to stop rather
+than running a no-op update.
+
+## 4. Ask what to change
 One question: **refresh as-is** (default - update everything currently installed), **add**
 (multi-pick: a whole stack seeded from the sibling `setup` skill's
 `references/recommendations.json`, or named individual items), or **drop** (pick installed items
 to remove). Also ask: keep local model/effort pins? (`--keep-pins`, default yes for a configure
 run - an existing install often carries deliberate pin edits).
 
-## 4. Fetch the tools
-Into the temp dir, download the right installer (`scripts/claude-stack.sh` or
-`scripts/claude-stack.ps1`), plus `scripts/stack-select.js`, `scripts/stack-graph.json`, and
-`templates/CLAUDE.template.md` (for step 9).
+## 5. Use the tools from the clone
+From `$TMP/repo` (cloned as above), use the right installer (`scripts/claude-stack.sh` on
+`darwin`/`linux`, `scripts/claude-stack.ps1` on Windows), plus `scripts/stack-select.js`,
+`scripts/stack-graph.json`, and `templates/CLAUDE.template.md` (for step 10). Run the later
+`node`/`bash` steps against these clone copies - never re-fetch one from a raw URL; the clone is
+already the newest, consistent copy, and it is the copy step 8 updates from.
 
-## 5. Build the selection and close it
+## 6. Build the selection and close it
 - Selection = installed set, plus the adds, minus the drops; write it to `raw.json`.
 - Run: `node stack-select.js --selection raw.json --graph stack-graph.json --emit selection.txt --check`
 - A drop that something kept still depends on comes back as a `required:` line - show the reason
   and let the user keep it or also drop the dependents.
 
-## 6. Review, prerequisite gate
+## 7. Review, prerequisite gate
 Same contract as `setup`: show the closed selection grouped by category, closure adds marked with
 their reasons; list blockers with fixes and never run past one; warnings are listed and passed.
 
-## 7. Run the update
-- Unix: `bash claude-stack.sh update --scope <scope> --selection selection.txt [--space <name>] [--keep-pins]`
-- Windows: `pwsh -File claude-stack.ps1 update -Scope <scope> -Selection selection.txt [-Space <name>] [-KeepPins]`
+## 8. Run the update
+Run the installer **from the clone**, and pass the clone back with `--source` so it updates from
+what you already downloaded instead of cloning again:
+- Unix: `bash "$TMP/repo/scripts/claude-stack.sh" update --source "$TMP/repo" --scope <scope> --selection selection.txt [--space <name>] [--keep-pins]`
+- Windows: `pwsh -File "$TMP/repo/scripts/claude-stack.ps1" update -Source "$TMP/repo" -Scope <scope> -Selection selection.txt [-Space <name>] [-KeepPins]`
 - Scope/space mirror how the install was laid down (project install -> `project`; account
   install -> `global`, with the space that owns it) - ask only when it is genuinely ambiguous.
+- `--source` is what makes the guided run take ONE clone, and it guarantees the update lands the
+  same revision step 3 previewed. The installer copies out of `$TMP/repo` and leaves it for you to
+  remove in step 12.
 
-## 8. Apply the drops
+## 9. Apply the drops
 `update --selection` refreshes the selected set - it does NOT uninstall what was dropped. Remove
 dropped items explicitly, show each command before running it: delete the skill directory /
 agent file / rule file; `claude mcp remove <name>` for an MCP; `claude plugin uninstall <name>`
 for a plugin. Then re-run `/project-capabilities` (when installed) so the generated awareness
 rule reflects the new inventory.
 
-## 9. Reconcile the project's CLAUDE.md with the template (project mode)
+## 10. Reconcile the project's CLAUDE.md with the template (project mode)
 Reconcile the project's CLAUDE.md against the fetched `templates/CLAUDE.template.md`: add the
 sections the template gained since the install, update the selection-tied parts - the rules
 table and any capability mentions - for what this run added or dropped, and fill any
@@ -74,11 +121,21 @@ still-empty `<placeholders>` from what the inventory established. Reconcile ADDI
 overwrite the project's own prose, and show the changes before writing. Skip in global mode
 (no project file to reconcile).
 
-## 10. Post-check
+## 11. Post-check
 Report what changed per category (refreshed / added / dropped), the CLAUDE.md reconcile result,
-anything deferred, and remind that a restart picks up MCP registration changes.
+anything deferred, and remind that a restart picks up MCP registration changes. The run rewrites
+`claude-stack.stamp` to the revision it installed, so the next configure diffs from here.
+
+## 12. Clean up the temp dir - ALWAYS
+`rm -rf "$TMP"` (PowerShell: `Remove-Item -Recurse -Force $TMP`). The clone plus the working files
+you wrote next to it (`raw.json`, `selection.txt`) live there and nothing else will remove them -
+the installer only cleans up a clone IT took, never the one you passed via `--source`. Do this on
+EVERY exit path, not just the happy one: after a successful update, after an abort, after a
+blocker, and after the step-3 'nothing changed, stop here' case. Then confirm the project tree
+holds only installed artifacts - no clone, no `raw.json`/`selection.txt`, no installer copy.
 
 ## Do not
 - Do not fall back to a full re-install - this is the update path; a from-scratch install is the
-  sibling `setup` skill. Do not skip the review or the prerequisite gate. Do not write fetched
-  tools into the project tree. Do not commit anything on the user's behalf.
+  sibling `setup` skill. Do not skip the review or the prerequisite gate. Do not write the clone or
+  the working files into the project tree, and do not leave `$TMP` behind on any exit path. Do not
+  commit anything on the user's behalf.

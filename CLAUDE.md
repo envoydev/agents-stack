@@ -28,8 +28,8 @@ change made only inside a consuming project is throwaway (see Invariants).
   the `rules/baseline-*.md` set. Content shipped to projects, not this repo's own file.
 - `hooks/` - `guard-protected-force-push.js` + `guard-catastrophic-rm.js` (PreToolUse `Bash`) +
   `guard-read-whole-file.js` (PreToolUse `Read`), all wired; plus `instrument-tool-usage.js`,
-  fetched UNWIRED (opt-in per-run tool/skill/MCP stats via STACK_INSTRUMENT=1 + manual wiring).
-  Fetched into a project's `.claude/hooks/`.
+  installed UNWIRED (opt-in per-run tool/skill/MCP stats via STACK_INSTRUMENT=1 + manual wiring).
+  Copied from the run's clone into a project's `.claude/hooks/`.
 - `agents/` - the Claude-contract subagents, 33 total: the four build/test resolvers - .NET
     (`dotnet-build-error-resolver`, `dotnet-test-failure-resolver`) + Angular (`ng-build-error-resolver`,
     `angular-test-resolver`) - plus four cross-cutting agents (`ci-failure-diagnoser`, `issue-diagnoser`, `security-auditor` - a read-only
@@ -57,8 +57,8 @@ change made only inside a consuming project is throwaway (see Invariants).
     2026-07-14), and for cross-domain work freezes the shared contract and drives the parallel
     per-stack runs through the `integration-reviewer` final gate. All 33 carry
     frontmatter model/effort pins (resolvers `sonnet`/`high`, designers `opus`/`xhigh`, verifiers
-    `sonnet`/`xhigh`, implementers `sonnet`/`medium`, the four support seats `sonnet`). Fetched into
-    a project's `.claude/agents/`. The `cursor-stack` repo ships adapted twins of all 33 - a
+    `sonnet`/`xhigh`, implementers `sonnet`/`medium`, the four support seats `sonnet`). Copied from
+    the run's clone into a project's `.claude/agents/`. The `cursor-stack` repo ships adapted twins of all 33 - a
     protocol change to an agent here usually needs the same edit to its twin there (the deliberate
     divergences are only the platform gaps, listed in that repo's CLAUDE.md: `model: inherit`, no
     per-tool `tools:` allowlist, `superpowers` optional, no auto-delegation hard-disable).
@@ -89,15 +89,18 @@ platform gaps and the twin-maintenance rule).
 
 ## The stack's delivery surfaces (and the Cursor twin repo)
 
-The Claude Code delivery, per surface:
+The Claude Code delivery, per surface. Skills, hooks, agents, rules and the CLAUDE.md template all
+come from the SAME one-per-run shallow clone, so an install is a single revision - the one
+`claude-stack.stamp` records:
 
 | Surface | Delivery |
 |---|---|
 | Skills | installer git-clone + copy → `.claude/skills` (or plugin `/claude-stack`) |
 | MCP | `claude mcp add` → `<repo>/.mcp.json` |
 | Plugins | 7 via `claude plugin install` (superpowers, claude-md-management, the `*-lsp` pair, security-guidance, claude-hud, ponytail) |
-| Hooks | `.claude/hooks/` wired into `.claude/settings.json` (3 wired + 1 fetched-unwired instrumentation) |
-| Agents | `.claude/agents/` - the 33 model/effort-pinned subagents described under Layout. Fetched like hooks; per-tool `tools:` allowlist |
+| Hooks | copied from the clone → `.claude/hooks/`, wired into `.claude/settings.json` (3 wired + 1 copied-unwired instrumentation) |
+| Agents | `.claude/agents/` - the 33 model/effort-pinned subagents described under Layout. Copied like hooks; per-tool `tools:` allowlist |
+| Install stamp | `claude-stack.stamp` (project `.claude/`, or the account dir when scope=global) - the source commit this install came from; `/claude-stack:configure` diffs it against `main`. Machine-local (covered by the `.claude/*` gitignore line) |
 | Convention gate | seven path-scoped convention rules in `.claude/rules/` (soft, glob auto-attach - each points a file type at its house-style skill; replaced the `require-convention-skill` hard gate) |
 | Security review | `/security-review` (diff/PR) + `security-guidance` hooks (commit-time) + the `security-auditor` agent (opus/xhigh, read-only posture audit routing an OWASP/CWE punch-list to the implementers) |
 | Project instructions | `CLAUDE.md` (seeded to `.claude/CLAUDE.md`) |
@@ -197,9 +200,25 @@ documented there.
 - Editing a consuming project's installed copy is local-only; mirror the change into this repo's
   installer twins (both shells) or the next install wipes it - and into `cursor-stack`
   when the change touches the shared skills/MCP baseline or a twinned agent/rule.
-- Hooks and rules are **fetched from GitHub** at install (`…/main/hooks`,
-  `…/main/rules`), so a change ships only once committed + pushed;
-  until then the per-hook / per-rule fail-soft keeps any existing copy.
+- **Everything installs from ONE shallow clone** of this repo, taken once per run (`stack_src` /
+  `Get-StackSrc`): skills, hooks, agents, rules and the CLAUDE.md template are all copied out of it,
+  so a change ships only once committed + pushed; until then the per-file fail-soft keeps any
+  existing copy. It replaced the per-file `…/main/…` raw fetches - the raw CDN is per-file and
+  ~5 min stale after a push, so a run could mix revisions. One clone = one revision, which is what
+  makes the stamp below true. Never reintroduce a raw fetch of a repo-owned file.
+- **One clone per RUN, not per layer.** The plugin skills (`/claude-stack:setup`, `:configure`) must
+  clone anyway - they need `stack-select.js`, the graph, the template and the stamp diff before the
+  installer runs - so they pass that checkout to the installer with `--source` / `-Source` and it
+  skips its own clone. A borrowed source is never deleted by the script (`STACK_SRC_OWNED` /
+  `$script:StackSrcOwned` gates the cleanup); the SKILLS own removing their `$TMP`, on every exit
+  path. Standalone (no `--source`) still clones and cleans up after itself - keep that path working,
+  it is the no-plugin install documented in the README.
+- **The install is versioned, not the file.** Claude Code has no per-artifact version: `version:` is
+  in the plugin.json schema and NOWHERE else (a `version:` key on a skill/agent/rule parses but is
+  ignored - don't add one). Instead each run writes `claude-stack.stamp` (project `.claude/`, or the
+  account dir for a global install) naming the source commit; `/claude-stack:configure` diffs it
+  against `main` to report what an update would bring. A run whose clone failed writes NO stamp -
+  a wrong stamp is worse than none.
 - Authoring or editing a house skill in skills/? The superpowers writing-skills method is a useful
   reference - subordinate it to the parity lint, the HTML + skill-count sync, and the house
   voice; take its skill-testing discipline, not its own formatting or its push-to-fork deploy step.
