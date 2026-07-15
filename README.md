@@ -22,6 +22,17 @@ up the `SKILL.md` files automatically the next session.
 skills? Use the per-agent installers - see [`claude/`](claude/README.md) for Claude Code and
 [`cursor/`](cursor/README.md) for Cursor.
 
+## Bootstrapping a project with the setup plugin
+
+Install the setup plugin once, then run it inside any project to install a curated subset of the stack:
+
+```
+claude plugin marketplace add envoydev/agents-stack
+claude plugin install claude-stack-setup@agents-stack
+```
+
+Then, in a target project, run `/claude-stack` (the `setup-claude-stack` skill): it detects the OS, analyses the project, checks prerequisites, lets you review a dependency-complete selection, and runs the installer against just that subset. The installer scripts and `stack-select.js` remain the source of truth; the plugin is the guided front end.
+
 ## Managing installed skills
 
 ```bash

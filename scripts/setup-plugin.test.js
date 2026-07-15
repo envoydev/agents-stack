@@ -69,3 +69,12 @@ test('the always block seeds the cross-cutting agents and baseline rules', () =>
         assert.ok((recs.always.rules || []).includes(r), `always seeds ${r}`);
     }
 });
+
+test('the setup skill exists with valid manual-only frontmatter', () => {
+    const skill = path.join(PLUGIN_DIR, 'skills', 'setup-claude-stack', 'SKILL.md');
+    assert.ok(fs.existsSync(skill), 'SKILL.md exists');
+    const fm = fs.readFileSync(skill, 'utf8').match(/^---\r?\n([\s\S]*?)\r?\n---/);
+    assert.ok(fm, 'has frontmatter');
+    assert.match(fm[1], /name:\s*setup-claude-stack/, 'name is setup-claude-stack');
+    assert.match(fm[1], /disable-model-invocation:\s*true/, 'manual-only');
+});
