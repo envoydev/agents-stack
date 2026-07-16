@@ -1,6 +1,6 @@
 ---
 name: dotnet-grpc
-description: "Personal .NET gRPC conventions - the .proto is the contract and Grpc.Tools generates from it at build, host with Grpc.AspNetCore (AddGrpc + MapGrpcService), consume through typed clients (AddGrpcClient over IHttpClientFactory) with a reused multiplexing channel, the four call shapes with a deadline and CancellationToken on every one, JWT-bearer or mTLS auth, interceptors for cross-cutting work, the gRPC health protocol, and gRPC-Web for browsers. Floors at .NET 8 / C# 12. Load when defining, implementing, or calling a gRPC service, or weighing gRPC against REST. Companions: dotnet-web-backend, dotnet-authentication, csharp. Do NOT load for plain REST or minimal APIs - that is dotnet-minimal-api."
+description: ".NET gRPC conventions - the .proto is the contract and Grpc.Tools generates from it at build, host with Grpc.AspNetCore (AddGrpc + MapGrpcService), consume through typed clients (AddGrpcClient over IHttpClientFactory) with a reused multiplexing channel, the four call shapes with a deadline and CancellationToken on every one, JWT-bearer or mTLS auth, interceptors for cross-cutting work, the gRPC health protocol, and gRPC-Web for browsers. Floors at .NET 8 / C# 12. Load when defining, implementing, or calling a gRPC service, or weighing gRPC against REST. Companions: dotnet-web-backend, dotnet-authentication, csharp. Do NOT load for plain REST or minimal APIs - that is dotnet-minimal-api."
 ---
 
 # .NET gRPC
@@ -82,16 +82,8 @@ Put logging, authentication checks, exception-to-status mapping, validation, and
 - Enforce on the server with `.RequireAuthorization()` on the mapped service (or `[Authorize]` on the service class / methods), exactly as for HTTP endpoints. Authorization policies are the same machinery; gRPC just feeds them from metadata.
 
 ## Health and observability
-- Expose the standard gRPC health-checking protocol (`Grpc.AspNetCore.HealthChecks`) and wire it to orchestrator probes - Kubernetes can health-check gRPC natively, so the liveness/readiness gate speaks the same protocol as the service.
+- Orchestrator probes speak the standard gRPC health-checking protocol - the opt-in wiring is in `references/optional-surfaces.md`.
 - gRPC integrates with the standard .NET observability stack; emit traces and metrics through it rather than bolting on a parallel logging path. Correlation and the broader telemetry setup are `dotnet-web-backend`.
 
-## Browsers can't speak raw gRPC - use gRPC-Web
-A browser cannot make a raw gRPC/HTTP-2 call (no access to the required frames), so a browser client needs **gRPC-Web**: enable `UseGrpcWeb()` on the server (and `.EnableGrpcWeb()` per service or globally), give the JS/TS client the gRPC-Web transport, and configure CORS to expose the gRPC-specific headers. Note gRPC-Web does not support client or bidirectional streaming - live bidirectional browser push is SignalR (`dotnet-realtime`). Service-to-service traffic stays on plain gRPC where HTTP/2 is end to end.
-
-## Anti-patterns
-- Hand-editing or hand-writing the generated code instead of regenerating from the `.proto`.
-- Calling without a deadline, or ignoring the `CancellationToken` so cancelled work runs on.
-- Returning a successful response that smuggles an error flag instead of throwing the right `RpcException` status.
-- Leaking an exception's message or stack to the caller, or collapsing every failure into `Internal`.
-- Repeating logging / auth / error-mapping in each method instead of an interceptor.
-- Treating gRPC as a file-transfer pipe or skipping HTTP/2 end to end.
+## Browsers can't speak raw gRPC
+A browser client needs **gRPC-Web** - the server and CORS wiring, and its streaming limits, are in `references/optional-surfaces.md`.

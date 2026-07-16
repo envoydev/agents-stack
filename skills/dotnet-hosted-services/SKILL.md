@@ -1,6 +1,6 @@
 ---
 name: dotnet-hosted-services
-description: "Personal .NET hosted-service and worker conventions - the long-running background work the generic host runs. Covers the host shapes (a worker binary, a hosted task in a web app, a Windows Service), IHostedService versus BackgroundService versus IHostedLifecycleService, the ExecuteAsync unobserved-exception trap, scoped services from the singleton host, PeriodicTimer over a Task.Delay loop, graceful shutdown via the stopping token, and queue-backed work via System.Threading.Channels - plus references/ for 24/7 I/O hardening, scheduling and leader election, and deployment/signals. Floors at .NET 8 / C# 12. Load when writing a worker service, a BackgroundService or IHostedService, a periodic job, a long-running bot/daemon host, or any in-process background task hung off the host. Companions: dotnet-messaging (broker and consumer contract), dotnet-web-backend, csharp. Do NOT load for the broker side of a consumer (delivery contract, idempotency, retry - dotnet-messaging; the consumer's host process is still this skill), HTTP endpoints, or reactive in-memory streams."
+description: ".NET hosted-service and worker conventions - the long-running background work the generic host runs. Covers the host shapes (worker binary, in-web-app task, Windows Service), IHostedService versus BackgroundService versus IHostedLifecycleService, the ExecuteAsync exception trap, scoped services from the singleton host, PeriodicTimer over Task.Delay, graceful shutdown, and System.Threading.Channels queues - plus references/ for 24/7 I/O hardening, scheduling/leader election, deployment/signals. Floors at .NET 8 / C# 12. Load when writing a worker service, BackgroundService or IHostedService, a periodic job, a bot/daemon host, or any in-process background task hung off the host. Companions: dotnet-messaging, dotnet-web-backend, csharp. Do NOT load for the broker side of a consumer (dotnet-messaging; the consumer's host process is still this skill), HTTP endpoints, or reactive in-memory streams."
 ---
 
 # .NET hosted services - background work on the generic host
@@ -153,20 +153,12 @@ Prefer a **bounded** channel so a runaway producer applies backpressure instead 
 
 ## Running it 24/7 - the references
 
-The host is the engine; a worker or bot that stays up for weeks also has to survive its own I/O, schedule, and deployment. Each concern has a reference:
+The host is the engine; a worker or bot that stays up for weeks also has to survive its own I/O and schedule (deployment/signals and concurrency are already cited at their steps above):
 
 - **`references/resilience-and-io.md`** - outbound I/O hardening the web hub would give a service but does not reach a console host: `HttpClient`/socket-exhaustion (singleton + `SocketsHttpHandler`, or `IHttpClientFactory`), Polly v8 resilience pipelines, `System.Threading.RateLimiting`, and raw `ClientWebSocket` reconnect/backoff/re-subscribe.
 - **`references/scheduling-and-coordination.md`** - when a plain loop is not enough: the Hangfire / Quartz.NET / Coravel decision, and single-instance leader election (RedLock.net / SQL lock, with the idempotency caveat).
-- **`references/deployment-and-observability.md`** - signals and the Kubernetes drain contract, systemd / container (chiseled non-root) integration, GC/AOT for a long-running process, and observability without an HTTP surface (health checks, `[LoggerMessage]`, OpenTelemetry).
-- **`references/concurrency.md`** - the worker-loop concurrency correctness this all rests on.
 
 ## Newer versions (optional)
 
 - **.NET 10:** all of `ExecuteAsync` now runs on a background thread - the runtime wraps it in `Task.Run` inside `StartAsync`, so its synchronous prefix (the code before the first real `await`) no longer blocks other services from starting. The classic `await Task.Yield()` at the top of `ExecuteAsync` is no longer needed. If you *want* code to run synchronously during startup, that is now the wrong place - put it in the constructor, override `StartAsync` before calling `base.StartAsync`, or implement `IHostedLifecycleService`.
 - **.NET 11+:** `IHost.RunAsync`/`StopAsync` (and their synchronous forms) will *throw* the captured `BackgroundService` exception instead of completing quietly when a worker fails under `StopHost` - making the trap above far louder. Until then, on the .NET 8 floor, you only get the log entry, so the explicit handling stands.
-
-## Companions
-
-- `dotnet-messaging` - broker-backed consumers, outbox/inbox, idempotency, and at-least-once delivery; owns any work that crosses a process boundary or must survive a restart.
-- `dotnet-web-backend` - the cross-cutting baseline for the HTTP service a background task may live inside.
-- `csharp` - the async, `Task`, cancellation, and `Channel<T>` language mechanics this skill builds on.

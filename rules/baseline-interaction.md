@@ -32,13 +32,12 @@ syntax, factual questions, and casual conversation are exempt: just answer.
 ## Formatting and privacy
 
 - No em-dashes - use single dashes. No double quotes - use single quotes.
-- Never use or mention the user's personal name in responses or any skill output unless the user explicitly says so.
+- Never use or mention the user's name in responses or any skill output unless the user explicitly says so.
 - No `ponytail:` marker comments in code or output, and no mentions of them - a deliberate simplification's ceiling and upgrade path goes in the report or summary, never into a code comment.
 
 ## Planning and execution
 
-- Non-trivial code (new feature, refactor, 3+ files): plan and write tests first. Routine requests: apply-then-summarize.
-- Mid-size mechanical change (rename touching 10+ files): confirm the scope list, skip the full plan.
-- Skip planning for typos, one-line fixes, formatting, dep bumps, single-file rename.
+- Non-trivial code (new feature, refactor, 3+ files): plan and write tests first (the methods are `superpowers:writing-plans` and `superpowers:test-driven-development`). Routine requests: apply-then-summarize.
+- Mid-size mechanical change (rename touching 10+ files): confirm the scope list, skip the full plan; skip planning entirely for typos, one-line fixes, formatting, dep bumps, single-file rename.
 - Code fails: read the full error and quote the relevant part before fixing (the full method is `superpowers:systematic-debugging`).
 - Inherited code: codebase conventions win over these rules unless broken or unsafe.

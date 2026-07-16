@@ -1,6 +1,6 @@
 ---
 name: project-architecture-quality-loop
-description: "The deliberate architecture analyze-assess-improve loop. Runs the project-architecture-analyzer capture (code-analyzer digests per module, main-session reasoning, writes docs/architecture/ARCHITECTURE.md plus a docs/architecture/ASSESSMENT.md of reasoned strengths and weaknesses), works the weaknesses by tier - small to a domain implementer, substantial through a designer -> implementers -> verifier (plan approved first), structural flagged for a user decision and never auto-applied - re-runs the capture to reconcile the docs, and loops until the fixable cons resolve or plateau. Manual, /-only. Triggers on 'run the architecture quality loop' or 'analyze and improve the architecture'. NOT for a code-quality polish (project-quality-loop), a single feature build (project-task-flow), or a capture-only run with no fixes (/project-architecture-analyzer alone)."
+description: "The deliberate architecture analyze-assess-improve loop. Runs the project-architecture-analyzer capture, works the ASSESSMENT's weaknesses by tier - small to a domain implementer, substantial through a designer -> implementers -> verifier (plan approved first), structural flagged for a user decision and never auto-applied - re-runs the capture to reconcile the docs, and loops until the fixable cons resolve or plateau. Manual, /-only. Triggers on 'run the architecture quality loop' or 'analyze and improve the architecture'. NOT for a code-quality polish (project-quality-loop), a single feature build (project-task-flow), or a capture-only run with no fixes (/project-architecture-analyzer alone)."
 disable-model-invocation: true
 model: opus
 ---
@@ -64,7 +64,6 @@ DELEGATED, one run over the Orders module:
 - The assessment's tier is the routing authority - do not silently upgrade a small con into a rewrite, or downgrade a structural one to sneak it past the approval gate.
 
 ## Rules
-- Manual only (`disable-model-invocation`): this skill runs when the user invokes `/project-architecture-quality-loop`, never on its own.
 - The main session is the only orchestrator. The build seats it dispatches - the domain designer / implementers / verifier / resolvers - carry no Agent tool, so the fan-out stays flat; a con needing analysis and a fix is separate dispatches from here, not one nested one. The capture's code-analyzer fan-out is also dispatched from here, flat - there is no dispatched architecture seat and no nesting.
 - Substantial and structural changes are gated on user approval before building; small localized fixes proceed. Architecture changes are consequential - confirm before reshaping the structure.
 - Keep this skill orchestration only. The architecture judgement lives in the project-architecture-analyzer capture and the house architecture skills it loads; the build knowledge lives in the domain seats. For a pure code-quality polish reach for `project-quality-loop`; for a single feature build reach for `project-task-flow`.

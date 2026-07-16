@@ -1,9 +1,10 @@
-# The one-download protocol - shared by the setup and configure skills
+# The one-download protocol - shared by the setup, update, and configure skills
 
-Both plugin skills (`setup` - fresh install - and its sibling `configure` - update) drive their
-whole run from ONE source snapshot. This file is the shared contract; each skill's numbered steps
-say WHEN to apply it, this file says WHAT holds. It lives under the `setup` skill's `references/`
-and the `configure` skill cites it by path - the two skills always ship together in the plugin.
+All three plugin skills (`setup` - fresh install, `update` - refresh + prune, `configure` -
+adjust the selection) drive their whole run from ONE source snapshot. This file is the shared
+contract; each skill's numbered steps say WHEN to apply it, this file says WHAT holds. It lives
+under the `setup` skill's `references/` and the siblings cite it by path - the skills always
+ship together in the plugin.
 
 ## One release archive is the entire download
 
@@ -22,16 +23,32 @@ Invoke-WebRequest -Uri https://github.com/envoydev/claude-stack/releases/latest/
 Expand-Archive -LiteralPath "$TMP/claude-stack.zip" -DestinationPath "$TMP/repo"
 ```
 
-- The archive is the rolling `latest` release the repo's release workflow republishes on every
-  push to `main` - one self-consistent snapshot, whose `RELEASE-SOURCE` file names the exact
-  commit it was built from. The `raw.githubusercontent.com` URLs are per-file and sit behind a
-  CDN that serves a cached copy for ~5 min after a push, so raw can hand back a stale installer
-  or a skewed mix of versions. Never fetch anything from a raw URL - not even as a fallback.
+- The archive is the newest release - the repo's release workflow republishes it on every
+  release merge to `main`, tagged `v<version>` from the plugin manifest, so the release version
+  always equals the plugin/marketplace version; the `releases/latest/download/...` URLs above
+  always resolve to the newest one. `main` is the RELEASE branch (development lands on
+  `develop`, so an install never picks up unreleased work) - one self-consistent snapshot, whose
+  `RELEASE-SOURCE` file names the exact commit and version it was built from. The `raw.githubusercontent.com` URLs are
+  per-file and sit behind a CDN that serves a cached copy for ~5 min after a push, so raw can
+  hand back a stale installer or a skewed mix of versions. Never fetch anything from a raw URL -
+  not even as a fallback.
 - **Fallback when the download fails** (no release reachable, a proxy, the moment the workflow
-  is recreating the release): `git clone --depth 1 https://github.com/envoydev/claude-stack
-  "$TMP/repo"` - the same one-snapshot contract, just fetched with git. If both fail, say so and
-  stop; never assemble a source from raw URLs.
+  is recreating the release): `git clone --depth 1 -b main https://github.com/envoydev/claude-stack
+  "$TMP/repo"` - the same one-snapshot contract, just fetched with git. Keep the `-b main` pin:
+  the fallback must deliver the release branch, never whatever the default branch happens to be.
+  If both fail, say so and stop; never assemble a source from raw URLs.
 - Never write the archive, the extracted repo, or your working files into the project tree.
+
+## Check the plugin itself is current
+
+The tooling always comes fresh from the snapshot, but YOUR numbered steps ship with the
+installed plugin - so compare versions right after the download: the snapshot's is the
+`version:` line in `$TMP/repo/RELEASE-SOURCE`; the running plugin's is in
+`${CLAUDE_PLUGIN_ROOT}/.claude-plugin/plugin.json` (no `CLAUDE_PLUGIN_ROOT` in the environment ->
+skip this check silently). When they differ, the plugin is behind the release: say so, recommend
+`claude plugin marketplace update claude-stack` then `claude plugin update claude-stack`, and
+offer to continue anyway - the snapshot tooling is current either way; the risk is only that
+these instructions lag it.
 
 ## Use the tools from the snapshot
 

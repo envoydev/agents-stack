@@ -30,5 +30,6 @@ PROJ-142
 
 On any non-trivial diff, before committing or presenting: run the formatter, then `/code-review`
 (`/simplify` applies its quality findings in place), plus any diff gates named in the project's
-`CLAUDE.md` - then satisfy the Definition-of-done gate. Skip for typos / one-line /
+`CLAUDE.md` - then satisfy the Definition-of-done gate. Findings caught here land in the same
+commit; found later they become fixup noise or shipped defects. Skip for typos / one-line /
 formatting-only diffs.

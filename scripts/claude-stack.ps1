@@ -305,7 +305,7 @@ else {
 
 # (1) Skills "repo|skill" (comment a line to skip). Full inventory - every skill (66).
 $Skills = @(
-  # Personal (envoydev/claude-stack)
+  # House (envoydev/claude-stack)
   'envoydev/claude-stack|create-ticket'             # ticket generator (bug/story/epic/task) - tracker-agnostic EN Markdown, routes to references/<type>.md
   'envoydev/claude-stack|dev-log-convert'           # UA/EN work notes -> structured English work log; trigger 'dev-log'
   'envoydev/claude-stack|explain-code-tutor'        # senior-mentor explainer for code/bug/concept/trade-off via real-file walkthrough; depth ELI5/intermediate/expert
@@ -731,10 +731,12 @@ function Get-StackSrc {
   Remove-Item -LiteralPath $tmp -Recurse -Force -ErrorAction SilentlyContinue
 
   # Fallback: a shallow clone - a fork without releases, a blocked release CDN, a local test path.
+  # Pinned to main: the release branch is what installs deliver, never the default branch
+  # (development lands on develop).
   if (-not $hasGit) { Add-Failure 'release archive unreachable and git not found - stack source unavailable'; return $false }
   $tmp = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString())
   New-Item -ItemType Directory -Path $tmp -Force | Out-Null
-  & git clone --depth 1 $StackRepoUrl $tmp *> $null
+  & git clone --depth 1 -b main $StackRepoUrl $tmp *> $null
   if ($LASTEXITCODE -ne 0) {
     Add-Failure "release archive and clone of $StackRepoUrl both failed - stack source unavailable (nothing refreshed; existing copies kept)"
     Remove-Item -LiteralPath $tmp -Recurse -Force -ErrorAction SilentlyContinue
@@ -896,12 +898,30 @@ function New-ClaudeMd {
 #     <repo>/compare/<sha>...main  (the GitHub compare view / API)
 # Machine-local by design (it describes THIS checkout's install) and already covered by the
 # '.claude/*' gitignore line the run prints.
+function Get-StackVersionFrom {
+  # The stack's ONE version: an extracted release archive carries it in RELEASE-SOURCE; a git
+  # checkout reads it from the plugin manifest - the same file the marketplace serves from main,
+  # so the stamp, the release, and the marketplace always name the same version.
+  param([string]$Dir)
+  $rel = Join-Path $Dir 'RELEASE-SOURCE'
+  if (Test-Path -LiteralPath $rel) {
+    $v = ((Get-Content -LiteralPath $rel | Where-Object { $_ -match '^version: ' } | Select-Object -First 1) -replace '^version: ', '')
+    if ($v) { return $v }
+  }
+  $manifest = Join-Path $Dir 'setup-plugin/.claude-plugin/plugin.json'
+  if (Test-Path -LiteralPath $manifest) {
+    try { return [string](Get-Content -LiteralPath $manifest -Raw | ConvertFrom-Json).version } catch { }
+  }
+  return ''
+}
+
 function Write-Stamp {
   # No SHA means no source resolved this run (the archive download and the clone fallback both
   # failed, and every step fail-softly kept its existing copy). Stamping then would claim an
   # install that did not occur, and a wrong stamp is worse than none - so leave any previous
   # stamp untouched.
   if (-not $script:StackSha) { Log '  stamp: skipped - no source revision resolved this run'; return }
+  $version = if ($script:StackSrc) { Get-StackVersionFrom -Dir $script:StackSrc } else { '' }
   if ($ClaudeScope -eq 'user') { $dir = $ConfigDir }
   else {
     # Prefer the repo root - that is where hooks/agents/rules land. Outside a repo fall back to the
@@ -923,6 +943,7 @@ function Write-Stamp {
     "source: $StackRepoUrl"
     "ref: $($script:StackRef)"
     "sha: $($script:StackSha)"
+    "version: $version"
     "installed: $stampedAt"
     "action: $Action"
     "scope: $ClaudeScope"

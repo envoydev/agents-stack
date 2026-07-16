@@ -1,8 +1,8 @@
-# CLAUDE.md - personal claude-stack repo
+# CLAUDE.md - claude-stack repo
 
 ## What this repo is
 
-The single source of truth for the **Claude Code** half of a personal coding-agent setup -
+The single source of truth for the **Claude Code** half of the house coding-agent setup -
 not an application. It collects everything applied to *other* projects: the house-style
 skills, the base instruction template those projects extend, the hook scripts and
 convention rules, and the installer that wires skills / MCP servers / plugins into each
@@ -12,13 +12,13 @@ repo for the shared skills, so the skill + MCP baseline stays single-sourced her
 baseline change is a TWO-REPO commit (the manifest lists are mirrored there in the same
 sitting; each repo lints its own `.sh`/`.ps1` twins). Consuming projects pull from here -
 they do not own their copy. Skills install via the installers' one-snapshot download (the
-rolling `latest` release archive, git-clone fallback; or the claude-stack plugin's
+versioned release archive, git-clone fallback; or the claude-stack plugin's
 `/claude-stack:setup`); the rest is laid down by the same installers. The durable change always lives in *this* repo's source; a
 change made only inside a consuming project is throwaway (see Invariants).
 
 ## Layout - one home per concern
 
-- `skills/` - the personal house-style skills, each a `SKILL.md`. Auto-activate on their own
+- `skills/` - the house-style skills, each a `SKILL.md`. Auto-activate on their own
   keywords / file types in consuming projects. Distributed via the stack installers'
   snapshot-download-and-copy step (or the claude-stack plugin) - including `cursor-stack`'s
   installers, which clone this repo.
@@ -77,7 +77,7 @@ change made only inside a consuming project is throwaway (see Invariants).
     each glob-attaching ONE file family to its house-style skill - single-job so a stack a project
     lacks is simply not installed; the soft replacement for the retired require-convention-skill
     hard gate.
-- `setup-plugin/` - the claude-stack plugin: two guided skills, `/claude-stack:setup` (fresh install from scratch) and `/claude-stack:configure` (update an existing install - refresh, add, or drop), plus the `/claude-stack` router command.
+- `setup-plugin/` - the claude-stack plugin: three guided skills, `/claude-stack:setup` (fresh install from scratch), `/claude-stack:update` (no-questions refresh + prune of upstream-removed artifacts, computed from the stamp compare) and `/claude-stack:configure` (adjust an existing install - add or drop), plus the `/claude-stack` router command.
 - `scripts/lint-skills.js` - the parity lint (below). `scripts/analyze-usage.js` - offline
   token/tool consumption report over a session's transcript JSONL (+ its `subagents/`), the token
   side of the flow instrumentation (`instrument-tool-usage.js` is the identity side - hooks never
@@ -90,7 +90,7 @@ platform gaps and the twin-maintenance rule).
 ## The stack's delivery surfaces (and the Cursor twin repo)
 
 The Claude Code delivery, per surface. Skills, hooks, agents, rules and the CLAUDE.md template all
-come from the SAME one-per-run source snapshot (the `latest` release archive, or the shallow-clone
+come from the SAME one-per-run source snapshot (the newest release archive, or the shallow-clone
 fallback), so an install is a single revision - the one `claude-stack.stamp` records:
 
 | Surface | Delivery |
@@ -171,11 +171,16 @@ documented there.
 
 - **`develop` is where work lands; `main` is the release branch.** Commit to `develop` (or a
   branch off it); merging `develop` -> `main` IS the release act - the release workflow rebuilds
-  the rolling `latest` archive from that merge, and that revision is what every install delivers.
+  the release archive from that merge, and that revision is what every install delivers. ONE
+  version everywhere: the workflow tags each release `v<version>` from
+  `setup-plugin/.claude-plugin/plugin.json` - the same manifest the marketplace serves from
+  `main` - so bump it (plus `marketplace.json` metadata; the lint enforces they stay equal) on
+  `develop` as part of any release-worthy change.
   Never commit feature work directly to `main`, and keep `main` the GitHub default branch (the
-  installers' clone fallback and the README's raw installer bootstrap both deliver the default
-  branch). CI (lint + tests) gates every `develop` push and every PR into `main`.
-- **Public repo.** No private project names or absolute personal paths in any tracked file - generic
+  README's raw installer bootstrap delivers the default branch; the installers' and skills'
+  clone fallback is pinned `-b main` regardless). The lint + test workflows gate every push and
+  PR, so a merge to `main` only ever promotes a green tree.
+- **Public repo.** No private project names or absolute local paths in any tracked file - generic
   'consuming project' references only; real names / paths stay in untracked local files.
 - **Parity / source-of-truth.** A change to skills / MCPs / hooks / rules / plugins lands in the
   SOURCE here, kept in parity: `SKILLS` + `MCPS` + `PLUGINS` identical across both `claude-stack`
@@ -207,9 +212,10 @@ documented there.
   installer twins (both shells) or the next install wipes it - and into `cursor-stack`
   when the change touches the shared skills/MCP baseline or a twinned agent/rule.
 - **Everything installs from ONE source snapshot** of this repo, taken once per run (`stack_src` /
-  `Get-StackSrc`): the rolling `latest` release archive that `.github/workflows/release.yml`
-  republishes on every push to main (a `RELEASE-SOURCE` file inside names the exact commit),
-  falling back to a shallow git clone when no release is reachable. Skills, hooks, agents, rules
+  `Get-StackSrc`): the release archive that `.github/workflows/release.yml` republishes on every
+  release merge to main - tagged `v<plugin version>`, always served by the
+  `releases/latest/download` URL, with a `RELEASE-SOURCE` file inside naming the exact commit +
+  version - falling back to a shallow git clone when no release is reachable. Skills, hooks, agents, rules
   and the CLAUDE.md template are all copied out of it, so a change ships only once merged to
   `main` (the release branch - the workflow rebuilds the archive from the merge); until then the
   per-file fail-soft keeps any existing copy. The snapshot replaced the per-file `…/main/…` raw fetches - the raw CDN is per-file and
@@ -225,7 +231,7 @@ documented there.
 - **The install is versioned, not the file.** Claude Code has no per-artifact version: `version:` is
   in the plugin.json schema and NOWHERE else (a `version:` key on a skill/agent/rule parses but is
   ignored - don't add one). Instead each run writes `claude-stack.stamp` (project `.claude/`, or the
-  account dir for a global install) naming the source commit; `/claude-stack:configure` diffs it
+  account dir for a global install) naming the source commit and release version; `/claude-stack:configure` diffs it
   against the new snapshot's commit (the GitHub compare API - an archive has no local history) to
   report what an update would bring. A run whose source never resolved writes NO stamp - a wrong
   stamp is worse than none.

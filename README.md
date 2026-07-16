@@ -1,6 +1,6 @@
 # claude-stack
 
-The Claude Code half of a personal coding-agent setup - an installable stack of house skills,
+The Claude Code half of a coding-agent setup - an installable stack of house skills,
 subagents, always-on and path-scoped rules, hooks, MCP servers, and plugins that gets applied to
 the projects you actually work in. This repo is the single source of truth: everything installs from
 one release archive of this repo per run (the rolling `latest` release, with a shallow git clone
@@ -48,10 +48,11 @@ claude plugin install claude-stack@claude-stack
 ```
 
 Then `/claude-stack:setup` runs a fresh install (in a project it decides the selection FROM the
-project; outside one it offers a global install from the recommended set) and
-`/claude-stack:configure` updates an existing one (refresh, add, or drop). Both detect the OS,
-check prerequisites, and show you a dependency-complete selection for review before anything runs;
-`/claude-stack` alone routes by state.
+project; outside one it offers a global install from the recommended set),
+`/claude-stack:update` refreshes an existing one to the newest release and prunes what the stack
+removed upstream, and `/claude-stack:configure` adjusts it (add or drop items). All detect the
+OS, check prerequisites, and show you a dependency-complete selection for review before anything
+runs; `/claude-stack` alone routes by state.
 
 ## Install - with the script
 

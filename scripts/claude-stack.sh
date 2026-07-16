@@ -274,7 +274,7 @@ fi
 
 # (1) Skills, one per line as "repo|skill" (comment a line to skip it).
 SKILLS=(
-  # Personal (envoydev/claude-stack)
+  # House (envoydev/claude-stack)
   "envoydev/claude-stack|create-ticket"             # ticket generator (bug/story/epic/task) - tracker-agnostic EN Markdown, routes to references/<type>.md
   "envoydev/claude-stack|dev-log-convert"           # UA/EN work notes -> structured English work log; trigger 'dev-log'
   "envoydev/claude-stack|explain-code-tutor"        # senior-mentor explainer for code/bug/concept/trade-off via real-file walkthrough; depth ELI5/intermediate/expert
@@ -658,9 +658,11 @@ stack_src() {
   rm -rf "$tmp"
 
   # Fallback: a shallow clone - a fork without releases, a blocked release CDN, a local test path.
+  # Pinned to main: the release branch is what installs deliver, never the default branch
+  # (development lands on develop).
   command -v git >/dev/null 2>&1 || { note_failure "release archive unreachable and git not found - stack source unavailable"; return 1; }
   tmp="$(mktemp -d)"
-  if ! git clone --depth 1 "$STACK_REPO_URL" "$tmp" >/dev/null 2>&1; then
+  if ! git clone --depth 1 -b main "$STACK_REPO_URL" "$tmp" >/dev/null 2>&1; then
     note_failure "release archive and clone of $STACK_REPO_URL both failed - stack source unavailable (nothing refreshed; existing copies kept)"
     rm -rf "$tmp"; return 1
   fi
@@ -795,13 +797,22 @@ seed_claude_md() {  # INSTALL: lay down a starter .claude/CLAUDE.md from the tem
 #     <repo>/compare/<sha>...main  (the GitHub compare view / API)
 # Machine-local by design (it describes THIS checkout's install) and already covered by the
 # '.claude/*' gitignore line the run prints.
+stack_version_from() {
+  # The stack's ONE version: an extracted release archive carries it in RELEASE-SOURCE; a git
+  # checkout reads it from the plugin manifest - the same file the marketplace serves from main,
+  # so the stamp, the release, and the marketplace always name the same version.
+  { sed -n 's/^version: //p' "$1/RELEASE-SOURCE" 2>/dev/null | head -1 | grep .; } ||
+    sed -n 's/^[[:space:]]*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$1/setup-plugin/.claude-plugin/plugin.json" 2>/dev/null | head -1
+}
+
 write_stamp() {
   # No SHA means no source resolved this run (the archive download and the clone fallback both
   # failed, and every step fail-softly kept its existing copy). Stamping then would claim an
   # install that did not occur, and a wrong stamp is worse than none - so leave any previous
   # stamp untouched.
   [ -n "$STACK_SHA" ] || { log "  stamp: skipped - no source revision resolved this run"; return 0; }
-  local dir dest root
+  local dir dest root version
+  version="$(stack_version_from "$STACK_SRC")"
   case "$CLAUDE_SCOPE" in
     user) dir="$CONFIG_DIR" ;;
     # Prefer the repo root - that is where hooks/agents/rules land. Outside a repo fall back to
@@ -821,6 +832,7 @@ write_stamp() {
 source: $STACK_REPO_URL
 ref: $STACK_REF
 sha: $STACK_SHA
+version: $version
 installed: $(date -u +%Y-%m-%dT%H:%M:%SZ)
 action: $ACTION
 scope: $CLAUDE_SCOPE

@@ -1,6 +1,6 @@
 ---
 name: project-task-cycle
-description: "Use to run a task, feature, or bug through the whole single-chat vertical with a hard user gate between every step: design (project-solution-design writes the plan file) -> plan audit (project-verify-plan) -> user approval + build-mode choice -> build (project-implementer in-session by default, domain implementer agents on explicit ask) -> plan-conformance verify (skippable) -> /code-review + done-gate. Every stop is a real pause - switch model or effort, add context, or edit the plan before saying go - and the plan file plus a serena cycle note make every step resumable after compaction or in a fresh session. Trigger on run the task cycle, build this with approvals, gated implementation, step-by-step with my sign-off. Not the dispatched multi-agent flow (project-task-flow - trios, cross-domain), not greenfield (project-build-from-scratch), not a one-line edit."
+description: "Use to run a task, feature, or bug through the whole single-chat vertical with a hard user gate between every step: design -> plan audit -> user approval + build-mode choice -> build -> plan-conformance verify (skippable) -> /code-review + done-gate. Every stop is a real pause - switch model or effort, add context, or edit the plan before saying go - and the plan file plus a serena cycle note make every step resumable after compaction or in a fresh session. Trigger on run the task cycle, build this with approvals, gated implementation, step-by-step with my sign-off. Not the dispatched multi-agent flow (project-task-flow), not greenfield (project-build-from-scratch), not a one-line edit."
 disable-model-invocation: true
 ---
 
@@ -23,7 +23,14 @@ survives a compaction or a fresh session. It never designs, builds, or reviews a
 
 **On invocation, resume before starting:** `list_memories` -> `read_memory` the feature's cycle
 note, and read the plan file's stamps. A cycle mid-flight resumes at its cursor - never restart a
-step whose stamp says it already passed.
+step whose stamp says it already passed. A cycle mid-build looks like:
+
+```
+plan docs/superpowers/plans/csv-export.md:
+  Gated: passed | Approved: 2026-07-16 - mode session
+  task 1 DONE (dotnet test green - 4 passed) | task 2 IN_PROGRESS
+cycle note 'csv-export__cycle': step 4 BUILD - resume at task 2, mode session
+```
 
 ## The stop contract
 
@@ -50,8 +57,9 @@ explicit word; silence is not a go.
    - *session*: run `project-implementer` - it marks each task `IN_PROGRESS` before code, ticks it
      `DONE` with evidence after its green gate, and keeps the plan's resume note current.
    - *agents*: fan the plan's task cards out to the matching `<stack>-implementer` seats - flat
-     fan-out, the main session is the only orchestrator; a red build/test routes per the
-     repair-agent rules; tick the same plan file per task as reports land.
+     fan-out per the shared policy `project-task-flow` owns, the main session the only
+     orchestrator; a red build/test routes per the repair-agent rules; tick the same plan file
+     per task as reports land.
    *Stop* - and this stop doubles as the conformance decision: run the verify in-session
    (default), dispatch the stack's `<stack>-verifier` for independent eyes, or **skip** straight
    to step 6. The user can inspect the diff themselves here first.

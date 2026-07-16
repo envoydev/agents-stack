@@ -2,6 +2,10 @@
 paths: ["**/angular.json", "**/*.component.ts", "**/*.component.html", "**/*.spec.ts", "**/*.component.scss", "**/src/styles.scss", "**/src/theme/**/*.scss", "**/src/app/**/*.ts", "**/src/app/**/*.html", "**/src/app/**/*.scss", "**/src/lib/**/*.ts", "**/src/lib/**/*.html", "**/src/lib/**/*.scss"]
 ---
 
+<!-- The styling globs are load-bearing, not over-breadth: a Sass compile error IS an ng build
+     failure, and styles.scss / theme files are build inputs. Fires on green edits by design -
+     build state has no glob; this soft router replaced the retired hard gate. -->
+
 A broken Angular build or red spec suite (Ionic/Capacitor included - ionic build wraps ng
 build) - default to delegating rather than looping in-session: fix-the-build goes to
 **`ng-build-error-resolver`**, make-the-tests-pass goes to **`angular-test-resolver`** once

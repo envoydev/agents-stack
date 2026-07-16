@@ -1,6 +1,6 @@
 ---
 name: project-related-context
-description: "The deliberate related-projects capture: given paths or git URLs to sibling repos, fan out related-project-analyzer agents (one per sibling, parallel) and write BOTH tiers from their YAML entries - the always-on awareness rule .claude/rules/baseline-project-related-context.md (lean name / location / relation / seam per sibling, loaded every session and subagent) and docs/PROJECT-RELATED-CONTEXT.md (the on-demand orientation doc: first_read + the evidence behind each seam). Re-run to refresh: the same analysis, entries upserted per passed sibling in both files, unlisted entries kept. Manual, /-only, and args-driven - it analyzes the locations you name, it never scans for siblings. Triggers on 'capture the related projects' or 'map the sibling repos'. NOT for this repo's own architecture (project-architecture-analyzer) or dynamic cross-repo findings (the memory MCP)."
+description: "The deliberate related-projects capture: given paths or git URLs to sibling repos, fan out related-project-analyzer agents (one per sibling, parallel) and write BOTH tiers from their entries - the always-on awareness rule .claude/rules/baseline-project-related-context.md (lean name / location / relation / seam per sibling) and docs/PROJECT-RELATED-CONTEXT.md (the on-demand orientation doc). Re-run to refresh: entries upserted per passed sibling, unlisted entries kept. Args-driven - it analyzes the locations you name, it never scans for siblings. Triggers on 'capture the related projects' or 'map the sibling repos'. NOT for this repo's own architecture (project-architecture-analyzer) or dynamic cross-repo findings (the memory MCP)."
 disable-model-invocation: true
 ---
 
@@ -43,6 +43,17 @@ related_projects:
     seam:     <the shared surface a change here can break there - API, package, schema>
 ```
 3. **Per sibling** - a short evidence note under its own heading: what grounds the relation and seam (the located files, both sides), plus any uncertainty or UNVERIFIED marker carried over verbatim. Keep each note lean - orientation, not an audit.
+
+A filled entry looks like:
+
+```yaml
+related_projects:
+  - name:     acme-billing-api
+    location: ../acme-billing-api
+    relation: provides-to
+    first_read: [docs/architecture/ARCHITECTURE.md]
+    seam:     the OrderCreated contract in src/Contracts - this repo publishes, billing consumes
+```
 
 ### 4. RULE - write .claude/rules/baseline-project-related-context.md
 The awareness tier, generated from the same entries - a valid PATHLESS rule (frontmatter with a `description:` and NO `paths:`, so it is always-on). Keep it to the awareness minimum; describe edges, not roles:

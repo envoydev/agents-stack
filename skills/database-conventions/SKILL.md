@@ -1,6 +1,6 @@
 ---
 name: database-conventions
-description: "Personal database conventions across Postgres, SQL Server/T-SQL, SQLite, and MongoDB - the engine-neutral rules for schema design, migrations, indexes, foreign keys, transactions, connection management, query safety, N+1 prevention, and secret handling, plus the per-engine pitfalls that bite. Load before designing or modifying a schema, writing SQL raw or through an ORM, modeling a document store, or creating a migration, view, procedure, or index. Deeper work routes out: engine tuning to `postgres` / `sqlite`, .NET data access to `dotnet-data-access`, migration mechanics to `dotnet-migrate`, security posture to `data-security`. Do NOT load for app-only in-memory data structures or a project with no persistence layer."
+description: "database conventions across Postgres, SQL Server/T-SQL, SQLite, and MongoDB - the engine-neutral rules for schema design, migrations, indexes, foreign keys, transactions, connection management, query safety, N+1 prevention, and secret handling, plus the per-engine pitfalls that bite. Load before designing or modifying a schema, writing SQL raw or through an ORM, modeling a document store, or creating a migration, view, procedure, or index. Deeper work routes out: engine tuning to `postgres` / `sqlite`, .NET data access to `dotnet-data-access`, migration mechanics to `dotnet-migrate`, security posture to `data-security`. Do NOT load for app-only in-memory data structures or a project with no persistence layer."
 ---
 
 # Database conventions
@@ -124,7 +124,7 @@ Default to keeping logic in the application, where it is testable, diffable, and
 The full per-engine data-type tables (text, numbers, boolean, date/time, UUID) are in `references/sql-style.md`. The defaults above are engine-neutral; these are the per-engine traps worth repeating here because the obvious choice is the wrong one.
 
 - **Money and exact quantities** - store as `decimal` / `NUMERIC(p,s)` on every engine, never `float` or `double`, since binary floats cannot represent decimal fractions and drift silently on sums.
-- **PostgreSQL** - `SERIAL` is legacy; use `GENERATED ALWAYS AS IDENTITY` for new tables (it is SQL-standard and avoids the sequence-ownership surprises `SERIAL` carries). Prefer `TEXT` over `VARCHAR(n)` unless you need a hard length cap, since the two perform identically and `TEXT` never forces a migration to widen a limit.
+- **PostgreSQL** - `SERIAL` is legacy (`GENERATED ALWAYS AS IDENTITY` for new tables), and `TEXT` beats `VARCHAR(n)` without a hard length cap - the `postgres` skill owns the full delta.
 - **SQL Server** - use `NVARCHAR` over `VARCHAR` for any user-facing text so Unicode is preserved. Avoid `DATETIME`; use `DATETIME2` for higher precision and a sane range, or `DATETIMEOFFSET` when the value is timezone-aware.
-- **SQLite** - foreign keys are *off by default*: issue `PRAGMA foreign_keys = ON` on every connection or the constraints you declared do nothing. Type affinity and the boolean / date storage idioms are owned by the `sqlite` skill; `references/sql-style.md`'s data-type tables carry only the cross-engine comparison row.
+- **SQLite** - foreign keys are off by default: `PRAGMA foreign_keys = ON` on every connection - the `sqlite` skill owns the rest (type affinity, boolean/date idioms).
 - **MongoDB** - the 16 MB document limit is a hard ceiling, so design to sit well under it rather than near it. The `ObjectId` already embeds a creation timestamp - read it from there instead of duplicating a separate created-at field.

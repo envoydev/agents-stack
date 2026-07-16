@@ -1,6 +1,6 @@
 ---
 name: dotnet-mvc-controllers
-description: "Personal ASP.NET Core controller-based Web API mechanics - the mainstream, brownfield alternative to minimal APIs. Covers the ApiController attribute and its behaviors, attribute routing with templates and constraints, ActionResult of T versus IActionResult versus typed HttpResults, suppressing the automatic 400 filter (ApiBehaviorOptions, SuppressModelStateInvalidFilter) so the house FluentValidation-in-a-filter convention stays the sole validation authority, binding-source inference with explicit From-attributes, IAsyncActionFilter and its ordering, and thin controllers delegating to services. Floors at .NET 8 / C# 12; later additions flagged optional. Load before writing or editing API controllers and action filters. Companions: dotnet-minimal-api (the sibling style), dotnet-web-backend, dotnet-error-handling, dotnet-authentication. Do NOT load for minimal APIs, MVC views, Razor Pages, gRPC, SignalR, or non-HTTP code."
+description: "ASP.NET Core controller-based Web API mechanics - the mainstream, brownfield alternative to minimal APIs. Covers the ApiController attribute, attribute routing, ActionResult of T versus IActionResult versus typed HttpResults, suppressing the automatic 400 filter (ApiBehaviorOptions, SuppressModelStateInvalidFilter) for the house FluentValidation-in-a-filter convention, binding-source inference and explicit From-attributes, IAsyncActionFilter ordering, and thin controllers delegating to services. Floors at .NET 8 / C# 12; 9/10 deltas flagged optional. Load before writing or editing API controllers and action filters. Companions: dotnet-minimal-api, dotnet-web-backend, dotnet-error-handling, dotnet-authentication. Do NOT load for minimal APIs, MVC views, Razor Pages, gRPC, SignalR, or non-HTTP code."
 ---
 
 # ASP.NET Core controllers - API controller mechanics
@@ -172,6 +172,4 @@ Do not run a third pattern in one repo to get one feature. If the bulk is minima
 
 ## Newer versions (optional)
 
-- **.NET 9+:** the built-in OpenAPI generator (`AddOpenApi()` / `MapOpenApi()`) covers controllers too and supersedes Swashbuckle - see `dotnet-openapi`.
-- **.NET 10+:** the unified validation APIs move to the `Microsoft.Extensions.Validation` package and OpenAPI generation from controllers improves (form-data enum types, merged XML docs from referenced assemblies). The built-in validation remains attribute-per-property with no cross-field or async rule, so the FluentValidation-in-a-filter convention still carries those cases and stays the house default - per `dotnet-web-backend`.
-- **.NET 10+:** `IActionContextAccessor` / `ActionContextAccessor` are obsoleted - where an action genuinely needs ambient request context outside its parameter list, inject `IHttpContextAccessor` instead. Preferring an explicit action parameter over either accessor remains the rule.
+Targeting .NET 9 or 10? The optional deltas - the built-in OpenAPI generator, the unified validation APIs, the `IActionContextAccessor` obsoletion - are in `references/newer-versions.md`.

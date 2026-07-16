@@ -24,6 +24,15 @@ The SQLite-specific layer. **Cross-engine conventions live in `database-conventi
 - SQLite is dynamically typed (type *affinity*, not strict) - a column will accept any type. Declare `STRICT` tables (3.37+) to enforce the declared types.
 - No native boolean or date/time type: store dates as ISO-8601 `TEXT` or epoch `INTEGER`, booleans as `0`/`1`. Sort/compare accordingly.
 
+The connection-open sequence the rules above add up to:
+
+```sql
+PRAGMA foreign_keys = ON;     -- every connection - enforcement is OFF by default
+PRAGMA busy_timeout = 5000;   -- ms - a contended writer waits instead of failing with SQLITE_BUSY
+PRAGMA journal_mode = WAL;    -- persists on the file; readers no longer block the single writer
+PRAGMA synchronous = NORMAL;  -- the usual durability/speed balance with WAL
+```
+
 ## Schema changes
 
 - `ALTER TABLE` is limited to `RENAME`, `ADD COLUMN`, `DROP COLUMN` (3.35+, but blocked on a column that is a PK / unique / indexed / in an FK / CHECK / generated expression), and toggling a column's `NOT NULL` (3.53+).

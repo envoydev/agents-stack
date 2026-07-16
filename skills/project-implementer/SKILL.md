@@ -1,6 +1,6 @@
 ---
 name: project-implementer
-description: "Use when you have a task plan in hand - from project-solution-design, ideally gated by project-verify-plan - and want to BUILD it in the current chat, task by task: the single-chat form of the implementer seat's execution protocol. Honors each task's contract (files owned, traps named, anchors, acceptance criterion), builds code + tests per task, gates each task green before the next, resolves every red INLINE in the current session (it never dispatches an agent), and finishes by handing to /code-review + the done-gate - completing the in-session designer -> implementer -> verifier vertical. Trigger on execute the plan, build the plan, implement the tasks, build task 2, continue the plan. Not for dispatching parallel implementers (that is project-task-flow), and not a plan-less ad-hoc edit - just make those."
+description: "Use when you have a task plan in hand - from project-solution-design, ideally gated by project-verify-plan - and want to BUILD it in the current chat, task by task: the single-chat form of the implementer seat's execution protocol. Honors each task's contract, builds code + tests per task, gates each task green before the next, resolves every red INLINE (it never dispatches an agent), and hands to /code-review + the done-gate. Trigger on execute the plan, build the plan, implement the tasks, build task 2, continue the plan. Not for dispatching parallel implementers (that is project-task-flow), and not a plan-less ad-hoc edit - just make those."
 disable-model-invocation: true
 ---
 

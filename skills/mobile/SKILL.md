@@ -1,6 +1,6 @@
 ---
 name: mobile
-description: "Router and index for Ionic / Capacitor mobile + hybrid app work - maps a mobile area (Ionic Angular UI, Capacitor app structure, native plugins, release + signing, security hardening) to the focused skill: ionic (conventions + plugins - the default for day-to-day feature work), capacitor-release (release + signing), mobile-security (hardening). Load when starting mobile work and unsure which of those applies - 'add a camera feature to the app', 'why does the back button close the app', 'get this build into TestFlight' - or when orienting in a mobile codebase; go straight to the leaf skill when the area is known. Companions: angular-conventions, typescript. For plain web frontend see frontend; for .NET backend see dotnet."
+description: "Router and index for Ionic / Capacitor mobile + hybrid app work - maps a mobile area (Ionic Angular UI, the Capacitor native layer, native plugins, the store/release/signing pipeline, mobile security hardening) to the focused leaf skill via the body's routing table. Load when starting mobile work and unsure which area applies - 'add a camera feature', 'why does the back button close the app', 'get this build into TestFlight' - or when orienting in a codebase with ionic.config.json or capacitor.config.*; go straight to the leaf skill when the area is known. Companions: angular-conventions, typescript. For plain web frontend see frontend; for .NET backend see dotnet."
 ---
 
 # mobile (Ionic / Capacitor router)

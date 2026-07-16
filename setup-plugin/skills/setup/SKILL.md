@@ -1,14 +1,14 @@
 ---
 name: setup
-description: "FRESH install of the personal claude-stack, from scratch - detect the OS + analyse the project, ask the scalar install choices, fetch the tools, curate a dependency-complete selection with a prerequisite check, and run the installer's install action. In a project, the selection is decided FROM the project (detected stacks seed the recommendations); outside any project it falls back to a global install seeded from the recommended set (references/recommendations.json), stacks chosen by the user. Trigger by invoking /claude-stack:setup or 'set up the claude stack here'. NOT for refreshing or adjusting an existing install - that is the sibling configure skill."
+description: "FRESH install of the claude-stack, from scratch - detect the OS + analyse the project, ask the scalar install choices, fetch the tools, curate a dependency-complete selection with a prerequisite check, and run the installer's install action. In a project, the selection is decided FROM the project (detected stacks seed the recommendations); outside any project it falls back to a global install seeded from the recommended set (references/recommendations.json), stacks chosen by the user. Trigger by invoking /claude-stack:setup or 'set up the claude stack here'. NOT for an existing install - a plain refresh is the sibling update skill, choosing what to add or drop is configure."
 disable-model-invocation: true
 ---
 
 # Set up the Claude stack - fresh install
 
-You are bootstrapping the claude-stack FROM SCRATCH. If the stack is already installed here (a populated `.claude/skills` + `.claude/agents`, or the global account equivalents in no-project mode), stop and route to the sibling `configure` skill - updates are its job. Work in order and drive it interactively: ask the scalar choices, always show the resolved selection and the prerequisite report before installing, and never install past an unmet blocker. The deterministic work is done by `stack-select.js`; you orchestrate. Two modes, decided at step 1: **project mode** (the normal case - the selection is decided from the project itself) and **no-project mode** (a global install seeded from the recommended set).
+You are bootstrapping the claude-stack FROM SCRATCH. If the stack is already installed here (a populated `.claude/skills` + `.claude/agents`, or the global account equivalents in no-project mode), stop and route to a sibling: `update` for a plain refresh, `configure` to adjust the selection - updates are their job. Work in order and drive it interactively: ask the scalar choices, always show the resolved selection and the prerequisite report before installing, and never install past an unmet blocker. The deterministic work is done by `stack-select.js`; you orchestrate. Two modes, decided at step 1: **project mode** (the normal case - the selection is decided from the project itself) and **no-project mode** (a global install seeded from the recommended set).
 
-**ONE release archive is the entire download** - read `references/source-protocol.md` before step 1 and hold the whole run to it: download + extract the `latest` release archive once into `$TMP/repo` (falling back to one shallow clone only when the download fails; never a raw URL), use every tool from that snapshot, hand it to the installer with `--source` in step 8, and remove `$TMP` on every exit path in step 11.
+**ONE release archive is the entire download** - read `references/source-protocol.md` before step 1 and hold the whole run to it: download + extract the `latest` release archive once into `$TMP/repo` (the reference owns the fallback), use every tool from that snapshot, hand it to the installer with `--source` in step 8, and remove `$TMP` on every exit path in step 11.
 
 ## 1. Preconditions - pick the mode
 - Cwd is a project root in a git repo -> **project mode**; continue at step 2.
@@ -23,11 +23,18 @@ You are bootstrapping the claude-stack FROM SCRATCH. If the stack is already ins
 - A project can match several. Report the detected stacks and let the user confirm/adjust before proceeding.
 - A repo with NO recognizable artifacts (greenfield) falls back the same way as no-project mode: present the `references/recommendations.json` stacks as a multi-pick of what the project WILL be, then continue normally at project scope.
 
+For example:
+
+```
+Detected: aspnet (src/Api/Api.csproj - Microsoft.NET.Sdk.Web), angular (angular.json), devops (Dockerfile + .github/workflows/)
+Confirm or adjust before I build the selection from these.
+```
+
 ## 3. Ask the scalar choices
 Ask with the question tool (one screen): scope (`project` default / `global`), space (optional account name), context7 transport (`remote` default / `local`), install the GitHub CLI? (default no), keep local pins? (`--keep-pins`, default no).
 
 ## 4. Use the tools from the snapshot
-Per `references/source-protocol.md`: the installer, `stack-select.js`, `stack-graph.json`, and `templates/CLAUDE.template.md` (for step 9) all come out of `$TMP/repo` - never a raw re-fetch.
+Per `references/source-protocol.md`'s 'Use the tools from the snapshot' section: every tool a later step runs comes out of `$TMP/repo` - never a raw re-fetch.
 
 ## 5. Build the recommended selection and close it
 - Read this skill's `references/recommendations.json`. Union `always` with the seed of each confirmed stack into a raw selection `{ agents: [...], rules: [...], skills: [...], plugins: [...] }`; write it to `raw.json` in the temp dir.
