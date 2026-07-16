@@ -11,16 +11,16 @@ project. The **Cursor** twin stack was split out to its own repo,
 repo for the shared skills, so the skill + MCP baseline stays single-sourced here, and a
 baseline change is a TWO-REPO commit (the manifest lists are mirrored there in the same
 sitting; each repo lints its own `.sh`/`.ps1` twins). Consuming projects pull from here -
-they do not own their copy. Skills install via a git-clone-and-copy step built into the
-stack installers (or the claude-stack plugin's `/claude-stack:setup`); the rest is laid
-down by the same installers. The durable change always lives in *this* repo's source; a
+they do not own their copy. Skills install via the installers' one-snapshot download (the
+rolling `latest` release archive, git-clone fallback; or the claude-stack plugin's
+`/claude-stack:setup`); the rest is laid down by the same installers. The durable change always lives in *this* repo's source; a
 change made only inside a consuming project is throwaway (see Invariants).
 
 ## Layout - one home per concern
 
 - `skills/` - the personal house-style skills, each a `SKILL.md`. Auto-activate on their own
   keywords / file types in consuming projects. Distributed via the stack installers'
-  git-clone-and-copy step (or the claude-stack plugin) - including `cursor-stack`'s
+  snapshot-download-and-copy step (or the claude-stack plugin) - including `cursor-stack`'s
   installers, which clone this repo.
 - `scripts/claude-stack.{sh,ps1}` - the installer twins (Unix / Windows); `docs/claude-stack.html` is the browser inventory.
 - `templates/CLAUDE.template.md` - the stack-neutral per-project skeleton (with `<placeholders>`) that each
@@ -90,15 +90,15 @@ platform gaps and the twin-maintenance rule).
 ## The stack's delivery surfaces (and the Cursor twin repo)
 
 The Claude Code delivery, per surface. Skills, hooks, agents, rules and the CLAUDE.md template all
-come from the SAME one-per-run shallow clone, so an install is a single revision - the one
-`claude-stack.stamp` records:
+come from the SAME one-per-run source snapshot (the `latest` release archive, or the shallow-clone
+fallback), so an install is a single revision - the one `claude-stack.stamp` records:
 
 | Surface | Delivery |
 |---|---|
-| Skills | installer git-clone + copy → `.claude/skills` (or plugin `/claude-stack`) |
+| Skills | installer snapshot-download + copy → `.claude/skills` (or plugin `/claude-stack`) |
 | MCP | `claude mcp add` → `<repo>/.mcp.json` |
 | Plugins | 7 via `claude plugin install` (superpowers, claude-md-management, the `*-lsp` pair, security-guidance, claude-hud, ponytail) |
-| Hooks | copied from the clone → `.claude/hooks/`, wired into `.claude/settings.json` (3 wired + 1 copied-unwired instrumentation) |
+| Hooks | copied from the snapshot → `.claude/hooks/`, wired into `.claude/settings.json` (3 wired + 1 copied-unwired instrumentation) |
 | Agents | `.claude/agents/` - the 33 model/effort-pinned subagents described under Layout. Copied like hooks; per-tool `tools:` allowlist |
 | Install stamp | `claude-stack.stamp` (project `.claude/`, or the account dir when scope=global) - the source commit this install came from; `/claude-stack:configure` diffs it against `main`. Machine-local (covered by the `.claude/*` gitignore line) |
 | Convention gate | seven path-scoped convention rules in `.claude/rules/` (soft, glob auto-attach - each points a file type at its house-style skill; replaced the `require-convention-skill` hard gate) |
@@ -169,6 +169,12 @@ documented there.
 
 ## Working in THIS repo - invariants
 
+- **`develop` is where work lands; `main` is the release branch.** Commit to `develop` (or a
+  branch off it); merging `develop` -> `main` IS the release act - the release workflow rebuilds
+  the rolling `latest` archive from that merge, and that revision is what every install delivers.
+  Never commit feature work directly to `main`, and keep `main` the GitHub default branch (the
+  installers' clone fallback and the README's raw installer bootstrap both deliver the default
+  branch). CI (lint + tests) gates every `develop` push and every PR into `main`.
 - **Public repo.** No private project names or absolute personal paths in any tracked file - generic
   'consuming project' references only; real names / paths stay in untracked local files.
 - **Parity / source-of-truth.** A change to skills / MCPs / hooks / rules / plugins lands in the
@@ -200,25 +206,29 @@ documented there.
 - Editing a consuming project's installed copy is local-only; mirror the change into this repo's
   installer twins (both shells) or the next install wipes it - and into `cursor-stack`
   when the change touches the shared skills/MCP baseline or a twinned agent/rule.
-- **Everything installs from ONE shallow clone** of this repo, taken once per run (`stack_src` /
-  `Get-StackSrc`): skills, hooks, agents, rules and the CLAUDE.md template are all copied out of it,
-  so a change ships only once committed + pushed; until then the per-file fail-soft keeps any
-  existing copy. It replaced the per-file `…/main/…` raw fetches - the raw CDN is per-file and
-  ~5 min stale after a push, so a run could mix revisions. One clone = one revision, which is what
-  makes the stamp below true. Never reintroduce a raw fetch of a repo-owned file.
-- **One clone per RUN, not per layer.** The plugin skills (`/claude-stack:setup`, `:configure`) must
-  clone anyway - they need `stack-select.js`, the graph, the template and the stamp diff before the
-  installer runs - so they pass that checkout to the installer with `--source` / `-Source` and it
-  skips its own clone. A borrowed source is never deleted by the script (`STACK_SRC_OWNED` /
-  `$script:StackSrcOwned` gates the cleanup); the SKILLS own removing their `$TMP`, on every exit
-  path. Standalone (no `--source`) still clones and cleans up after itself - keep that path working,
-  it is the no-plugin install documented in the README.
+- **Everything installs from ONE source snapshot** of this repo, taken once per run (`stack_src` /
+  `Get-StackSrc`): the rolling `latest` release archive that `.github/workflows/release.yml`
+  republishes on every push to main (a `RELEASE-SOURCE` file inside names the exact commit),
+  falling back to a shallow git clone when no release is reachable. Skills, hooks, agents, rules
+  and the CLAUDE.md template are all copied out of it, so a change ships only once merged to
+  `main` (the release branch - the workflow rebuilds the archive from the merge); until then the
+  per-file fail-soft keeps any existing copy. The snapshot replaced the per-file `…/main/…` raw fetches - the raw CDN is per-file and
+  ~5 min stale after a push, so a run could mix revisions. One snapshot = one revision, which is
+  what makes the stamp below true. Never reintroduce a raw fetch of a repo-owned file.
+- **One download per RUN, not per layer.** The plugin skills (`/claude-stack:setup`, `:configure`)
+  must download anyway - they need `stack-select.js`, the graph, the template and the stamp diff
+  before the installer runs - so they pass that extracted snapshot to the installer with
+  `--source` / `-Source` and it skips its own fetch. A borrowed source is never deleted by the
+  script (`STACK_SRC_OWNED` / `$script:StackSrcOwned` gates the cleanup); the SKILLS own removing
+  their `$TMP`, on every exit path. Standalone (no `--source`) still fetches and cleans up after
+  itself - keep that path working, it is the no-plugin install documented in the README.
 - **The install is versioned, not the file.** Claude Code has no per-artifact version: `version:` is
   in the plugin.json schema and NOWHERE else (a `version:` key on a skill/agent/rule parses but is
   ignored - don't add one). Instead each run writes `claude-stack.stamp` (project `.claude/`, or the
   account dir for a global install) naming the source commit; `/claude-stack:configure` diffs it
-  against `main` to report what an update would bring. A run whose clone failed writes NO stamp -
-  a wrong stamp is worse than none.
+  against the new snapshot's commit (the GitHub compare API - an archive has no local history) to
+  report what an update would bring. A run whose source never resolved writes NO stamp - a wrong
+  stamp is worse than none.
 - Authoring or editing a house skill in skills/? The superpowers writing-skills method is a useful
   reference - subordinate it to the parity lint, the HTML + skill-count sync, and the house
   voice; take its skill-testing discipline, not its own formatting or its push-to-fork deploy step.

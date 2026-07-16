@@ -8,7 +8,7 @@ disable-model-invocation: true
 
 You are bootstrapping the claude-stack FROM SCRATCH. If the stack is already installed here (a populated `.claude/skills` + `.claude/agents`, or the global account equivalents in no-project mode), stop and route to the sibling `configure` skill - updates are its job. Work in order and drive it interactively: ask the scalar choices, always show the resolved selection and the prerequisite report before installing, and never install past an unmet blocker. The deterministic work is done by `stack-select.js`; you orchestrate. Two modes, decided at step 1: **project mode** (the normal case - the selection is decided from the project itself) and **no-project mode** (a global install seeded from the recommended set).
 
-**ONE shallow clone is the entire download** - read `references/clone-protocol.md` before step 1 and hold the whole run to it: clone once into `$TMP/repo`, use every tool from that clone (never a raw URL; `git` missing means stop), hand it to the installer with `--source` in step 8, and remove `$TMP` on every exit path in step 11.
+**ONE release archive is the entire download** - read `references/source-protocol.md` before step 1 and hold the whole run to it: download + extract the `latest` release archive once into `$TMP/repo` (falling back to one shallow clone only when the download fails; never a raw URL), use every tool from that snapshot, hand it to the installer with `--source` in step 8, and remove `$TMP` on every exit path in step 11.
 
 ## 1. Preconditions - pick the mode
 - Cwd is a project root in a git repo -> **project mode**; continue at step 2.
@@ -26,8 +26,8 @@ You are bootstrapping the claude-stack FROM SCRATCH. If the stack is already ins
 ## 3. Ask the scalar choices
 Ask with the question tool (one screen): scope (`project` default / `global`), space (optional account name), context7 transport (`remote` default / `local`), install the GitHub CLI? (default no), keep local pins? (`--keep-pins`, default no).
 
-## 4. Use the tools from the clone
-Per `references/clone-protocol.md`: the installer, `stack-select.js`, `stack-graph.json`, and `templates/CLAUDE.template.md` (for step 9) all come out of `$TMP/repo` - never a raw re-fetch.
+## 4. Use the tools from the snapshot
+Per `references/source-protocol.md`: the installer, `stack-select.js`, `stack-graph.json`, and `templates/CLAUDE.template.md` (for step 9) all come out of `$TMP/repo` - never a raw re-fetch.
 
 ## 5. Build the recommended selection and close it
 - Read this skill's `references/recommendations.json`. Union `always` with the seed of each confirmed stack into a raw selection `{ agents: [...], rules: [...], skills: [...], plugins: [...] }`; write it to `raw.json` in the temp dir.
@@ -43,11 +43,11 @@ Show the closed selection grouped by category (skills / agents / rules / mcps / 
 - Warnings: list them and proceed.
 
 ## 8. Run the installer
-Run the installer **from the clone**, and pass the clone back with `--source` so it installs from what you already downloaded instead of cloning again:
+Run the installer **from the snapshot**, and pass it back with `--source` so it installs from what you already downloaded instead of fetching again:
 - Unix: `bash "$TMP/repo/scripts/claude-stack.sh" install --source "$TMP/repo" --scope <scope> --selection selection.txt [--space <name>] [--context7 local|remote] [--github-cli] [--keep-pins]`
 - Windows: `pwsh -File "$TMP/repo/scripts/claude-stack.ps1" install -Source "$TMP/repo" -Scope <scope> -Selection selection.txt [-Space <name>] [-Context7 local|remote] [-GitHubCli] [-KeepPins]` - the ps1 handles the serena/TypeScript-on-Windows patch itself.
 
-`--source` is what makes the guided run take ONE clone. The installer owns nothing here: it copies out of `$TMP/repo` and leaves it for you to remove in step 11. It writes `.claude/claude-stack.stamp` recording the commit it installed - that is what a later `/claude-stack:configure` diffs against.
+`--source` is what makes the guided run take ONE download. The installer owns nothing here: it copies out of `$TMP/repo` and leaves it for you to remove in step 11. It writes `.claude/claude-stack.stamp` recording the commit it installed (read from the snapshot's `RELEASE-SOURCE`) - that is what a later `/claude-stack:configure` diffs against.
 
 ## 9. Fill the project's CLAUDE.md from the template (project mode)
 The installer seeded `.claude/CLAUDE.md` from `templates/CLAUDE.template.md` when the project had none. Make it real now, from the step-2 analysis: follow the template's own authoring-outline comment - write the project top (what the project is, structure, the real build/test commands), cover the outline's inventories (stack, secret/config globs, related projects), and trim its rules table to the rules this selection actually installed. A pre-existing CLAUDE.md is NEVER overwritten - offer to reconcile it against the fetched template instead (add the sections it lacks, leave the project's own prose untouched), and show the changes before writing. Skip in no-project mode (a global install seeds no project file).
@@ -56,7 +56,7 @@ The installer seeded `.claude/CLAUDE.md` from `templates/CLAUDE.template.md` whe
 Report what still needs a hand: LSP tools (`csharp-ls` via `dotnet tool install -g csharp-ls` on a .NET setup), the `/claude-hud:setup` statusline step, and that the first `claude plugin install` may prompt to trust. Finally, surface the installer's own gitignore reminder so the stack-generated artifacts are not committed.
 
 ## 11. Clean up the temp dir - ALWAYS
-Remove `$TMP` per `references/clone-protocol.md`, on EVERY exit path of THIS skill: after a successful install, after an abort, and after a blocker or a user 'no' that stops the run early. Then confirm the project tree holds only installed artifacts.
+Remove `$TMP` per `references/source-protocol.md`, on EVERY exit path of THIS skill: after a successful install, after an abort, and after a blocker or a user 'no' that stops the run early. Then confirm the project tree holds only installed artifacts.
 
 ## Do not
-- Do not install the full set - always go through the selection. Do not skip the review or the prerequisite gate. Do not write the clone or the working files into the project tree, and do not leave `$TMP` behind on any exit path. Do not commit anything on the user's behalf.
+- Do not install the full set - always go through the selection. Do not skip the review or the prerequisite gate. Do not write the archive, the extracted repo, or the working files into the project tree, and do not leave `$TMP` behind on any exit path. Do not commit anything on the user's behalf.

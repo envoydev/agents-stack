@@ -97,8 +97,8 @@ test('an unreachable source writes NO stamp (a wrong stamp is worse than none)',
     }
 });
 
-// --source is what keeps a guided (plugin) run at ONE clone: the setup/configure skills clone once
-// for their own tooling and hand that checkout here instead of making the installer clone again.
+// --source is what keeps a guided (plugin) run at ONE download: the setup/configure skills fetch
+// the snapshot once for their own tooling and hand it here instead of making the installer fetch again.
 test('--source installs from a caller-provided checkout and never deletes it', () => {
     const src = fs.mkdtempSync(path.join(os.tmpdir(), 'skinst-src-'));
     const checkout = path.join(src, 'repo');
@@ -111,6 +111,62 @@ test('--source installs from a caller-provided checkout and never deletes it', (
         assert.ok(fs.existsSync(path.join(checkout, 'skills')), 'the caller owns the checkout - the installer must not delete it');
         const head = execFileSync('git', ['-C', checkout, 'rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
         assert.strictEqual(readStamp(work).sha, head, 'stamps the provided checkout revision');
+    }
+    finally
+    {
+        fs.rmSync(work, { recursive: true, force: true });
+        fs.rmSync(src, { recursive: true, force: true });
+    }
+});
+
+// The release-archive delivery: a run downloads <repo>/releases/latest/download/claude-stack.tar.gz
+// and stamps the commit named by the RELEASE-SOURCE file inside - no git involved. The fake release
+// lives on disk and is served over file://, so the test proves the archive path end to end offline.
+test('installs from the release archive and stamps its RELEASE-SOURCE commit', () => {
+    const FAKE_SHA = 'deadbeef'.repeat(5);
+    const fake = fs.mkdtempSync(path.join(os.tmpdir(), 'skinst-rel-'));
+    const dl = path.join(fake, 'releases', 'latest', 'download');
+    fs.mkdirSync(dl, { recursive: true });
+    const relSrc = path.join(fake, 'RELEASE-SOURCE');
+    fs.writeFileSync(relSrc, `sha: ${FAKE_SHA}\nref: main\nbuilt: 2026-07-16T00:00:00Z\n`);
+    execFileSync('git', ['-C', ROOT, 'archive', '--format=tar.gz', `--add-file=${relSrc}`, '-o', path.join(dl, 'claude-stack.tar.gz'), 'HEAD'], { stdio: 'ignore' });
+    const work = fs.mkdtempSync(path.join(os.tmpdir(), 'skinst-'));
+    const sel = path.join(work, 'sel.txt');
+    fs.writeFileSync(sel, 'skill csharp\n');
+    try
+    {
+        const out = execFileSync('bash', [SH, 'install', '--scope', 'project', '--selection', sel, '--skills-only'], {
+            cwd: work,
+            encoding: 'utf8',
+            env: { ...process.env, STACK_SKILLS_REPO: `file://${fake}`, HOME: work },
+        });
+        assert.match(out, /releases\/latest\/download/, 'took the archive route, not the clone fallback');
+        assert.ok(fs.existsSync(path.join(work, '.claude', 'skills', 'csharp', 'SKILL.md')), 'installed from the extracted archive');
+        assert.strictEqual(readStamp(work).sha, FAKE_SHA, 'stamps the RELEASE-SOURCE commit, no git involved');
+    }
+    finally
+    {
+        fs.rmSync(work, { recursive: true, force: true });
+        fs.rmSync(fake, { recursive: true, force: true });
+    }
+});
+
+// The plugin path after the switch: setup/configure extract the archive (no .git) and hand the
+// dir over with --source - the stamp must come from RELEASE-SOURCE, not silently go missing.
+test('--source pointed at an extracted archive stamps from its RELEASE-SOURCE', () => {
+    const FAKE_SHA = 'cafebabe'.repeat(5);
+    const src = fs.mkdtempSync(path.join(os.tmpdir(), 'skinst-arc-'));
+    const repo = path.join(src, 'repo');
+    fs.mkdirSync(path.join(repo, 'agents'), { recursive: true });
+    fs.cpSync(path.join(ROOT, 'skills', 'csharp'), path.join(repo, 'skills', 'csharp'), { recursive: true });
+    fs.writeFileSync(path.join(repo, 'RELEASE-SOURCE'), `sha: ${FAKE_SHA}\nref: main\n`);
+    const { work, out } = runSkillCopy(['csharp'], ['--source', repo]);
+    try
+    {
+        assert.match(out, /\(provided\)/, 'reports the borrowed source');
+        assert.ok(fs.existsSync(path.join(work, '.claude', 'skills', 'csharp', 'SKILL.md')), 'installed from the extracted archive');
+        assert.strictEqual(readStamp(work).sha, FAKE_SHA, 'stamp read from RELEASE-SOURCE when there is no git checkout');
+        assert.ok(fs.existsSync(path.join(repo, 'skills')), 'the caller owns the extracted archive - the installer must not delete it');
     }
     finally
     {
@@ -161,6 +217,33 @@ test('ps1: install stamps the source revision it installed from (pwsh required)'
     finally
     {
         fs.rmSync(work, { recursive: true, force: true });
+    }
+});
+
+test('ps1: -Source pointed at an extracted archive stamps from its RELEASE-SOURCE (pwsh required)', { skip: skipNoPwsh }, () => {
+    const FAKE_SHA = 'facefeed'.repeat(5);
+    const src = fs.mkdtempSync(path.join(os.tmpdir(), 'skinst-psarc-'));
+    const repo = path.join(src, 'repo');
+    fs.mkdirSync(path.join(repo, 'agents'), { recursive: true });
+    fs.cpSync(path.join(ROOT, 'skills', 'csharp'), path.join(repo, 'skills', 'csharp'), { recursive: true });
+    fs.writeFileSync(path.join(repo, 'RELEASE-SOURCE'), `sha: ${FAKE_SHA}\nref: main\n`);
+    const work = fs.mkdtempSync(path.join(os.tmpdir(), 'skinst-ps-'));
+    const sel = path.join(work, 'sel.txt');
+    fs.writeFileSync(sel, 'skill csharp\n');
+    try
+    {
+        execFileSync('pwsh', ['-NoProfile', '-File', PS1, 'install', '-Scope', 'project', '-Selection', sel, '-SkillsOnly', '-Source', repo], {
+            cwd: work,
+            encoding: 'utf8',
+            env: { ...process.env, HOME: work },
+        });
+        assert.strictEqual(readStamp(work).sha, FAKE_SHA, 'ps1 stamp read from RELEASE-SOURCE when there is no git checkout');
+        assert.ok(fs.existsSync(path.join(repo, 'skills')), 'the caller owns the extracted archive - the ps1 must not delete it');
+    }
+    finally
+    {
+        fs.rmSync(work, { recursive: true, force: true });
+        fs.rmSync(src, { recursive: true, force: true });
     }
 });
 

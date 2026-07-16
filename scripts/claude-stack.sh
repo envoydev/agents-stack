@@ -65,7 +65,7 @@ Named flags (any order, each optional with a default):
 Environment variables:
   SCOPE=project|global   fallback for --scope when the flag is absent (default project)
   CLAUDE_CONFIG_DIR      target a specific account when no --space is given (default ~/.claude)
-  STACK_SKILLS_REPO      source repo to clone (default https://github.com/envoydev/claude-stack); ignored with --source
+  STACK_SKILLS_REPO      stack source repo (release-archive download, git-clone fallback; default https://github.com/envoydev/claude-stack); ignored with --source
   CONTEXT7_API_KEY       context7 API key, read from the environment at launch (higher rate limits)
   CONTEXT7_BAKE_KEY      with --context7 local, bake CONTEXT7_API_KEY into the registration (keep .mcp.json uncommitted)
 
@@ -568,33 +568,40 @@ if [ "$PRINT_PLAN" = true ]; then
 fi
 
 # ===========================================================================
-# SOURCE CLONE - the ONE revision every artifact in a run comes from
+# SOURCE SNAPSHOT - the ONE revision every artifact in a run comes from
 # ===========================================================================
 # Every file the stack installs (skills, hooks, agents, rules, the CLAUDE.md template) lives in
-# this one repo, so a run takes ONE shallow clone and copies out of it. Two reasons it is a clone
-# and not the per-file raw.githubusercontent.com fetches this replaced:
-#   - ATOMIC. A clone is a single revision. The raw URLs are per-file and CDN-cached (a push takes
-#     ~5 min to propagate), so a raw run could mix revisions - and then claude-stack.stamp, which
-#     records the revision this install came from, would be a lie. The clone makes the stamp true
-#     by construction.
-#   - CHEAP. One clone replaces ~50 round trips (the HOOKS + AGENTS + CLAUDE_RULES arrays).
-# Fail-soft, like the fetches were: no git / a failed clone means callers keep the copies already
-# on disk and the run carries on. STACK_SHA stays empty, which is what suppresses the stamp write.
+# this one repo, so a run takes ONE source snapshot and copies out of it: the rolling 'latest'
+# release archive (.github/workflows/release.yml republishes it on every push to main, with a
+# RELEASE-SOURCE file inside naming the exact commit), falling back to a shallow git clone when
+# no release is reachable (a fork without releases, a blocked CDN, the brief window while the
+# workflow recreates the release). Why one snapshot and not the per-file
+# raw.githubusercontent.com fetches this replaced:
+#   - ATOMIC. An archive or clone is a single revision. The raw URLs are per-file and CDN-cached
+#     (a push takes ~5 min to propagate), so a raw run could mix revisions - and then
+#     claude-stack.stamp, which records the revision this install came from, would be a lie. The
+#     snapshot makes the stamp true by construction.
+#   - CHEAP. One download replaces ~50 round trips (the HOOKS + AGENTS + CLAUDE_RULES arrays).
+# Fail-soft, like the fetches were: no source (archive AND clone failed) means callers keep the
+# copies already on disk and the run carries on. STACK_SHA stays empty, which is what suppresses
+# the stamp write.
 #
-# --source <dir> hands in a checkout the CALLER already made. That is the plugin path: the setup /
-# configure skills must clone anyway (they need stack-select.js, stack-graph.json, the CLAUDE.md
-# template and the stamp diff before the install runs), so they pass that same clone here and the
-# guided run costs ONE clone instead of two. A caller-provided dir is borrowed, never deleted.
-# Standalone (no --source) is unchanged: the script clones its own source and cleans it up.
+# --source <dir> hands in a source the CALLER already fetched (an extracted release archive or a
+# git checkout). That is the plugin path: the setup / configure skills must download anyway (they
+# need stack-select.js, stack-graph.json, the CLAUDE.md template and the stamp diff before the
+# install runs), so they pass that same source here and the guided run costs ONE download instead
+# of two. A caller-provided dir is borrowed, never deleted. Standalone (no --source) is
+# unchanged: the script fetches its own source and cleans it up.
 STACK_REPO_URL="${STACK_SKILLS_REPO:-https://github.com/envoydev/claude-stack}"
 STACK_SRC=""            # the source worktree; empty until stack_src runs
 STACK_SHA=""            # the exact commit every artifact this run installs was copied from
 STACK_REF=""            # the branch that commit is the tip of (whatever the source's HEAD is)
-STACK_SRC_TRIED=false   # memoises the OUTCOME, so a dead source costs one clone attempt, not one per caller
-STACK_SRC_OWNED=false   # true only when WE cloned it - the EXIT trap removes ours, never the caller's
+STACK_SRC_TRIED=false   # memoises the OUTCOME, so a dead source costs one fetch attempt, not one per caller
+STACK_SRC_OWNED=false   # true only when WE fetched it - the EXIT trap removes ours, never the caller's
+STACK_SRC_ROOT=""       # the temp dir an owned fetch lives in (the EXIT trap's removal target)
 
 _cleanup_stack_src() {
-  if $STACK_SRC_OWNED && [ -n "$STACK_SRC" ]; then rm -rf "$STACK_SRC"; fi
+  if $STACK_SRC_OWNED && [ -n "$STACK_SRC_ROOT" ]; then rm -rf "$STACK_SRC_ROOT"; fi
   return 0
 }
 trap _cleanup_stack_src EXIT
@@ -603,15 +610,15 @@ stack_src() {
   # Resolves on the first call; every later caller reuses the worktree. Returns non-zero (never
   # aborts) when the source is unavailable, so each caller applies its own fail-soft.
   # Memoise BOTH outcomes: five steps call this, and without the failure latch an offline run
-  # would pay five clone timeouts and report five failures for one root cause.
+  # would pay five download timeouts and report five failures for one root cause.
   [ -n "$STACK_SRC" ] && return 0
   $STACK_SRC_TRIED && return 1
   STACK_SRC_TRIED=true
-  command -v git >/dev/null 2>&1 || { note_failure "git not found - stack source unavailable"; return 1; }
 
   if [ -n "$SOURCE_DIR" ]; then
-    # Borrowed checkout. Sanity-check it IS the stack (a wrong --source would otherwise 'install'
-    # nothing and report 117 per-file failures), then read its revision like we would our own.
+    # Borrowed source. Sanity-check it IS the stack (a wrong --source would otherwise 'install'
+    # nothing and report 117 per-file failures), then read its revision: a git checkout carries
+    # it in HEAD, an extracted release archive in its RELEASE-SOURCE file.
     if [ ! -d "$SOURCE_DIR/skills" ] || [ ! -d "$SOURCE_DIR/agents" ]; then
       note_failure "--source '$SOURCE_DIR' is not a claude-stack checkout (no skills/ + agents/) - stack source unavailable"
       return 1
@@ -619,25 +626,48 @@ stack_src() {
     STACK_SRC="$SOURCE_DIR"; STACK_SRC_OWNED=false
     STACK_SHA="$(git -C "$SOURCE_DIR" rev-parse HEAD 2>/dev/null || true)"
     STACK_REF="$(git -C "$SOURCE_DIR" rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
-    # Stamp the URL the caller actually cloned from, not our default - they may have used a fork.
-    STACK_REPO_URL="$(git -C "$SOURCE_DIR" remote get-url origin 2>/dev/null || echo "$STACK_REPO_URL")"
+    if [ -n "$STACK_SHA" ]; then
+      # Stamp the URL the caller actually cloned from, not our default - they may have used a fork.
+      STACK_REPO_URL="$(git -C "$SOURCE_DIR" remote get-url origin 2>/dev/null || echo "$STACK_REPO_URL")"
+    elif [ -f "$SOURCE_DIR/RELEASE-SOURCE" ]; then
+      STACK_SHA="$(sed -n 's/^sha: //p' "$SOURCE_DIR/RELEASE-SOURCE" | head -1)"
+      STACK_REF="$(sed -n 's/^ref: //p' "$SOURCE_DIR/RELEASE-SOURCE" | head -1)"
+    fi
     if [ -z "$STACK_SHA" ]; then
-      log "source: $SOURCE_DIR (provided; not a git checkout - no revision, so no stamp)"
+      log "source: $SOURCE_DIR (provided; no git checkout or RELEASE-SOURCE - no revision, so no stamp)"
     else
       log "source: $SOURCE_DIR (provided) @ ${STACK_REF:-?} $(printf '%.12s' "$STACK_SHA")"
     fi
     return 0
   fi
 
+  # Release archive first: one asset is one revision, and no git is needed to take it.
   local tmp; tmp="$(mktemp -d)"
+  local url="$STACK_REPO_URL/releases/latest/download/claude-stack.tar.gz"
+  if command -v curl >/dev/null 2>&1 &&
+     curl -fsSL "$url" -o "$tmp/claude-stack.tar.gz" 2>/dev/null &&
+     mkdir -p "$tmp/repo" &&
+     tar -xzf "$tmp/claude-stack.tar.gz" -C "$tmp/repo" 2>/dev/null &&
+     [ -d "$tmp/repo/skills" ] && [ -d "$tmp/repo/agents" ]; then
+    STACK_SRC="$tmp/repo"; STACK_SRC_ROOT="$tmp"; STACK_SRC_OWNED=true
+    STACK_SHA="$(sed -n 's/^sha: //p' "$tmp/repo/RELEASE-SOURCE" 2>/dev/null | head -1)"
+    STACK_REF="$(sed -n 's/^ref: //p' "$tmp/repo/RELEASE-SOURCE" 2>/dev/null | head -1)"
+    log "source: $url @ ${STACK_REF:-?} $(printf '%.12s' "${STACK_SHA:-unknown}")"
+    return 0
+  fi
+  rm -rf "$tmp"
+
+  # Fallback: a shallow clone - a fork without releases, a blocked release CDN, a local test path.
+  command -v git >/dev/null 2>&1 || { note_failure "release archive unreachable and git not found - stack source unavailable"; return 1; }
+  tmp="$(mktemp -d)"
   if ! git clone --depth 1 "$STACK_REPO_URL" "$tmp" >/dev/null 2>&1; then
-    note_failure "clone of $STACK_REPO_URL failed - stack source unavailable (nothing refreshed; existing copies kept)"
+    note_failure "release archive and clone of $STACK_REPO_URL both failed - stack source unavailable (nothing refreshed; existing copies kept)"
     rm -rf "$tmp"; return 1
   fi
-  STACK_SRC="$tmp"; STACK_SRC_OWNED=true
+  STACK_SRC="$tmp"; STACK_SRC_ROOT="$tmp"; STACK_SRC_OWNED=true
   STACK_SHA="$(git -C "$tmp" rev-parse HEAD 2>/dev/null)"
   STACK_REF="$(git -C "$tmp" rev-parse --abbrev-ref HEAD 2>/dev/null)"
-  log "source: $STACK_REPO_URL @ ${STACK_REF:-?} $(printf '%.12s' "${STACK_SHA:-unknown}")"
+  log "source: $STACK_REPO_URL (clone fallback) @ ${STACK_REF:-?} $(printf '%.12s' "${STACK_SHA:-unknown}")"
   return 0
 }
 
@@ -762,13 +792,14 @@ seed_claude_md() {  # INSTALL: lay down a starter .claude/CLAUDE.md from the tem
 # stack versions the INSTALL, not the file: one stamp naming the commit every artifact was copied
 # from. That is what /claude-stack:configure diffs against to answer 'what changed since I
 # installed?' - exactly, for all ~117 artifacts, with nothing to hand-bump:
-#     git diff --name-only <sha>..<ref> -- skills/ agents/ rules/ hooks/ templates/
+#     <repo>/compare/<sha>...main  (the GitHub compare view / API)
 # Machine-local by design (it describes THIS checkout's install) and already covered by the
 # '.claude/*' gitignore line the run prints.
 write_stamp() {
-  # No SHA means no clone happened this run (git absent, or the clone failed and every step
-  # fail-softly kept its existing copy). Stamping then would claim an install that did not occur,
-  # and a wrong stamp is worse than none - so leave any previous stamp untouched.
+  # No SHA means no source resolved this run (the archive download and the clone fallback both
+  # failed, and every step fail-softly kept its existing copy). Stamping then would claim an
+  # install that did not occur, and a wrong stamp is worse than none - so leave any previous
+  # stamp untouched.
   [ -n "$STACK_SHA" ] || { log "  stamp: skipped - no source revision resolved this run"; return 0; }
   local dir dest root
   case "$CLAUDE_SCOPE" in
@@ -783,12 +814,9 @@ write_stamp() {
   mkdir -p "$dir"; dest="$dir/claude-stack.stamp"
   cat > "$dest" <<STAMP
 # claude-stack install stamp - machine-local, written by claude-stack.sh / claude-stack.ps1.
-# The revision every artifact of this install was copied from. To see what changed since
-# (a shallow clone has no history, so fetch this exact commit before diffing it):
-#   git clone --depth 1 $STACK_REPO_URL /tmp/cs
-#   git -C /tmp/cs fetch --depth 1 origin $STACK_SHA
-#   git -C /tmp/cs diff --name-only $STACK_SHA HEAD -- skills/ agents/ rules/ hooks/ templates/
-# /claude-stack:configure runs exactly this and reports it. Then re-run the installer's
+# The revision every artifact of this install was copied from. To see what changed since:
+#   open $STACK_REPO_URL/compare/$STACK_SHA...main
+# /claude-stack:configure reports exactly this diff. Then re-run the installer's
 # '$ACTION' action (or that skill) to take the changes.
 source: $STACK_REPO_URL
 ref: $STACK_REF
