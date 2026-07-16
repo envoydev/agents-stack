@@ -2,9 +2,10 @@
 
 The Claude Code half of a personal coding-agent setup - an installable stack of house skills,
 subagents, always-on and path-scoped rules, hooks, MCP servers, and plugins that gets applied to
-the projects you actually work in. This repo is the single source of truth: everything installs by
-a git-clone-and-copy step (one shallow clone per run, so an install is a single source revision,
-recorded in `.claude/claude-stack.stamp`), and consuming projects pull from here rather than
+the projects you actually work in. This repo is the single source of truth: everything installs from
+one release archive of this repo per run (the rolling `latest` release, with a shallow git clone
+as the fallback - either way an install is a single source revision, recorded in
+`.claude/claude-stack.stamp`), and consuming projects pull from here rather than
 owning their copy. The **Cursor** twin stack lives in its own repo,
 [`cursor-stack`](https://github.com/envoydev/cursor-stack) - its installers clone THIS repo for
 the shared skills, so the baseline stays single-sourced here.
@@ -84,8 +85,9 @@ pwsh .claude/claude-stack.ps1 update                 # later refreshes
 pwsh .claude/claude-stack.ps1 install -Space work -Scope global -Context7 local
 ```
 
-Hard prerequisites: **node ≥ 22.12**, the **claude** CLI, and **git** (the install clones this
-repo). Everything else is per-surface - the script runs a prerequisites check first and warns
+Hard prerequisites: **node ≥ 22.12**, the **claude** CLI, and **git** (the installers use it to
+find the repo root, and it is the download fallback when no release archive is reachable).
+Everything else is per-surface - the script runs a prerequisites check first and warns
 (never fails) on what's missing, and the guided plugin flow walks you through the fixes.
 
 Each run stamps the installed source commit into `claude-stack.stamp`;

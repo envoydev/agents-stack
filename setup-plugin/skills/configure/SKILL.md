@@ -12,12 +12,13 @@ before running, never run past an unmet blocker. `stack-select.js` does the dete
 you orchestrate. The one difference from `setup`: the baseline selection is what is INSTALLED,
 not the recommendations - and the action is `update`, not `install`.
 
-**ONE shallow clone is the entire download** - the shared contract lives in the sibling `setup`
-skill's `references/clone-protocol.md`; read it first and hold the whole run to it: clone once
-into `$TMP/repo`, use every tool from that clone (never a raw URL; `git` missing means stop),
-hand it back with `--source` in step 8, and remove `$TMP` on every exit path in step 12. This
-skill's extra stake in the clone: its git history is what step 3 fetches the stamped commit into
-to diff what an update would bring.
+**ONE release archive is the entire download** - the shared contract lives in the sibling `setup`
+skill's `references/source-protocol.md`; read it first and hold the whole run to it: download +
+extract the `latest` release archive once into `$TMP/repo` (falling back to one shallow clone
+only when the download fails; never a raw URL), use every tool from that snapshot, hand it back
+with `--source` in step 8, and remove `$TMP` on every exit path in step 12. This skill's extra
+stake in the snapshot: its `RELEASE-SOURCE` commit is what step 3 compares the stamp against to
+report what an update would bring.
 
 ## 1. Preconditions - find the install
 - Project mode: cwd is a project root with a populated `.claude/` (skills/agents/rules dirs, or
@@ -43,19 +44,22 @@ actually bring, BEFORE they choose:
 
 ```bash
 SHA=$(sed -n 's/^sha: //p' .claude/claude-stack.stamp)
-# the depth-1 clone has no history - fetch just the stamped commit so it can be diffed
-git -C "$TMP/repo" fetch --depth 1 origin "$SHA" 2>/dev/null &&
-  git -C "$TMP/repo" diff --name-only "$SHA" HEAD -- skills/ agents/ rules/ hooks/ templates/
+NEW=$(sed -n 's/^sha: //p' "$TMP/repo/RELEASE-SOURCE")   # the snapshot's commit (an archive has no git history to diff locally)
+curl -fsSL "https://api.github.com/repos/envoydev/claude-stack/compare/$SHA...$NEW" |
+  node -e 'let d="";process.stdin.on("data",c=>d+=c).on("end",()=>{for(const f of (JSON.parse(d).files||[]))if(/^(skills|agents|rules|hooks|templates)\//.test(f.filename))console.log(f.filename)})'
 ```
+
+(When the fallback cloned instead of downloading, `RELEASE-SOURCE` does not exist - use
+`git -C "$TMP/repo" rev-parse HEAD` for `NEW`; the compare API works the same.)
 
 Summarise the result by category (`N skills, N agents, N rules changed`), naming the items - that
 is the honest answer to 'what does updating get me'. Two cases to handle, neither an error:
 - **No stamp** - an install predating stamping, or one whose source never resolved. Say the
   baseline is unknown, so an update's effect cannot be previewed; the update itself is unaffected
   and will write a stamp.
-- **The fetch or diff fails** - the commit is gone (history rewritten, or a fork/`STACK_SKILLS_REPO`
-  source that never had it). Report that the baseline is unreachable and move on; never guess a
-  diff, and never treat this as a reason to skip the update.
+- **The compare fails** - the commit is gone (history rewritten, or a fork/`STACK_SKILLS_REPO`
+  source that never had it), or the API is unreachable. Report that the baseline is unreachable
+  and move on; never guess a diff, and never treat this as a reason to skip the update.
 
 Nothing changed since the stamp and no adds/drops wanted? Say so plainly and offer to stop rather
 than running a no-op update.
@@ -67,8 +71,8 @@ One question: **refresh as-is** (default - update everything currently installed
 to remove). Also ask: keep local model/effort pins? (`--keep-pins`, default yes for a configure
 run - an existing install often carries deliberate pin edits).
 
-## 5. Use the tools from the clone
-Per the `setup` skill's `references/clone-protocol.md`: the installer, `stack-select.js`,
+## 5. Use the tools from the snapshot
+Per the `setup` skill's `references/source-protocol.md`: the installer, `stack-select.js`,
 `stack-graph.json`, and `templates/CLAUDE.template.md` (for step 10) all come out of `$TMP/repo` -
 never a raw re-fetch.
 
@@ -83,15 +87,15 @@ Same contract as `setup`: show the closed selection grouped by category, closure
 their reasons; list blockers with fixes and never run past one; warnings are listed and passed.
 
 ## 8. Run the update
-Run the installer **from the clone**, and pass the clone back with `--source` so it updates from
-what you already downloaded instead of cloning again:
+Run the installer **from the snapshot**, and pass it back with `--source` so it updates from
+what you already downloaded instead of fetching again:
 - Unix: `bash "$TMP/repo/scripts/claude-stack.sh" update --source "$TMP/repo" --scope <scope> --selection selection.txt [--space <name>] [--keep-pins]`
 - Windows: `pwsh -File "$TMP/repo/scripts/claude-stack.ps1" update -Source "$TMP/repo" -Scope <scope> -Selection selection.txt [-Space <name>] [-KeepPins]`
 - Scope/space mirror how the install was laid down (project install -> `project`; account
   install -> `global`, with the space that owns it) - ask only when it is genuinely ambiguous.
-- `--source` is what makes the guided run take ONE clone, and it guarantees the update lands the
-  same revision step 3 previewed. The installer copies out of `$TMP/repo` and leaves it for you to
-  remove in step 12.
+- `--source` is what makes the guided run take ONE download, and it guarantees the update lands
+  the same revision step 3 previewed. The installer copies out of `$TMP/repo` and leaves it for
+  you to remove in step 12.
 
 ## 9. Apply the drops
 `update --selection` refreshes the selected set - it does NOT uninstall what was dropped. Remove
@@ -114,12 +118,12 @@ anything deferred, and remind that a restart picks up MCP registration changes. 
 `claude-stack.stamp` to the revision it installed, so the next configure diffs from here.
 
 ## 12. Clean up the temp dir - ALWAYS
-Remove `$TMP` per the `setup` skill's `references/clone-protocol.md`, on EVERY exit path of THIS
+Remove `$TMP` per the `setup` skill's `references/source-protocol.md`, on EVERY exit path of THIS
 skill: after a successful update, after an abort, after a blocker, and after the step-3 'nothing
 changed, stop here' case. Then confirm the project tree holds only installed artifacts.
 
 ## Do not
 - Do not fall back to a full re-install - this is the update path; a from-scratch install is the
-  sibling `setup` skill. Do not skip the review or the prerequisite gate. Do not write the clone or
-  the working files into the project tree, and do not leave `$TMP` behind on any exit path. Do not
-  commit anything on the user's behalf.
+  sibling `setup` skill. Do not skip the review or the prerequisite gate. Do not write the archive,
+  the extracted repo, or the working files into the project tree, and do not leave `$TMP` behind on
+  any exit path. Do not commit anything on the user's behalf.

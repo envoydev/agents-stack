@@ -671,7 +671,7 @@
     <div id="content"></div>
 
     <div class="inv-sources">
-      Sources: <code>built-in</code> ships with Claude Code CLI &middot; <code>personal</code> published to <code>envoydev/claude-stack</code>, installed via the stack installer's git-clone + copy step (<code>claude-stack.sh install --skills-only</code>, or the <code>claude-stack-setup</code> plugin) &middot; <code>plugins</code> installed via <code>/plugin install &lt;name&gt;@&lt;marketplace&gt;</code> &middot; <code>repository</code> (plugin-bundled commands) installs with its plugin, no separate step.
+      Sources: <code>built-in</code> ships with Claude Code CLI &middot; <code>personal</code> published to <code>envoydev/claude-stack</code>, installed via the stack installer's release-archive download + copy step (<code>claude-stack.sh install --skills-only</code>, or the <code>claude-stack-setup</code> plugin) &middot; <code>plugins</code> installed via <code>/plugin install &lt;name&gt;@&lt;marketplace&gt;</code> &middot; <code>repository</code> (plugin-bundled commands) installs with its plugin, no separate step.
     </div>
   </section>
 
@@ -707,7 +707,7 @@ const builtin = {
 
 const personal = {
   title: "Skills (Personal)",
-  meta: "Personal convention skills, authored locally and published to envoydev/claude-stack. Installed via the stack installer's git-clone + copy step. Invocation: auto = fires on its description; manual = /-command only (disable-model-invocation).",
+  meta: "Personal convention skills, authored locally and published to envoydev/claude-stack. Installed via the stack installer's release-archive download + copy step. Invocation: auto = fires on its description; manual = /-command only (disable-model-invocation).",
   invokeColumn: true,
   source: "https://github.com/envoydev/claude-stack",
   install: "claude-stack.sh install --skills-only",
@@ -833,7 +833,7 @@ const pluginInstallByUrl = {
     name => "/plugin install " + name.split(":")[0] + "@ponytail",
 };
 
-// Any repo not in pluginInstallByUrl has no automated install path (the git-clone step only
+// Any repo not in pluginInstallByUrl has no automated install path (the snapshot-copy step only
 // fetches STACK_SKILLS_REPO) - falls back to "manual".
 function installCmdFor(url) {
   if (pluginInstallByUrl[url]) return null;  // handled per-row

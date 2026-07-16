@@ -60,7 +60,7 @@
   Environment variables:
     SCOPE=project|global  fallback for -Scope when the flag is absent (default project).
     CLAUDE_CONFIG_DIR     target a specific account when no -Space is given (default ~/.claude).
-    STACK_SKILLS_REPO     skills source repo for git clone (default https://github.com/envoydev/claude-stack).
+    STACK_SKILLS_REPO     stack source repo (release-archive download, git-clone fallback; default https://github.com/envoydev/claude-stack).
     CONTEXT7_API_KEY      context7 API key; add it to settings.json 'env' for higher rate limits.
     CONTEXT7_BAKE_KEY     with -Context7 local, bake CONTEXT7_API_KEY into the registration (keep .mcp.json uncommitted).
 
@@ -627,44 +627,62 @@ function Get-SkillsDest {
 }
 
 # ===========================================================================
-# SOURCE CLONE - the ONE revision every artifact in a run comes from
+# SOURCE SNAPSHOT - the ONE revision every artifact in a run comes from
 # ===========================================================================
 # Every file the stack installs (skills, hooks, agents, rules, the CLAUDE.md template) lives in
-# this one repo, so a run takes ONE shallow clone and copies out of it. Two reasons it is a clone
-# and not the per-file raw.githubusercontent.com fetches this replaced:
-#   - ATOMIC. A clone is a single revision. The raw URLs are per-file and CDN-cached (a push takes
-#     ~5 min to propagate), so a raw run could mix revisions - and then claude-stack.stamp, which
-#     records the revision this install came from, would be a lie. The clone makes the stamp true
-#     by construction.
-#   - CHEAP. One clone replaces ~50 round trips (the Hooks + Agents + ClaudeRules arrays).
-# Fail-soft, like the fetches were: no git / a failed clone means callers keep the copies already
-# on disk and the run carries on. $StackSha stays empty, which is what suppresses the stamp write.
+# this one repo, so a run takes ONE source snapshot and copies out of it: the rolling 'latest'
+# release archive (.github/workflows/release.yml republishes it on every push to main, with a
+# RELEASE-SOURCE file inside naming the exact commit), falling back to a shallow git clone when
+# no release is reachable (a fork without releases, a blocked CDN, the brief window while the
+# workflow recreates the release). Why one snapshot and not the per-file
+# raw.githubusercontent.com fetches this replaced:
+#   - ATOMIC. An archive or clone is a single revision. The raw URLs are per-file and CDN-cached
+#     (a push takes ~5 min to propagate), so a raw run could mix revisions - and then
+#     claude-stack.stamp, which records the revision this install came from, would be a lie. The
+#     snapshot makes the stamp true by construction.
+#   - CHEAP. One download replaces ~50 round trips (the Hooks + Agents + ClaudeRules arrays).
+# Fail-soft, like the fetches were: no source (archive AND clone failed) means callers keep the
+# copies already on disk and the run carries on. $StackSha stays empty, which is what suppresses
+# the stamp write.
 #
-# -Source <dir> hands in a checkout the CALLER already made. That is the plugin path: the setup /
-# configure skills must clone anyway (they need stack-select.js, stack-graph.json, the CLAUDE.md
-# template and the stamp diff before the install runs), so they pass that same clone here and the
-# guided run costs ONE clone instead of two. A caller-provided dir is borrowed, never deleted.
-# Standalone (no -Source) is unchanged: the script clones its own source and cleans it up.
+# -Source <dir> hands in a source the CALLER already fetched (an extracted release archive or a
+# git checkout). That is the plugin path: the setup / configure skills must download anyway (they
+# need stack-select.js, stack-graph.json, the CLAUDE.md template and the stamp diff before the
+# install runs), so they pass that same source here and the guided run costs ONE download instead
+# of two. A caller-provided dir is borrowed, never deleted. Standalone (no -Source) is
+# unchanged: the script fetches its own source and cleans it up.
 $StackRepoUrl = if ($env:STACK_SKILLS_REPO) { $env:STACK_SKILLS_REPO } else { 'https://github.com/envoydev/claude-stack' }
 $script:StackSrc = ''          # the source worktree; empty until Get-StackSrc runs
 $script:StackSha = ''          # the exact commit every artifact this run installs was copied from
 $script:StackRef = ''          # the branch that commit is the tip of (whatever the source's HEAD is)
-$script:StackSrcTried = $false # memoises the OUTCOME, so a dead source costs one clone attempt, not one per caller
-$script:StackSrcOwned = $false # true only when WE cloned it - Remove-StackSrc removes ours, never the caller's
+$script:StackSrcTried = $false # memoises the OUTCOME, so a dead source costs one fetch attempt, not one per caller
+$script:StackSrcOwned = $false # true only when WE fetched it - Remove-StackSrc removes ours, never the caller's
+$script:StackSrcRoot = ''      # the temp dir an owned fetch lives in (Remove-StackSrc's removal target)
+
+function Read-ReleaseSource {
+  # An extracted release archive carries its revision in RELEASE-SOURCE (the workflow writes it).
+  param([string]$Dir)
+  $file = Join-Path $Dir 'RELEASE-SOURCE'
+  if (-not (Test-Path -LiteralPath $file)) { return }
+  $lines = Get-Content -LiteralPath $file
+  $script:StackSha = (($lines | Where-Object { $_ -match '^sha: ' } | Select-Object -First 1) -replace '^sha: ', '')
+  $script:StackRef = (($lines | Where-Object { $_ -match '^ref: ' } | Select-Object -First 1) -replace '^ref: ', '')
+}
 
 function Get-StackSrc {
   # Resolves on the first call; every later caller reuses the worktree. Returns $false (never throws)
   # when the source is unavailable, so each caller applies its own fail-soft.
   # Memoise BOTH outcomes: five steps call this, and without the failure latch an offline run
-  # would pay five clone timeouts and report five failures for one root cause.
+  # would pay five download timeouts and report five failures for one root cause.
   if ($script:StackSrc) { return $true }
   if ($script:StackSrcTried) { return $false }
   $script:StackSrcTried = $true
-  if (-not (Get-Command git -ErrorAction SilentlyContinue)) { Add-Failure 'git not found - stack source unavailable'; return $false }
+  $hasGit = [bool](Get-Command git -ErrorAction SilentlyContinue)
 
   if ($Source) {
-    # Borrowed checkout. Sanity-check it IS the stack (a wrong -Source would otherwise 'install'
-    # nothing and report 117 per-file failures), then read its revision like we would our own.
+    # Borrowed source. Sanity-check it IS the stack (a wrong -Source would otherwise 'install'
+    # nothing and report 117 per-file failures), then read its revision: a git checkout carries
+    # it in HEAD, an extracted release archive in its RELEASE-SOURCE file.
     if (-not ((Test-Path -LiteralPath (Join-Path $Source 'skills') -PathType Container) -and
               (Test-Path -LiteralPath (Join-Path $Source 'agents') -PathType Container))) {
       Add-Failure "-Source '$Source' is not a claude-stack checkout (no skills/ + agents/) - stack source unavailable"
@@ -672,12 +690,16 @@ function Get-StackSrc {
     }
     $script:StackSrc = $Source
     $script:StackSrcOwned = $false
-    $script:StackSha = (& git -C $Source rev-parse HEAD 2>$null)
-    $script:StackRef = (& git -C $Source rev-parse --abbrev-ref HEAD 2>$null)
-    # Stamp the URL the caller actually cloned from, not our default - they may have used a fork.
-    $originUrl = (& git -C $Source remote get-url origin 2>$null)
-    if ($originUrl) { $script:StackRepoUrl = $originUrl }
-    if (-not $script:StackSha) { Log "source: $Source (provided; not a git checkout - no revision, so no stamp)" }
+    if ($hasGit) {
+      $script:StackSha = (& git -C $Source rev-parse HEAD 2>$null)
+      $script:StackRef = (& git -C $Source rev-parse --abbrev-ref HEAD 2>$null)
+    }
+    if ($script:StackSha) {
+      # Stamp the URL the caller actually cloned from, not our default - they may have used a fork.
+      $originUrl = (& git -C $Source remote get-url origin 2>$null)
+      if ($originUrl) { $script:StackRepoUrl = $originUrl }
+    } else { Read-ReleaseSource -Dir $Source }
+    if (-not $script:StackSha) { Log "source: $Source (provided; no git checkout or RELEASE-SOURCE - no revision, so no stamp)" }
     else {
       $shortSha = $script:StackSha.Substring(0, [Math]::Min(12, $script:StackSha.Length))
       $refName = if ($script:StackRef) { $script:StackRef } else { '?' }
@@ -686,29 +708,55 @@ function Get-StackSrc {
     return $true
   }
 
+  # Release archive first: one asset is one revision, and no git is needed to take it.
+  $tmp = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString())
+  New-Item -ItemType Directory -Path $tmp -Force | Out-Null
+  $url = "$StackRepoUrl/releases/latest/download/claude-stack.zip"
+  $repo = Join-Path $tmp 'repo'
+  try {
+    Invoke-WebRequest -Uri $url -OutFile (Join-Path $tmp 'claude-stack.zip') -UseBasicParsing -ErrorAction Stop
+    Expand-Archive -LiteralPath (Join-Path $tmp 'claude-stack.zip') -DestinationPath $repo -Force
+  } catch { <# fall through to the clone below #> }
+  if ((Test-Path -LiteralPath (Join-Path $repo 'skills') -PathType Container) -and
+      (Test-Path -LiteralPath (Join-Path $repo 'agents') -PathType Container)) {
+    $script:StackSrc = $repo
+    $script:StackSrcRoot = $tmp
+    $script:StackSrcOwned = $true
+    Read-ReleaseSource -Dir $repo
+    $shortSha = if ($script:StackSha) { $script:StackSha.Substring(0, [Math]::Min(12, $script:StackSha.Length)) } else { 'unknown' }
+    $refName = if ($script:StackRef) { $script:StackRef } else { '?' }
+    Log "source: $url @ $refName $shortSha"
+    return $true
+  }
+  Remove-Item -LiteralPath $tmp -Recurse -Force -ErrorAction SilentlyContinue
+
+  # Fallback: a shallow clone - a fork without releases, a blocked release CDN, a local test path.
+  if (-not $hasGit) { Add-Failure 'release archive unreachable and git not found - stack source unavailable'; return $false }
   $tmp = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString())
   New-Item -ItemType Directory -Path $tmp -Force | Out-Null
   & git clone --depth 1 $StackRepoUrl $tmp *> $null
   if ($LASTEXITCODE -ne 0) {
-    Add-Failure "clone of $StackRepoUrl failed - stack source unavailable (nothing refreshed; existing copies kept)"
+    Add-Failure "release archive and clone of $StackRepoUrl both failed - stack source unavailable (nothing refreshed; existing copies kept)"
     Remove-Item -LiteralPath $tmp -Recurse -Force -ErrorAction SilentlyContinue
     return $false
   }
   $script:StackSrc = $tmp
+  $script:StackSrcRoot = $tmp
   $script:StackSrcOwned = $true
   $script:StackSha = (& git -C $tmp rev-parse HEAD 2>$null)
   $script:StackRef = (& git -C $tmp rev-parse --abbrev-ref HEAD 2>$null)
   $shortSha = if ($script:StackSha) { $script:StackSha.Substring(0, [Math]::Min(12, $script:StackSha.Length)) } else { 'unknown' }
   $refName = if ($script:StackRef) { $script:StackRef } else { '?' }
-  Log "source: $StackRepoUrl @ $refName $shortSha"
+  Log "source: $StackRepoUrl (clone fallback) @ $refName $shortSha"
   return $true
 }
 
 function Remove-StackSrc {
-  # Only ever removes a clone WE took - a -Source checkout belongs to the caller.
-  if ($script:StackSrcOwned -and $script:StackSrc) {
-    Remove-Item -LiteralPath $script:StackSrc -Recurse -Force -ErrorAction SilentlyContinue
+  # Only ever removes a fetch WE took - a -Source dir belongs to the caller.
+  if ($script:StackSrcOwned -and $script:StackSrcRoot) {
+    Remove-Item -LiteralPath $script:StackSrcRoot -Recurse -Force -ErrorAction SilentlyContinue
     $script:StackSrc = ''
+    $script:StackSrcRoot = ''
   }
 }
 
@@ -845,13 +893,14 @@ function New-ClaudeMd {
 # stack versions the INSTALL, not the file: one stamp naming the commit every artifact was copied
 # from. That is what /claude-stack:configure diffs against to answer 'what changed since I
 # installed?' - exactly, for all ~117 artifacts, with nothing to hand-bump:
-#     git diff --name-only <sha>..<ref> -- skills/ agents/ rules/ hooks/ templates/
+#     <repo>/compare/<sha>...main  (the GitHub compare view / API)
 # Machine-local by design (it describes THIS checkout's install) and already covered by the
 # '.claude/*' gitignore line the run prints.
 function Write-Stamp {
-  # No SHA means no clone happened this run (git absent, or the clone failed and every step
-  # fail-softly kept its existing copy). Stamping then would claim an install that did not occur,
-  # and a wrong stamp is worse than none - so leave any previous stamp untouched.
+  # No SHA means no source resolved this run (the archive download and the clone fallback both
+  # failed, and every step fail-softly kept its existing copy). Stamping then would claim an
+  # install that did not occur, and a wrong stamp is worse than none - so leave any previous
+  # stamp untouched.
   if (-not $script:StackSha) { Log '  stamp: skipped - no source revision resolved this run'; return }
   if ($ClaudeScope -eq 'user') { $dir = $ConfigDir }
   else {
@@ -867,12 +916,9 @@ function Write-Stamp {
   $stampedAt = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
   $lines = @(
     '# claude-stack install stamp - machine-local, written by claude-stack.sh / claude-stack.ps1.'
-    '# The revision every artifact of this install was copied from. To see what changed since'
-    '# (a shallow clone has no history, so fetch this exact commit before diffing it):'
-    "#   git clone --depth 1 $StackRepoUrl /tmp/cs"
-    "#   git -C /tmp/cs fetch --depth 1 origin $($script:StackSha)"
-    "#   git -C /tmp/cs diff --name-only $($script:StackSha) HEAD -- skills/ agents/ rules/ hooks/ templates/"
-    '# /claude-stack:configure runs exactly this and reports it. Then re-run the installer''s'
+    '# The revision every artifact of this install was copied from. To see what changed since:'
+    "#   open $StackRepoUrl/compare/$($script:StackSha)...main"
+    '# /claude-stack:configure reports exactly this diff. Then re-run the installer''s'
     "# '$Action' action (or that skill) to take the changes."
     "source: $StackRepoUrl"
     "ref: $($script:StackRef)"
