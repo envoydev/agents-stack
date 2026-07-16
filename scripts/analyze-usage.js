@@ -15,6 +15,11 @@
 //   node scripts/analyze-usage.js <projects-dir>                   # one-line rollup per session
 //   node scripts/analyze-usage.js <session.jsonl> --hook-log <f>   # join a tool-usage.*.jsonl ledger
 //   node scripts/analyze-usage.js <session.jsonl> --json           # machine-readable dump
+//   node scripts/analyze-usage.js <s.jsonl> --from <ISO> --to <ISO> # window one run inside a long session
+//
+// The headline health signal is ctx/msg (avg context re-sent per API call = input +
+// cache-write + cache-read over msgs): high tool-result volume means noisy tools, but a
+// high ctx/msg means carried-forward conversation - the cost driver windowing isolates.
 //
 // Transcripts live under ~/.claude/projects/<encoded-project-path>/: the main session is
 // <session-id>.jsonl, its dispatched subagents under <session-id>/subagents/agent-*.jsonl
@@ -51,6 +56,7 @@ const pad = (s, w) => String(s).length >= w ? String(s) : String(s) + ' '.repeat
 const rpad = (s, w) => String(s).length >= w ? String(s) : ' '.repeat(w - String(s).length) + String(s);
 
 function newTally() { return { input: 0, cacheCreate: 0, cacheRead: 0, output: 0, msgs: 0 }; }
+const ctxOf = (t) => (t.msgs ? Math.round((t.input + t.cacheCreate + t.cacheRead) / t.msgs) : 0);
 function addUsage(t, u) {
   t.input += u.input_tokens || 0;
   t.cacheCreate += u.cache_creation_input_tokens || 0;
@@ -74,7 +80,7 @@ function readJsonl(file, onObj) {
 
 // ---------- transcript analysis (main session or one subagent) ----------
 
-async function analyzeTranscript(file) {
+async function analyzeTranscript(file, window) {
   const s = {
     file,
     total: newTally(),
@@ -98,6 +104,10 @@ async function analyzeTranscript(file) {
   let pending = [];               // tool results since the previous counted assistant msg
 
   await readJsonl(file, (o) => {
+    if (window && o.timestamp) {
+      const ts = Date.parse(o.timestamp);
+      if ((window.from != null && ts < window.from) || (window.to != null && ts > window.to)) return;
+    }
     if (o.timestamp) { if (!s.firstTs) s.firstTs = o.timestamp; s.lastTs = o.timestamp; }
     if (o.isCompactSummary || o.compactMetadata) s.compactions++;
     if (o.isApiErrorMessage) s.apiErrors++;
@@ -179,8 +189,8 @@ async function analyzeTranscript(file) {
     addUsage(s.total, u);
     addUsage(s.byModel[r.model] || (s.byModel[r.model] = newTally()), u);
     if (r.skill) {
-      const a = s.skillAttribution[r.skill] || (s.skillAttribution[r.skill] = { msgs: 0, output: 0 });
-      a.msgs += 1; a.output += r.u.out;
+      const a = s.skillAttribution[r.skill] || (s.skillAttribution[r.skill] = { msgs: 0, output: 0, cacheRead: 0 });
+      a.msgs += 1; a.output += r.u.out; a.cacheRead += r.u.cr;
     }
   }
   return s;
@@ -198,7 +208,7 @@ function summarizeCauses(pending) {
 
 // ---------- subagents (the session's <id>/subagents/ directory) ----------
 
-async function analyzeSubagents(sessionFile) {
+async function analyzeSubagents(sessionFile, window) {
   const dir = path.join(sessionFile.replace(/\.jsonl$/, ''), 'subagents');
   if (!fs.existsSync(dir)) return [];
   const out = [];
@@ -206,7 +216,8 @@ async function analyzeSubagents(sessionFile) {
     if (!f.endsWith('.jsonl')) continue;
     let meta = {};
     try { meta = JSON.parse(fs.readFileSync(path.join(dir, f.replace(/\.jsonl$/, '.meta.json')), 'utf8')); } catch { /* meta optional */ }
-    const t = await analyzeTranscript(path.join(dir, f));
+    const t = await analyzeTranscript(path.join(dir, f), window);
+    if (window && t.total.msgs === 0) continue; // dispatched entirely outside the window
     out.push({ id: f.replace(/^agent-|\.jsonl$/g, ''), meta, stats: t });
   }
   return out;
@@ -229,18 +240,25 @@ async function analyzeHookLog(file) {
 // ---------- report ----------
 
 function tallyRow(label, t) {
-  return `  ${pad(label, 22)} ${rpad(fmt(t.input), 8)} ${rpad(fmt(t.cacheCreate), 11)} ${rpad(fmt(t.cacheRead), 11)} ${rpad(fmt(t.output), 8)} ${rpad(t.msgs, 6)}`;
+  return `  ${pad(label, 22)} ${rpad(fmt(t.input), 8)} ${rpad(fmt(t.cacheCreate), 11)} ${rpad(fmt(t.cacheRead), 11)} ${rpad(fmt(t.output), 8)} ${rpad(t.msgs, 6)} ${rpad(fmt(ctxOf(t)), 8)}`;
 }
 
-function printReport(main, agents, hookLog) {
+const CTX_WARN = 120000; // avg ctx/msg above this = the conversation, not the tools, is the cost
+
+function printReport(main, agents, hookLog, window) {
   const span = main.firstTs && main.lastTs ? new Date(main.lastTs) - new Date(main.firstTs) : null;
   console.log(`Session ${path.basename(main.file, '.jsonl')}  ${main.firstTs || '?'} → ${main.lastTs || '?'} (${dur(span)})`);
+  if (window) console.log(`windowed: ${window.fromStr || 'start'} → ${window.toStr || 'end'} (subagents dispatched outside the window are excluded)`);
   console.log(`user prompts ${main.userPrompts} · API messages ${main.total.msgs} · compactions ${main.compactions} · API errors ${main.apiErrors}`);
 
-  console.log('\nTOKENS (deduped per API message)');
-  console.log(`  ${pad('scope / model', 22)} ${rpad('input', 8)} ${rpad('cache-write', 11)} ${rpad('cache-read', 11)} ${rpad('output', 8)} ${rpad('msgs', 6)}`);
+  console.log('\nTOKENS (deduped per API message; ctx/msg = avg context re-sent per call)');
+  console.log(`  ${pad('scope / model', 22)} ${rpad('input', 8)} ${rpad('cache-write', 11)} ${rpad('cache-read', 11)} ${rpad('output', 8)} ${rpad('msgs', 6)} ${rpad('ctx/msg', 8)}`);
   console.log(tallyRow('main session', main.total));
   for (const [m, t] of Object.entries(main.byModel)) console.log(tallyRow('  ' + m, t));
+  if (ctxOf(main.total) > CTX_WARN) {
+    console.log(`  ! avg context/msg ${fmt(ctxOf(main.total))} - the cost driver is carried-forward conversation, not tool output:`);
+    console.log(`    run pipeline steps in fresh sessions that resume from the plan file instead of one long chat.`);
+  }
   const agentTotal = newTally();
   const byType = {};
   for (const a of agents) {
@@ -272,14 +290,14 @@ function printReport(main, agents, hookLog) {
   for (const a of agents) for (const k of [...Object.keys(a.stats.skillInvocations), ...Object.keys(a.stats.skillAttribution)]) skills.add(k);
   if (skills.size) {
     console.log('\nSKILLS (calls = Skill tool invocations; attributed = API msgs stamped while the skill was active - the real cost signal)');
-    console.log(`  ${pad('skill', 44)} ${rpad('calls', 5)} ${rpad('result', 9)} ${rpad('attr msgs', 9)} ${rpad('attr out', 9)}`);
+    console.log(`  ${pad('skill', 44)} ${rpad('calls', 5)} ${rpad('result', 9)} ${rpad('attr msgs', 9)} ${rpad('attr out', 9)} ${rpad('attr cache-rd', 13)}`);
     for (const k of [...skills].sort()) {
-      const inv = { calls: 0, injectedChars: 0 }, attr = { msgs: 0, output: 0 };
+      const inv = { calls: 0, injectedChars: 0 }, attr = { msgs: 0, output: 0, cacheRead: 0 };
       for (const src of [main, ...agents.map((a) => a.stats)]) {
         if (src.skillInvocations[k]) { inv.calls += src.skillInvocations[k].calls; inv.injectedChars += src.skillInvocations[k].injectedChars; }
-        if (src.skillAttribution[k]) { attr.msgs += src.skillAttribution[k].msgs; attr.output += src.skillAttribution[k].output; }
+        if (src.skillAttribution[k]) { attr.msgs += src.skillAttribution[k].msgs; attr.output += src.skillAttribution[k].output; attr.cacheRead += src.skillAttribution[k].cacheRead || 0; }
       }
-      console.log(`  ${pad(k, 44)} ${rpad(inv.calls, 5)} ${rpad('~' + fmt(approxTok(inv.injectedChars)), 9)} ${rpad(attr.msgs, 9)} ${rpad(fmt(attr.output), 9)}`);
+      console.log(`  ${pad(k, 44)} ${rpad(inv.calls, 5)} ${rpad('~' + fmt(approxTok(inv.injectedChars)), 9)} ${rpad(attr.msgs, 9)} ${rpad(fmt(attr.output), 9)} ${rpad(fmt(attr.cacheRead), 13)}`);
     }
   }
 
@@ -335,12 +353,17 @@ function printReport(main, agents, hookLog) {
 
 async function main() {
   const args = process.argv.slice(2);
-  const target = args.find((a) => !a.startsWith('--'));
+  const flagVal = (flag) => { const i = args.indexOf(flag); return i >= 0 ? args[i + 1] : null; };
+  const flagValIdx = new Set(['--hook-log', '--from', '--to'].map((f) => args.indexOf(f) + 1).filter((i) => i > 0));
+  const target = args.find((a, i) => !a.startsWith('--') && !flagValIdx.has(i));
   const asJson = args.includes('--json');
-  const hookIdx = args.indexOf('--hook-log');
-  const hookFile = hookIdx >= 0 ? args[hookIdx + 1] : null;
-  if (!target) {
-    console.error('usage: analyze-usage.js <session.jsonl | sessions-dir> [--hook-log <tool-usage.jsonl>] [--json]');
+  const hookFile = flagVal('--hook-log');
+  const fromStr = flagVal('--from'), toStr = flagVal('--to');
+  const window = fromStr || toStr
+    ? { from: fromStr ? Date.parse(fromStr) : null, to: toStr ? Date.parse(toStr) : null, fromStr, toStr }
+    : null;
+  if (!target || (window && (Number.isNaN(window.from) || Number.isNaN(window.to)))) {
+    console.error('usage: analyze-usage.js <session.jsonl | sessions-dir> [--from <ISO ts>] [--to <ISO ts>] [--hook-log <tool-usage.jsonl>] [--json]');
     process.exit(1);
   }
 
@@ -349,29 +372,29 @@ async function main() {
     const files = fs.readdirSync(target).filter((f) => f.endsWith('.jsonl'))
       .map((f) => path.join(target, f))
       .sort((a, b) => fs.statSync(b).mtimeMs - fs.statSync(a).mtimeMs);
-    console.log(`  ${pad('session', 38)} ${pad('start', 12)} ${rpad('output', 8)} ${rpad('cache-read', 11)} ${rpad('msgs', 6)} ${rpad('agents', 6)} ${rpad('agent-out', 9)}`);
+    console.log(`  ${pad('session', 38)} ${pad('start', 12)} ${rpad('output', 8)} ${rpad('cache-read', 11)} ${rpad('msgs', 6)} ${rpad('ctx/msg', 8)} ${rpad('agents', 6)} ${rpad('agent-out', 9)}`);
     const grand = newTally();
     for (const f of files) {
-      const s = await analyzeTranscript(f);
-      const agents = await analyzeSubagents(f);
+      const s = await analyzeTranscript(f, window);
+      const agents = await analyzeSubagents(f, window);
       const at = newTally();
       for (const a of agents) mergeTally(at, a.stats.total);
       mergeTally(grand, s.total); mergeTally(grand, at);
-      console.log(`  ${pad(path.basename(f, '.jsonl'), 38)} ${pad((s.firstTs || '?').slice(0, 10), 12)} ${rpad(fmt(s.total.output), 8)} ${rpad(fmt(s.total.cacheRead), 11)} ${rpad(s.total.msgs, 6)} ${rpad(agents.length, 6)} ${rpad(fmt(at.output), 9)}`);
+      console.log(`  ${pad(path.basename(f, '.jsonl'), 38)} ${pad((s.firstTs || '?').slice(0, 10), 12)} ${rpad(fmt(s.total.output), 8)} ${rpad(fmt(s.total.cacheRead), 11)} ${rpad(s.total.msgs, 6)} ${rpad(fmt(ctxOf(s.total)), 8)} ${rpad(agents.length, 6)} ${rpad(fmt(at.output), 9)}`);
     }
     console.log(`  ${pad('TOTAL', 38)} ${pad('', 12)} ${rpad(fmt(grand.output), 8)} ${rpad(fmt(grand.cacheRead), 11)} ${rpad(grand.msgs, 6)}`);
     console.log('\nRun again with one session file for the full skills/MCP/tools/spikes report.');
     return;
   }
 
-  const mainStats = await analyzeTranscript(target);
-  const agents = await analyzeSubagents(target);
+  const mainStats = await analyzeTranscript(target, window);
+  const agents = await analyzeSubagents(target, window);
   const hookLog = hookFile ? await analyzeHookLog(hookFile) : null;
   if (asJson) {
-    console.log(JSON.stringify({ main: mainStats, agents, hookLog }, null, 2));
+    console.log(JSON.stringify(window ? { window: { from: fromStr, to: toStr }, main: mainStats, agents, hookLog } : { main: mainStats, agents, hookLog }, null, 2));
     return;
   }
-  printReport(mainStats, agents, hookLog);
+  printReport(mainStats, agents, hookLog, window);
 }
 
 main().catch((e) => { console.error(e.message); process.exit(1); });
