@@ -1,6 +1,6 @@
 ---
 name: capacitor-release
-description: "House release-pipeline conventions for an Ionic / Capacitor app - the gap from a feature-complete build to a signed store submission: cap sync and native build artifacts (.ipa, .aab), iOS and Android code signing, store submission (TestFlight, Play tracks), OTA / live updates and the native-binary boundary, marketing-version vs build-number sync, and the Fastlane / GitHub Actions CI shape with secrets handling and dSYM / sourcemap upload. Targets Capacitor 6+ (8 current). Load when cutting a release, wiring signing, or building the release CI. Companions: ionic, mobile. Do NOT load for in-app feature work with no release or signing concern."
+description: "release-pipeline conventions for an Ionic / Capacitor app - the gap from a feature-complete build to a signed store submission: cap sync and native build artifacts (.ipa, .aab), iOS and Android code signing, store submission (TestFlight, Play tracks), OTA / live updates and the native-binary boundary, marketing-version vs build-number sync, and the Fastlane / GitHub Actions CI shape with secrets handling and dSYM / sourcemap upload. Targets Capacitor 6+ (8 current). Load when cutting a release, wiring signing, or building the release CI. Companions: ionic, mobile. Do NOT load for in-app feature work with no release or signing concern."
 ---
 
 # Capacitor release pipeline
