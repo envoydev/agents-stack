@@ -1,23 +1,24 @@
-name: ci
+name: test
 
-# The development-branch gate: lint + tests on every push to develop and on PRs into
-# main/develop, so a develop -> main merge (the release act - it republishes the rolling
-# 'latest' archive) only ever promotes a green tree.
+# The test half of the gate - the sibling lint.yml runs the parity lint on every push
+# and PR; this runs the node test suite (installer source/stamp paths, selection closure,
+# stack graph, plugin skills, analyze-usage) so a develop -> main merge (the release act -
+# it republishes the rolling 'latest' archive) only ever promotes a green tree.
+#
+# Lock-free like lint.yml (the root package-lock.json is deliberately untracked), and
+# node 22 because `npm test` uses a glob with `node --test`.
 
 on:
   push:
-    branches: [develop]
   pull_request:
-    branches: [main, develop]
 
 jobs:
-  checks:
+  test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: npm install
-      - run: npm run lint
+      - run: npm install --no-audit --no-fund
       - run: npm test

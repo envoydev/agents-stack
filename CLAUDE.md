@@ -174,7 +174,8 @@ documented there.
   the rolling `latest` archive from that merge, and that revision is what every install delivers.
   Never commit feature work directly to `main`, and keep `main` the GitHub default branch (the
   installers' clone fallback and the README's raw installer bootstrap both deliver the default
-  branch). CI (lint + tests) gates every `develop` push and every PR into `main`.
+  branch). The lint + test workflows gate every push and PR, so a merge to `main` only ever
+  promotes a green tree.
 - **Public repo.** No private project names or absolute personal paths in any tracked file - generic
   'consuming project' references only; real names / paths stay in untracked local files.
 - **Parity / source-of-truth.** A change to skills / MCPs / hooks / rules / plugins lands in the
