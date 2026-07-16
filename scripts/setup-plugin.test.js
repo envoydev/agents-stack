@@ -17,14 +17,22 @@ test('marketplace.json is valid and points at the setup-plugin subdir', () => {
     assert.ok(typeof p.description === 'string' && p.description.trim() !== '');
 });
 
-test('plugin.json is valid and the command exists', () => {
+test('plugin.json is valid, the three commands are listed, and the router skill exists', () => {
     const pj = JSON.parse(fs.readFileSync(path.join(PLUGIN_DIR, '.claude-plugin', 'plugin.json'), 'utf8'));
     assert.strictEqual(pj.name, 'claude-stack');
     assert.ok(typeof pj.version === 'string' && pj.version.trim() !== '');
     assert.ok(typeof pj.description === 'string' && pj.description.trim() !== '');
-    assert.ok(fs.existsSync(path.join(PLUGIN_DIR, 'commands', 'claude-stack.md')), 'the /claude-stack command exists');
+    // Plugin COMMANDS display namespaced-only (/claude-stack:setup); plugin SKILLS display bare -
+    // so the workers must be commands and the router a skill named exactly like the plugin
+    // (bare /claude-stack, no /claude-stack:claude-stack stutter). Empirically proven layout.
+    assert.deepStrictEqual(pj.commands, ['./commands/setup.md', './commands/update.md', './commands/configure.md']);
+    for (const name of ['setup', 'update', 'configure'])
+    {
+        assert.ok(fs.existsSync(path.join(PLUGIN_DIR, 'commands', `${name}.md`)), `the /claude-stack:${name} command exists`);
+    }
+    assert.ok(fs.existsSync(path.join(PLUGIN_DIR, 'skills', 'claude-stack', 'SKILL.md')), 'the /claude-stack router skill exists');
+    assert.ok(!fs.existsSync(path.join(PLUGIN_DIR, 'commands', 'claude-stack.md')), 'no router COMMAND - a command named like the plugin displays as the /claude-stack:claude-stack stutter');
 });
-// Note: the bundled SKILL.md is asserted in Task 3's test additions (it lands there).
 
 test('no tracked plugin file leaks an email address', () => {
     for (const rel of ['.claude-plugin/marketplace.json', 'setup-plugin/.claude-plugin/plugin.json'])
@@ -37,7 +45,7 @@ test('no tracked plugin file leaks an email address', () => {
 const { computeClosure } = require('./stack-select.js');
 const graph = require('./stack-graph.json');
 
-const RECS = path.join(PLUGIN_DIR, 'skills', 'setup', 'references', 'recommendations.json');
+const RECS = path.join(PLUGIN_DIR, 'references', 'recommendations.json');
 
 test('every recommendation name resolves in the dependency graph', () => {
     const recs = JSON.parse(fs.readFileSync(RECS, 'utf8'));
@@ -94,12 +102,12 @@ test('a single-stack (aspnet) recommendation does not pull cross-stack skills', 
 
 for (const name of ['setup', 'update', 'configure'])
 {
-    test(`the ${name} skill exists with valid manual-only frontmatter`, () => {
-        const skill = path.join(PLUGIN_DIR, 'skills', name, 'SKILL.md');
-        assert.ok(fs.existsSync(skill), 'SKILL.md exists');
-        const fm = fs.readFileSync(skill, 'utf8').match(/^---\r?\n([\s\S]*?)\r?\n---/);
+    test(`the ${name} command exists with valid manual-only frontmatter`, () => {
+        const cmd = path.join(PLUGIN_DIR, 'commands', `${name}.md`);
+        assert.ok(fs.existsSync(cmd), 'command file exists');
+        const fm = fs.readFileSync(cmd, 'utf8').match(/^---\r?\n([\s\S]*?)\r?\n---/);
         assert.ok(fm, 'has frontmatter');
-        assert.match(fm[1], new RegExp(`name:\\s*${name}`), `name is ${name}`);
+        assert.match(fm[1], /description:\s*\S/, 'has a description (shown in the / picker)');
         assert.match(fm[1], /disable-model-invocation:\s*true/, 'manual-only');
     });
 }
@@ -107,24 +115,25 @@ for (const name of ['setup', 'update', 'configure'])
 test('the guided walks hold the layer order, the step banners, and the cascade machinery', () => {
     for (const name of ['setup', 'configure'])
     {
-        const body = fs.readFileSync(path.join(PLUGIN_DIR, 'skills', name, 'SKILL.md'), 'utf8');
+        const body = fs.readFileSync(path.join(PLUGIN_DIR, 'commands', `${name}.md`), 'utf8');
         assert.match(body, /rules -> agents -> skills -> MCPs \+ plugins/, `${name} walks the layers in dependency order`);
         assert.match(body, /\[step \d+\/\d+ - /, `${name} announces every step with the n/total banner`);
     }
-    const configure = fs.readFileSync(path.join(PLUGIN_DIR, 'skills', 'configure', 'SKILL.md'), 'utf8');
+    const configure = fs.readFileSync(path.join(PLUGIN_DIR, 'commands', 'configure.md'), 'utf8');
     assert.match(configure, /--dropped/, 'configure drives the drop cascade through stack-select --dropped');
     assert.match(configure, /orphan:/, 'configure consumes the orphan: lines');
 });
 
-test('every plugin skill holds to the shared one-download protocol and the router names them all', () => {
-    for (const name of ['update', 'configure'])
-    {
-        const body = fs.readFileSync(path.join(PLUGIN_DIR, 'skills', name, 'SKILL.md'), 'utf8');
-        assert.match(body, /references\/source-protocol\.md/, `${name} cites the setup skill's source-protocol.md`);
-    }
-    const router = fs.readFileSync(path.join(PLUGIN_DIR, 'commands', 'claude-stack.md'), 'utf8');
+test('every command holds to the shared one-download protocol and the router skill names them all', () => {
     for (const name of ['setup', 'update', 'configure'])
     {
-        assert.match(router, new RegExp('`' + name + '`'), `/claude-stack routes to ${name}`);
+        const body = fs.readFileSync(path.join(PLUGIN_DIR, 'commands', `${name}.md`), 'utf8');
+        assert.match(body, /\$\{CLAUDE_PLUGIN_ROOT\}\/references\/source-protocol\.md/, `${name} cites the shared source-protocol.md via the plugin root`);
+    }
+    const router = fs.readFileSync(path.join(PLUGIN_DIR, 'skills', 'claude-stack', 'SKILL.md'), 'utf8');
+    assert.match(router.match(/^---\r?\n([\s\S]*?)\r?\n---/)[1], /name:\s*claude-stack/, 'router skill named like the plugin -> displays bare /claude-stack');
+    for (const name of ['setup', 'update', 'configure'])
+    {
+        assert.match(router, new RegExp('/claude-stack:' + name), `/claude-stack routes to /claude-stack:${name}`);
     }
 });

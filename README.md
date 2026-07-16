@@ -65,7 +65,7 @@ macOS / Linux (`claude-stack.sh`):
 
 ```bash
 cd /path/to/your/project
-mkdir -p .claude && curl -fsSL https://raw.githubusercontent.com/envoydev/claude-stack/main/scripts/claude-stack.sh -o .claude/claude-stack.sh
+mkdir -p .claude && curl -fsSL https://raw.githubusercontent.com/envoydev/claude-stack/main/scripts/os/claude-stack.sh -o .claude/claude-stack.sh
 
 bash .claude/claude-stack.sh install                 # first time
 bash .claude/claude-stack.sh update                  # later refreshes
@@ -80,7 +80,7 @@ Windows (`claude-stack.ps1`):
 ```powershell
 Set-Location C:\path\to\your\project
 New-Item -ItemType Directory -Force .claude | Out-Null
-Invoke-WebRequest -Uri https://raw.githubusercontent.com/envoydev/claude-stack/main/scripts/claude-stack.ps1 -OutFile .claude/claude-stack.ps1
+Invoke-WebRequest -Uri https://raw.githubusercontent.com/envoydev/claude-stack/main/scripts/os/claude-stack.ps1 -OutFile .claude/claude-stack.ps1
 
 pwsh .claude/claude-stack.ps1 install                # first time
 pwsh .claude/claude-stack.ps1 update                 # later refreshes

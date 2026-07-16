@@ -6,8 +6,8 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 
-const SH = path.join(__dirname, 'claude-stack.sh');
-const PS1 = path.join(__dirname, 'claude-stack.ps1');
+const SH = path.join(__dirname, 'os', 'claude-stack.sh');
+const PS1 = path.join(__dirname, 'os', 'claude-stack.ps1');
 
 function writeSelection(lines) {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sel-'));

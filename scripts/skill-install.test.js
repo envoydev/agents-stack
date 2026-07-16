@@ -7,25 +7,35 @@ const os = require('node:os');
 const path = require('node:path');
 
 const ROOT = path.join(__dirname, '..');
-const SH = path.join(ROOT, 'scripts', 'claude-stack.sh');
-const PS1 = path.join(ROOT, 'scripts', 'claude-stack.ps1');
+const SH = path.join(ROOT, 'scripts', 'os', 'claude-stack.sh');
+const PS1 = path.join(ROOT, 'scripts', 'os', 'claude-stack.ps1');
 
 // The ps1 twin can only be exercised where PowerShell is installed. Run it if
 // pwsh is present; otherwise log a visible SKIP so the gap is never silent.
 const hasPwsh = spawnSync('pwsh', ['-v'], { encoding: 'utf8' }).status === 0;
 const skipNoPwsh = hasPwsh ? false : 'pwsh not installed - ps1 behavioral test skipped';
 
+// The clone-fallback path is pinned to -b main by design, but the installer under
+// test is the WORKING TREE's - pointing the clone at the real repo would couple the
+// test to whatever main last released (it broke on a layout change main did not have
+// yet). So clone-fallback tests get a local fixture repo whose main IS this HEAD.
+const SRC_FIXTURE = fs.mkdtempSync(path.join(os.tmpdir(), 'skinst-fixture-'));
+const SRC_REPO = path.join(SRC_FIXTURE, 'repo');
+execFileSync('git', ['clone', '--no-hardlinks', `file://${ROOT}`, SRC_REPO], { stdio: 'ignore' });
+execFileSync('git', ['-C', SRC_REPO, 'branch', '-f', 'main', 'HEAD'], { stdio: 'ignore' });
+test.after(() => fs.rmSync(SRC_FIXTURE, { recursive: true, force: true }));
+
 // Invoke ONLY the skill-copy logic by sourcing the installer's function in a
-// subshell with a stubbed environment, cloning from the LOCAL repo (no network).
+// subshell with a stubbed environment, cloning from the LOCAL fixture (no network).
 function runSkillCopy(names, extraArgs = []) {
     const work = fs.mkdtempSync(path.join(os.tmpdir(), 'skinst-'));
     const sel = path.join(work, 'sel.txt');
     fs.writeFileSync(sel, names.map(n => `skill ${n}`).join('\n') + '\n');
-    // Drive the real installer's skill step in an isolated cwd, cloning the local repo.
+    // Drive the real installer's skill step in an isolated cwd, cloning the fixture repo.
     const out = execFileSync('bash', [SH, 'install', '--scope', 'project', '--selection', sel, '--skills-only', ...extraArgs], {
         cwd: work,
         encoding: 'utf8',
-        env: { ...process.env, STACK_SKILLS_REPO: ROOT, HOME: work },
+        env: { ...process.env, STACK_SKILLS_REPO: SRC_REPO, HOME: work },
     });
     return { work, out };
 }
@@ -67,11 +77,11 @@ test('install stamps the exact source revision it installed from', () => {
         const stamp = readStamp(work);
         assert.ok(stamp, 'a stamp is written');
         // The fallback clone is pinned to main (the release branch) - never the checked-out branch.
-        const mainTip = execFileSync('git', ['-C', ROOT, 'rev-parse', 'main'], { encoding: 'utf8' }).trim();
+        const mainTip = execFileSync('git', ['-C', SRC_REPO, 'rev-parse', 'main'], { encoding: 'utf8' }).trim();
         assert.strictEqual(stamp.sha, mainTip, 'stamped sha is the release branch tip, not an approximation');
         // A git source has no RELEASE-SOURCE - the version comes from the plugin manifest at main,
         // the same file the marketplace serves, so stamp == release == marketplace version.
-        const mainManifest = JSON.parse(execFileSync('git', ['-C', ROOT, 'show', 'main:setup-plugin/.claude-plugin/plugin.json'], { encoding: 'utf8' }));
+        const mainManifest = JSON.parse(execFileSync('git', ['-C', SRC_REPO, 'show', 'main:setup-plugin/.claude-plugin/plugin.json'], { encoding: 'utf8' }));
         assert.strictEqual(stamp.version, mainManifest.version, 'stamped version is the plugin/marketplace version at main');
         assert.strictEqual(stamp.action, 'install');
         assert.strictEqual(stamp.scope, 'project');
@@ -113,7 +123,7 @@ test('--source installs from a caller-provided checkout and never deletes it', (
     {
         assert.ok(fs.existsSync(path.join(work, '.claude', 'skills', 'csharp', 'SKILL.md')), 'installed from the provided checkout');
         assert.match(out, /\(provided\)/, 'reports the borrowed source rather than cloning its own');
-        assert.ok(fs.existsSync(path.join(checkout, 'skills')), 'the caller owns the checkout - the installer must not delete it');
+        assert.ok(fs.existsSync(path.join(checkout, 'stack', 'skills')), 'the caller owns the checkout - the installer must not delete it');
         const head = execFileSync('git', ['-C', checkout, 'rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
         assert.strictEqual(readStamp(work).sha, head, 'stamps the provided checkout revision');
     }
@@ -163,8 +173,8 @@ test('--source pointed at an extracted archive stamps from its RELEASE-SOURCE', 
     const FAKE_SHA = 'cafebabe'.repeat(5);
     const src = fs.mkdtempSync(path.join(os.tmpdir(), 'skinst-arc-'));
     const repo = path.join(src, 'repo');
-    fs.mkdirSync(path.join(repo, 'agents'), { recursive: true });
-    fs.cpSync(path.join(ROOT, 'skills', 'csharp'), path.join(repo, 'skills', 'csharp'), { recursive: true });
+    fs.mkdirSync(path.join(repo, 'stack', 'agents'), { recursive: true });
+    fs.cpSync(path.join(ROOT, 'stack', 'skills', 'csharp'), path.join(repo, 'stack', 'skills', 'csharp'), { recursive: true });
     fs.writeFileSync(path.join(repo, 'RELEASE-SOURCE'), `sha: ${FAKE_SHA}\nref: main\nversion: 8.8.8\n`);
     const { work, out } = runSkillCopy(['csharp'], ['--source', repo]);
     try
@@ -173,7 +183,7 @@ test('--source pointed at an extracted archive stamps from its RELEASE-SOURCE', 
         assert.ok(fs.existsSync(path.join(work, '.claude', 'skills', 'csharp', 'SKILL.md')), 'installed from the extracted archive');
         assert.strictEqual(readStamp(work).sha, FAKE_SHA, 'stamp read from RELEASE-SOURCE when there is no git checkout');
         assert.strictEqual(readStamp(work).version, '8.8.8', 'stamp version read from RELEASE-SOURCE');
-        assert.ok(fs.existsSync(path.join(repo, 'skills')), 'the caller owns the extracted archive - the installer must not delete it');
+        assert.ok(fs.existsSync(path.join(repo, 'stack', 'skills')), 'the caller owns the extracted archive - the installer must not delete it');
     }
     finally
     {
@@ -215,10 +225,10 @@ test('ps1: install stamps the source revision it installed from (pwsh required)'
         execFileSync('pwsh', ['-NoProfile', '-File', PS1, 'install', '-Scope', 'project', '-Selection', sel, '-SkillsOnly'], {
             cwd: work,
             encoding: 'utf8',
-            env: { ...process.env, STACK_SKILLS_REPO: `file://${ROOT}`, HOME: work },
+            env: { ...process.env, STACK_SKILLS_REPO: `file://${SRC_REPO}`, HOME: work },
         });
         assert.ok(fs.existsSync(path.join(work, '.claude', 'skills', 'csharp', 'SKILL.md')), 'ps1 copied the selected skill');
-        const mainTip = execFileSync('git', ['-C', ROOT, 'rev-parse', 'main'], { encoding: 'utf8' }).trim();
+        const mainTip = execFileSync('git', ['-C', SRC_REPO, 'rev-parse', 'main'], { encoding: 'utf8' }).trim();
         assert.strictEqual(readStamp(work).sha, mainTip, 'ps1 stamps the same release-branch sha the sh would');
     }
     finally
@@ -231,8 +241,8 @@ test('ps1: -Source pointed at an extracted archive stamps from its RELEASE-SOURC
     const FAKE_SHA = 'facefeed'.repeat(5);
     const src = fs.mkdtempSync(path.join(os.tmpdir(), 'skinst-psarc-'));
     const repo = path.join(src, 'repo');
-    fs.mkdirSync(path.join(repo, 'agents'), { recursive: true });
-    fs.cpSync(path.join(ROOT, 'skills', 'csharp'), path.join(repo, 'skills', 'csharp'), { recursive: true });
+    fs.mkdirSync(path.join(repo, 'stack', 'agents'), { recursive: true });
+    fs.cpSync(path.join(ROOT, 'stack', 'skills', 'csharp'), path.join(repo, 'stack', 'skills', 'csharp'), { recursive: true });
     fs.writeFileSync(path.join(repo, 'RELEASE-SOURCE'), `sha: ${FAKE_SHA}\nref: main\nversion: 7.7.7\n`);
     const work = fs.mkdtempSync(path.join(os.tmpdir(), 'skinst-ps-'));
     const sel = path.join(work, 'sel.txt');
@@ -246,7 +256,7 @@ test('ps1: -Source pointed at an extracted archive stamps from its RELEASE-SOURC
         });
         assert.strictEqual(readStamp(work).sha, FAKE_SHA, 'ps1 stamp read from RELEASE-SOURCE when there is no git checkout');
         assert.strictEqual(readStamp(work).version, '7.7.7', 'ps1 stamp version read from RELEASE-SOURCE');
-        assert.ok(fs.existsSync(path.join(repo, 'skills')), 'the caller owns the extracted archive - the ps1 must not delete it');
+        assert.ok(fs.existsSync(path.join(repo, 'stack', 'skills')), 'the caller owns the extracted archive - the ps1 must not delete it');
     }
     finally
     {
@@ -271,7 +281,7 @@ test('ps1: -Source installs from a caller-provided checkout and never deletes it
         });
         assert.match(out, /\(provided\)/, 'ps1 reports the borrowed source rather than cloning its own');
         assert.ok(fs.existsSync(path.join(work, '.claude', 'skills', 'csharp', 'SKILL.md')), 'installed from the provided checkout');
-        assert.ok(fs.existsSync(path.join(checkout, 'skills')), 'the caller owns the checkout - the ps1 must not delete it');
+        assert.ok(fs.existsSync(path.join(checkout, 'stack', 'skills')), 'the caller owns the checkout - the ps1 must not delete it');
     }
     finally
     {

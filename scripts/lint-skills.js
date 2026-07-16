@@ -42,16 +42,16 @@ const path = require('path');
 const yaml = require('js-yaml');
 
 const ROOT = path.resolve(__dirname, '..');
-const SKILLS_DIR = path.join(ROOT, 'skills');
-const CLAUDE_SH = path.join(ROOT, 'scripts', 'claude-stack.sh');
-const CLAUDE_PS1 = path.join(ROOT, 'scripts', 'claude-stack.ps1');
+const SKILLS_DIR = path.join(ROOT, 'stack', 'skills');
+const CLAUDE_SH = path.join(ROOT, 'scripts', 'os', 'claude-stack.sh');
+const CLAUDE_PS1 = path.join(ROOT, 'scripts', 'os', 'claude-stack.ps1');
 const README = path.join(ROOT, 'README.md');
 const CLAUDE_README = README;   // merged into the root README at the repo flatten
 const STACK_HTML = path.join(ROOT, 'docs', 'claude-stack.html');
-const AGENTS_DIR = path.join(ROOT, 'agents');
-const CLAUDE_TEMPLATE = path.join(ROOT, 'templates', 'CLAUDE.template.md');
-const CLAUDE_RULES_DIR = path.join(ROOT, 'rules');
-const CONVENTION_HOOK = path.join(ROOT, 'hooks', 'require-convention-skill.js');
+const AGENTS_DIR = path.join(ROOT, 'stack', 'agents');
+const CLAUDE_TEMPLATE = path.join(ROOT, 'stack', 'CLAUDE.template.md');
+const CLAUDE_RULES_DIR = path.join(ROOT, 'stack', 'rules');
+const CONVENTION_HOOK = path.join(ROOT, 'stack', 'hooks', 'require-convention-skill.js');
 const PLUGIN_MARKETPLACE_URLS = new Set([
     'https://github.com/anthropics/claude-plugins-official',
     'https://github.com/jarrodwatts/claude-hud',
@@ -901,8 +901,8 @@ function main()
     let rulesChecked = 0;
     let agentsChecked = 0;
     for (const target of [
-        { dir: path.join(ROOT, 'rules'), kind: 'rule' },
-        { dir: path.join(ROOT, 'agents'), kind: 'agent' },
+        { dir: path.join(ROOT, 'stack', 'rules'), kind: 'rule' },
+        { dir: path.join(ROOT, 'stack', 'agents'), kind: 'agent' },
     ])
     {
         for (const file of fs.readdirSync(target.dir).filter(f => f.endsWith('.md')).sort())

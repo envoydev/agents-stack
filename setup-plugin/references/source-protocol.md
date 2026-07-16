@@ -1,10 +1,11 @@
-# The one-download protocol - shared by the setup, update, and configure skills
+# The one-download protocol - shared by the setup, update, and configure commands
 
-All three plugin skills (`setup` - fresh install, `update` - refresh + prune, `configure` -
-adjust the selection) drive their whole run from ONE source snapshot. This file is the shared
-contract; each skill's numbered steps say WHEN to apply it, this file says WHAT holds. It lives
-under the `setup` skill's `references/` and the siblings cite it by path - the skills always
-ship together in the plugin.
+All three plugin commands (`/claude-stack:setup` - fresh install, `/claude-stack:update` -
+refresh + prune, `/claude-stack:configure` - adjust the selection) drive their whole run from ONE
+source snapshot. This file is the shared contract; each command's numbered steps say WHEN to
+apply it, this file says WHAT holds. It lives at the plugin root's `references/` and the commands
+cite it as `${CLAUDE_PLUGIN_ROOT}/references/source-protocol.md` - commands and references ship
+together in the plugin.
 
 ## One release archive is the entire download
 
@@ -53,11 +54,11 @@ these instructions lag it.
 ## Use the tools from the snapshot
 
 Everything comes out of `$TMP/repo`:
-- the installer - `scripts/claude-stack.sh` on `darwin`/`linux`, `scripts/claude-stack.ps1` on
+- the installer - `scripts/os/claude-stack.sh` on `darwin`/`linux`, `scripts/os/claude-stack.ps1` on
   Windows (via `pwsh`)
 - `scripts/stack-select.js` and `scripts/stack-graph.json` (selection closure + prerequisite check)
-- `templates/CLAUDE.template.md` (the CLAUDE.md fill-in / reconcile step)
-- `RELEASE-SOURCE` - the snapshot's commit (the `configure` skill compares the stamp against it
+- `stack/CLAUDE.template.md` (the CLAUDE.md fill-in / reconcile step)
+- `RELEASE-SOURCE` - the snapshot's commit (the `configure` command compares the stamp against it
   via the GitHub compare API; an archive has no git history to diff locally)
 
 Run every later `node`/`bash` step against these snapshot copies - never re-fetch one from a raw
@@ -68,15 +69,15 @@ from.
 
 Pass `--source "$TMP/repo"` (`-Source` on Windows) when running the installer's action. That is
 what keeps a guided run at ONE download instead of two, and it guarantees the run lands the same
-revision the skill's earlier steps inspected. The installer copies out of `$TMP/repo`, writes the
+revision the command's earlier steps inspected. The installer copies out of `$TMP/repo`, writes the
 `claude-stack.stamp` naming that revision (from `RELEASE-SOURCE`, or the checkout's HEAD when the
-fallback cloned), and never deletes a source it was handed - cleanup is the skill's job, below.
+fallback cloned), and never deletes a source it was handed - cleanup is the command's job, below.
 
 ## Clean up the temp dir - ALWAYS
 
 `rm -rf "$TMP"` (PowerShell: `Remove-Item -Recurse -Force $TMP`). The archive, the extracted
 repo, and the working files you wrote next to them (`raw.json`, `selection.txt`) live there and
 nothing else will remove them - the installer only cleans up a source IT fetched, never the one
-you passed via `--source`. Do this on EVERY exit path, not just the happy one - each skill's
+you passed via `--source`. Do this on EVERY exit path, not just the happy one - each command's
 final step lists its own exit cases. Then confirm the project tree holds only installed
 artifacts - no archive, no extracted repo, no `raw.json`/`selection.txt`, no installer copy.

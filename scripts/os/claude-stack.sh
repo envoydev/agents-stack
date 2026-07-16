@@ -620,8 +620,8 @@ stack_src() {
     # Borrowed source. Sanity-check it IS the stack (a wrong --source would otherwise 'install'
     # nothing and report 117 per-file failures), then read its revision: a git checkout carries
     # it in HEAD, an extracted release archive in its RELEASE-SOURCE file.
-    if [ ! -d "$SOURCE_DIR/skills" ] || [ ! -d "$SOURCE_DIR/agents" ]; then
-      note_failure "--source '$SOURCE_DIR' is not a claude-stack checkout (no skills/ + agents/) - stack source unavailable"
+    if [ ! -d "$SOURCE_DIR/stack/skills" ] || [ ! -d "$SOURCE_DIR/stack/agents" ]; then
+      note_failure "--source '$SOURCE_DIR' is not a claude-stack checkout (no stack/skills + stack/agents) - stack source unavailable"
       return 1
     fi
     STACK_SRC="$SOURCE_DIR"; STACK_SRC_OWNED=false
@@ -649,7 +649,7 @@ stack_src() {
      curl -fsSL "$url" -o "$tmp/claude-stack.tar.gz" 2>/dev/null &&
      mkdir -p "$tmp/repo" &&
      tar -xzf "$tmp/claude-stack.tar.gz" -C "$tmp/repo" 2>/dev/null &&
-     [ -d "$tmp/repo/skills" ] && [ -d "$tmp/repo/agents" ]; then
+     [ -d "$tmp/repo/stack/skills" ] && [ -d "$tmp/repo/stack/agents" ]; then
     STACK_SRC="$tmp/repo"; STACK_SRC_ROOT="$tmp"; STACK_SRC_OWNED=true
     STACK_SHA="$(sed -n 's/^sha: //p' "$tmp/repo/RELEASE-SOURCE" 2>/dev/null | head -1)"
     STACK_REF="$(sed -n 's/^ref: //p' "$tmp/repo/RELEASE-SOURCE" 2>/dev/null | head -1)"
@@ -687,8 +687,8 @@ install_skills() {
   mkdir -p "$dest"
   for entry in ${SKILLS[@]+"${SKILLS[@]}"}; do
     name="${entry#*|}"
-    if [ -d "$STACK_SRC/skills/$name" ]; then
-      rm -rf "$dest/$name"; cp -R "$STACK_SRC/skills/$name" "$dest/$name"
+    if [ -d "$STACK_SRC/stack/skills/$name" ]; then
+      rm -rf "$dest/$name"; cp -R "$STACK_SRC/stack/skills/$name" "$dest/$name"
       log "skill [$CLAUDE_SCOPE]: $name -> $dest/$name"
     else
       note_failure "skill '$name' not found in $STACK_REPO_URL"
@@ -760,19 +760,19 @@ download_hooks() {  # copy each hook file into the repo; per-hook fail-soft (kee
   local root entry file; local -a files=()
   root="$(git rev-parse --show-toplevel 2>/dev/null)" || { log "  !! not in a git repo - skipping hooks"; return 0; }
   for entry in "${HOOKS[@]}"; do file="${entry%%::*}"; files+=("$file"); done
-  _install_from_src hooks hook "$root/.claude/hooks" exec ${files[@]+"${files[@]}"}
+  _install_from_src stack/hooks hook "$root/.claude/hooks" exec ${files[@]+"${files[@]}"}
 }
 
 download_agents() {  # copy each subagent .md into .claude/agents/; per-agent fail-soft (keeps repo copy)
   local root
   root="$(git rev-parse --show-toplevel 2>/dev/null)" || { log "  !! not in a git repo - skipping agents"; return 0; }
-  _install_from_src agents agent "$root/.claude/agents" no ${AGENTS[@]+"${AGENTS[@]}"}
+  _install_from_src stack/agents agent "$root/.claude/agents" no ${AGENTS[@]+"${AGENTS[@]}"}
 }
 
 download_rules() {  # copy each rule .md into .claude/rules/; per-rule fail-soft (keeps repo copy)
   local root
   root="$(git rev-parse --show-toplevel 2>/dev/null)" || { log "  !! not in a git repo - skipping rules"; return 0; }
-  _install_from_src rules rule "$root/.claude/rules" no ${CLAUDE_RULES[@]+"${CLAUDE_RULES[@]}"}
+  _install_from_src stack/rules rule "$root/.claude/rules" no ${CLAUDE_RULES[@]+"${CLAUDE_RULES[@]}"}
 }
 
 seed_claude_md() {  # INSTALL: lay down a starter .claude/CLAUDE.md from the template when the project has none (never clobber a filled one)
@@ -781,7 +781,7 @@ seed_claude_md() {  # INSTALL: lay down a starter .claude/CLAUDE.md from the tem
   # Auto-loaded from either ./CLAUDE.md or ./.claude/CLAUDE.md - skip if EITHER exists so we never leave two copies.
   if [ -f "$root/CLAUDE.md" ] || [ -f "$root/.claude/CLAUDE.md" ]; then log "  CLAUDE.md: already present - left as-is (finish its authoring outline if not done)"; return 0; fi
   stack_src || { log "  !! stack source unavailable - create .claude/CLAUDE.md by hand from CLAUDE.template.md"; return 0; }
-  src="$STACK_SRC/templates/CLAUDE.template.md"
+  src="$STACK_SRC/stack/CLAUDE.template.md"
   [ -f "$src" ] || { note_failure "CLAUDE.template.md not found in $STACK_REPO_URL"; return 0; }
   dest="$root/.claude/CLAUDE.md"; mkdir -p "$root/.claude"
   cp "$src" "$dest"; log "  CLAUDE.md: seeded to .claude/CLAUDE.md - write the project top from its authoring-outline comment, and keep the '.claude/*' + '!.claude/CLAUDE.md' gitignore lines so it stays committed"

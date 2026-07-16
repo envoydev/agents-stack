@@ -1,14 +1,13 @@
 ---
-name: setup
-description: "FRESH install of the claude-stack, from scratch - detect the OS + analyse the project, ask the scalar install choices, fetch the tools, then walk the selection in four dependency-ordered layers (rules -> agents -> skills -> MCPs + plugins): each layer offers its recommended set first, then a customize pass to add or drop - only items another kept item requires are locked, always with the reason shown. Prerequisite check, install, and an OFFERED (never forced) CLAUDE.md fill-in close the run. In a project, the selection is decided FROM the project (detected stacks seed the recommendations); outside any project it falls back to a global install seeded from the recommended set (references/recommendations.json), stacks chosen by the user. Trigger by invoking /claude-stack:setup or 'set up the claude stack here'. NOT for an existing install - a plain refresh is the sibling update skill, choosing what to add or drop is configure."
+description: "FRESH install of the claude-stack, from scratch - detect the OS + analyse the project, ask the scalar install choices, fetch the tools, then walk the selection in four dependency-ordered layers (rules -> agents -> skills -> MCPs + plugins): each layer offers its recommended set first, then a customize pass to add or drop - only items another kept item requires are locked, always with the reason shown. Prerequisite check, install, and an OFFERED (never forced) CLAUDE.md fill-in close the run. In a project, the selection is decided FROM the project (detected stacks seed the recommendations); outside any project it falls back to a global install seeded from the recommended set, stacks chosen by the user. NOT for an existing install - a plain refresh is the sibling update command, choosing what to add or drop is configure."
 disable-model-invocation: true
 ---
 
 # Set up the Claude stack - fresh install
 
-You are bootstrapping the claude-stack FROM SCRATCH. If the stack is already installed here (a populated `.claude/skills` + `.claude/agents`, or the global account equivalents in no-project mode), stop and route to a sibling: `update` for a plain refresh, `configure` to adjust the selection - updates are their job. Work the ladder in order and drive it interactively: ask the scalar choices, walk the selection one layer at a time, always show the prerequisite report before installing, and never install past an unmet blocker. The deterministic work is done by `stack-select.js`; you orchestrate. Two modes, decided at step 1: **project mode** (the normal case - the selection is decided from the project itself) and **no-project mode** (a global install seeded from the recommended set).
+You are bootstrapping the claude-stack FROM SCRATCH. If the stack is already installed here (a populated `.claude/skills` + `.claude/agents`, or the global account equivalents in no-project mode), stop and route to a sibling command: `/claude-stack:update` for a plain refresh, `/claude-stack:configure` to adjust the selection - updates are their job. Work the ladder in order and drive it interactively: ask the scalar choices, walk the selection one layer at a time, always show the prerequisite report before installing, and never install past an unmet blocker. The deterministic work is done by `stack-select.js`; you orchestrate. Two modes, decided at step 1: **project mode** (the normal case - the selection is decided from the project itself) and **no-project mode** (a global install seeded from the recommended set).
 
-**ONE release archive is the entire download** - read `references/source-protocol.md` before step 1 and hold the whole run to it: download + extract the `latest` release archive once into `$TMP/repo` (the reference owns the fallback), use every tool from that snapshot (`stack-select.js`, `stack-graph.json`, the installer, the template - never a raw re-fetch), hand it to the installer with `--source` in step 8, and remove `$TMP` per the 'Clean up' section on every exit path.
+**ONE release archive is the entire download** - read `${CLAUDE_PLUGIN_ROOT}/references/source-protocol.md` before step 1 and hold the whole run to it: download + extract the `latest` release archive once into `$TMP/repo` (the reference owns the fallback), use every tool from that snapshot (`stack-select.js`, `stack-graph.json`, the installer, the template - never a raw re-fetch), hand it to the installer with `--source` in step 8, and remove `$TMP` per the 'Clean up' section on every exit path.
 
 ## The ladder - announce every step
 
@@ -34,7 +33,7 @@ Nine user-facing steps; the machinery between them (the download, the post-check
 Detected: aspnet (src/Api/Api.csproj - Microsoft.NET.Sdk.Web), angular (angular.json), devops (Dockerfile + .github/workflows/)
 ```
 
-- No project here (not a git repo, or an empty/unrelated directory) -> offer **no-project mode**: a `global` install into the account (`~/.claude`), seeded from the recommended set - confirm with the user before proceeding. Skip the artifact detection and instead present the stacks available in `references/recommendations.json` as a multi-pick ('which stacks do you work with?'); picking none installs just the `always` baseline. Scope is `global` (step 2 does not re-ask it); every later step applies unchanged.
+- No project here (not a git repo, or an empty/unrelated directory) -> offer **no-project mode**: a `global` install into the account (`~/.claude`), seeded from the recommended set - confirm with the user before proceeding. Skip the artifact detection and instead present the stacks available in `${CLAUDE_PLUGIN_ROOT}/references/recommendations.json` as a multi-pick ('which stacks do you work with?'); picking none installs just the `always` baseline. Scope is `global` (step 2 does not re-ask it); every later step applies unchanged.
 - A repo with NO recognizable artifacts (greenfield) falls back the same way: present the recommendations stacks as a multi-pick of what the project WILL be, then continue normally at project scope.
 
 ## 2. Install choices
@@ -50,7 +49,7 @@ Per layer:
 - Recompute first: `node stack-select.js --selection raw.json --graph stack-graph.json` over the picks so far. The category-tagged `required: <category> <name> - <why>` lines belonging to THIS layer are its **locked** set.
 - Present three groups:
   - **locked** - required by an earlier choice; shown with its reason (`required by rule dotnet-repair-agents`), never offered for deselection. The ONLY way to shed one is to drop the dependent its reason names: offer to reopen that layer, apply the drop, then re-run the closure and re-confirm any layer whose locked set changed.
-  - **recommended** - this layer's seed (union of `always` + each confirmed stack in `references/recommendations.json`) minus what is already locked; pre-selected, freely droppable.
+  - **recommended** - this layer's seed (union of `always` + each confirmed stack in `${CLAUDE_PLUGIN_ROOT}/references/recommendations.json`) minus what is already locked; pre-selected, freely droppable.
   - **available** - the rest of the release's catalog for the layer (the graph's `rules`/`agents`/`skills` keys, `catalog.mcps`/`catalog.plugins`); freely addable.
 - Two phases, two questions: **(a) accept** the set as shown, or customize? **(b) customize** - a multi-pick of adds and drops over recommended + available. A drop attempt on a locked item is answered with its reason, never silently honored or silently ignored.
 - Fold the final picks into `raw.json` and move on. An `unknown:` line is a typo or a retired name - surface it, never pass it through.
@@ -82,14 +81,14 @@ Run: `node stack-select.js --selection raw.json --graph stack-graph.json --emit 
 
 Run the installer **from the snapshot**, and pass it back with `--source` so it installs from what you already downloaded instead of fetching again:
 
-- Unix: `bash "$TMP/repo/scripts/claude-stack.sh" install --source "$TMP/repo" --scope <scope> --selection selection.txt [--space <name>] [--context7 local|remote] [--github-cli] [--keep-pins]`
-- Windows: `pwsh -File "$TMP/repo/scripts/claude-stack.ps1" install -Source "$TMP/repo" -Scope <scope> -Selection selection.txt [-Space <name>] [-Context7 local|remote] [-GitHubCli] [-KeepPins]` - the ps1 handles the serena/TypeScript-on-Windows patch itself.
+- Unix: `bash "$TMP/repo/scripts/os/claude-stack.sh" install --source "$TMP/repo" --scope <scope> --selection selection.txt [--space <name>] [--context7 local|remote] [--github-cli] [--keep-pins]`
+- Windows: `pwsh -File "$TMP/repo/scripts/os/claude-stack.ps1" install -Source "$TMP/repo" -Scope <scope> -Selection selection.txt [-Space <name>] [-Context7 local|remote] [-GitHubCli] [-KeepPins]` - the ps1 handles the serena/TypeScript-on-Windows patch itself.
 
 `--source` is what makes the guided run take ONE download. The installer owns nothing here: it copies out of `$TMP/repo` and leaves it for you to remove at cleanup. It writes `.claude/claude-stack.stamp` recording the commit it installed (read from the snapshot's `RELEASE-SOURCE`) - that is what a later `/claude-stack:configure` diffs against.
 
 ## 9. CLAUDE.md - the user's call (project mode)
 
-Not required - ask first, and a 'no' ends the run cleanly (a later `/claude-stack:configure` can always reconcile it). The installer seeded `.claude/CLAUDE.md` from the snapshot's `templates/CLAUDE.template.md` when the project had none; offer to make it real now from the step-1 analysis. On a yes: follow the template's own authoring-outline comment - write the project top (what the project is, structure, the real build/test commands), cover the outline's inventories (stack, commands, secrets/config globs), and trim its rules table to the rules this selection actually installed. A pre-existing CLAUDE.md is NEVER overwritten - offer to reconcile it against the fetched template instead (add the sections it lacks, leave the project's own prose untouched), and show the changes before writing. Skip in no-project mode (a global install seeds no project file).
+Not required - ask first, and a 'no' ends the run cleanly (a later `/claude-stack:configure` can always reconcile it). The installer seeded `.claude/CLAUDE.md` from the snapshot's `stack/CLAUDE.template.md` when the project had none; offer to make it real now from the step-1 analysis. On a yes: follow the template's own authoring-outline comment - write the project top (what the project is, structure, the real build/test commands), cover the outline's inventories (stack, commands, secrets/config globs), and trim its rules table to the rules this selection actually installed. A pre-existing CLAUDE.md is NEVER overwritten - offer to reconcile it against the fetched template instead (add the sections it lacks, leave the project's own prose untouched), and show the changes before writing. Skip in no-project mode (a global install seeds no project file).
 
 ## Post-check
 
@@ -97,7 +96,7 @@ Report what still needs a hand: LSP tools (`csharp-ls` via `dotnet tool install 
 
 ## Clean up the temp dir - ALWAYS
 
-Remove `$TMP` per `references/source-protocol.md`, on EVERY exit path of THIS skill: after a successful install, after an abort, and after a blocker or a user 'no' that stops the run early. Then confirm the project tree holds only installed artifacts.
+Remove `$TMP` per `${CLAUDE_PLUGIN_ROOT}/references/source-protocol.md`, on EVERY exit path of THIS command: after a successful install, after an abort, and after a blocker or a user 'no' that stops the run early. Then confirm the project tree holds only installed artifacts.
 
 ## Do not
 

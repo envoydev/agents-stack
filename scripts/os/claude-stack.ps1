@@ -684,8 +684,8 @@ function Get-StackSrc {
     # Borrowed source. Sanity-check it IS the stack (a wrong -Source would otherwise 'install'
     # nothing and report 117 per-file failures), then read its revision: a git checkout carries
     # it in HEAD, an extracted release archive in its RELEASE-SOURCE file.
-    if (-not ((Test-Path -LiteralPath (Join-Path $Source 'skills') -PathType Container) -and
-              (Test-Path -LiteralPath (Join-Path $Source 'agents') -PathType Container))) {
+    if (-not ((Test-Path -LiteralPath (Join-Path $Source 'stack/skills') -PathType Container) -and
+              (Test-Path -LiteralPath (Join-Path $Source 'stack/agents') -PathType Container))) {
       Add-Failure "-Source '$Source' is not a claude-stack checkout (no skills/ + agents/) - stack source unavailable"
       return $false
     }
@@ -718,8 +718,8 @@ function Get-StackSrc {
     Invoke-WebRequest -Uri $url -OutFile (Join-Path $tmp 'claude-stack.zip') -UseBasicParsing -ErrorAction Stop
     Expand-Archive -LiteralPath (Join-Path $tmp 'claude-stack.zip') -DestinationPath $repo -Force
   } catch { <# fall through to the clone below #> }
-  if ((Test-Path -LiteralPath (Join-Path $repo 'skills') -PathType Container) -and
-      (Test-Path -LiteralPath (Join-Path $repo 'agents') -PathType Container)) {
+  if ((Test-Path -LiteralPath (Join-Path $repo 'stack/skills') -PathType Container) -and
+      (Test-Path -LiteralPath (Join-Path $repo 'stack/agents') -PathType Container)) {
     $script:StackSrc = $repo
     $script:StackSrcRoot = $tmp
     $script:StackSrcOwned = $true
@@ -792,7 +792,7 @@ function Install-Skills {
   New-Item -ItemType Directory -Path $dest -Force | Out-Null
   foreach ($entry in $Skills) {
     $name = $entry.Split('|', 2)[1]
-    $src = Join-Path $script:StackSrc (Join-Path 'skills' $name)
+    $src = Join-Path $script:StackSrc (Join-Path 'stack/skills' $name)
     if (Test-Path -LiteralPath $src -PathType Container) {
       $target = Join-Path $dest $name
       if (Test-Path -LiteralPath $target) { Remove-Item -LiteralPath $target -Recurse -Force }
@@ -856,21 +856,21 @@ function Get-Hooks {
   $root = Get-RepoRoot
   if (-not $root) { Log '  !! not in a git repo - skipping hooks'; return }
   $files = @(foreach ($entry in $Hooks) { ($entry -split '::', 2)[0] })
-  Copy-FromStackSrc -SubDir 'hooks' -Label 'hook' -DestDir (Join-Path $root '.claude/hooks') -Files $files
+  Copy-FromStackSrc -SubDir 'stack/hooks' -Label 'hook' -DestDir (Join-Path $root '.claude/hooks') -Files $files
 }
 
 function Get-Agents {
   # Copy each subagent .md into the repo from the run's clone; per-agent fail-soft (keeps repo copy).
   $root = Get-RepoRoot
   if (-not $root) { Log '  !! not in a git repo - skipping agents'; return }
-  Copy-FromStackSrc -SubDir 'agents' -Label 'agent' -DestDir (Join-Path $root '.claude/agents') -Files $Agents
+  Copy-FromStackSrc -SubDir 'stack/agents' -Label 'agent' -DestDir (Join-Path $root '.claude/agents') -Files $Agents
 }
 
 function Get-Rules {
   # Copy each rule .md into the repo from the run's clone; per-rule fail-soft (keeps repo copy).
   $root = Get-RepoRoot
   if (-not $root) { Log '  !! not in a git repo - skipping rules'; return }
-  Copy-FromStackSrc -SubDir 'rules' -Label 'rule' -DestDir (Join-Path $root '.claude/rules') -Files $ClaudeRules
+  Copy-FromStackSrc -SubDir 'stack/rules' -Label 'rule' -DestDir (Join-Path $root '.claude/rules') -Files $ClaudeRules
 }
 
 function New-ClaudeMd {
@@ -880,7 +880,7 @@ function New-ClaudeMd {
   # Auto-loaded from either ./CLAUDE.md or ./.claude/CLAUDE.md - skip if EITHER exists so we never leave two copies.
   if ((Test-Path -LiteralPath (Join-Path $root 'CLAUDE.md')) -or (Test-Path -LiteralPath (Join-Path $root '.claude/CLAUDE.md'))) { Log '  CLAUDE.md: already present - left as-is (finish its authoring outline if not done)'; return }
   if (-not (Get-StackSrc)) { Log '  !! stack source unavailable - create .claude/CLAUDE.md by hand from CLAUDE.template.md'; return }
-  $src = Join-Path $script:StackSrc (Join-Path 'templates' 'CLAUDE.template.md')
+  $src = Join-Path $script:StackSrc (Join-Path 'stack' 'CLAUDE.template.md')
   if (-not (Test-Path -LiteralPath $src -PathType Leaf)) { Add-Failure "CLAUDE.template.md not found in $StackRepoUrl"; return }
   $dest = Join-Path $root '.claude/CLAUDE.md'
   New-Item -ItemType Directory -Force -Path (Join-Path $root '.claude') | Out-Null
@@ -1203,7 +1203,7 @@ function Repair-SerenaTsLspWindows {
   # so the only lever is patching _create_launch_command in the cached package. Two steps:
   #   1) pre-warm: `claude mcp add` only registers serena - the package isn't materialized in the uv
   #      cache until serena first launches, so force a uvx run now or there is nothing to patch yet.
-  #   2) delegate the idempotent patch to scripts/fix-serena-ts-windows.ps1 (single source of truth),
+  #   2) delegate the idempotent patch to scripts/os/fix-serena-ts-windows.ps1 (single source of truth),
   #      fetched from the repo like the hooks. Fail-soft throughout. No-op on the .sh twin (Unix runs
   #      the shim directly via its shebang). REMOVE this whole block once #311 ships upstream.
   if (-not $OnWindows) { return }
@@ -1220,7 +1220,7 @@ function Repair-SerenaTsLspWindows {
   # From the run's source clone, like every other repo-owned file - so this patch is the same
   # revision as the rest of the install rather than whatever the raw CDN happens to be serving.
   if (-not (Get-StackSrc)) { Write-Warning '  serena TS-LSP fix skipped - stack source unavailable'; return }
-  $fixSrc = Join-Path $script:StackSrc (Join-Path 'scripts' 'fix-serena-ts-windows.ps1')
+  $fixSrc = Join-Path $script:StackSrc (Join-Path 'scripts/os' 'fix-serena-ts-windows.ps1')
   if (-not (Test-Path -LiteralPath $fixSrc -PathType Leaf)) { Write-Warning '  serena TS-LSP fix skipped - fix-serena-ts-windows.ps1 not found in the source'; return }
   try {
     & powershell -NoProfile -ExecutionPolicy Bypass -File $fixSrc   # child process: its `exit` won't kill this installer

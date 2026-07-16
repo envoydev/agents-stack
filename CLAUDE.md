@@ -18,19 +18,19 @@ change made only inside a consuming project is throwaway (see Invariants).
 
 ## Layout - one home per concern
 
-- `skills/` - the house-style skills, each a `SKILL.md`. Auto-activate on their own
+- `stack/skills/` - the house-style skills, each a `SKILL.md`. Auto-activate on their own
   keywords / file types in consuming projects. Distributed via the stack installers'
   snapshot-download-and-copy step (or the claude-stack plugin) - including `cursor-stack`'s
   installers, which clone this repo.
-- `scripts/claude-stack.{sh,ps1}` - the installer twins (Unix / Windows); `docs/claude-stack.html` is the browser inventory.
-- `templates/CLAUDE.template.md` - the stack-neutral per-project skeleton (with `<placeholders>`) that each
+- `scripts/os/claude-stack.{sh,ps1}` - the installer twins (Unix / Windows); `docs/claude-stack.html` is the browser inventory.
+- `stack/CLAUDE.template.md` - the stack-neutral per-project skeleton (with `<placeholders>`) that each
   consuming project's `CLAUDE.md` is filled in from; the working conventions ship separately in
-  the `rules/baseline-*.md` set. Content shipped to projects, not this repo's own file.
-- `hooks/` - `guard-protected-force-push.js` + `guard-catastrophic-rm.js` (PreToolUse `Bash`) +
+  the `stack/rules/baseline-*.md` set. Content shipped to projects, not this repo's own file.
+- `stack/hooks/` - `guard-protected-force-push.js` + `guard-catastrophic-rm.js` (PreToolUse `Bash`) +
   `guard-read-whole-file.js` (PreToolUse `Read`), all wired; plus `instrument-tool-usage.js`,
   installed UNWIRED (opt-in per-run tool/skill/MCP stats via STACK_INSTRUMENT=1 + manual wiring).
   Copied from the run's clone into a project's `.claude/hooks/`.
-- `agents/` - the Claude-contract subagents, 33 total: the four build/test resolvers - .NET
+- `stack/agents/` - the Claude-contract subagents, 33 total: the four build/test resolvers - .NET
     (`dotnet-build-error-resolver`, `dotnet-test-failure-resolver`) + Angular (`ng-build-error-resolver`,
     `angular-test-resolver`) - plus four cross-cutting agents (`ci-failure-diagnoser`, `issue-diagnoser`, `security-auditor` - a read-only
     cross-stack security posture audit that routes an OWASP/CWE punch-list to the implementers, complementing
@@ -62,7 +62,7 @@ change made only inside a consuming project is throwaway (see Invariants).
     protocol change to an agent here usually needs the same edit to its twin there (the deliberate
     divergences are only the platform gaps, listed in that repo's CLAUDE.md: `model: inherit`, no
     per-tool `tools:` allowlist, `superpowers` optional, no auto-delegation hard-disable).
-- `rules/` - fifteen rules, fetched into a project's `.claude/rules/`, each doing ONE job. Five
+- `stack/rules/` - fifteen rules, fetched into a project's `.claude/rules/`, each doing ONE job. Five
     are the always-on `baseline-*.md` set (no `paths:` - the cross-project working conventions grouped
     by exclusion affinity: interaction (communication + proposal review + planning), quality-gates
     (code quality + definition of done), security, git + pre-commit, navigation - loaded every session and
@@ -77,7 +77,7 @@ change made only inside a consuming project is throwaway (see Invariants).
     each glob-attaching ONE file family to its house-style skill - single-job so a stack a project
     lacks is simply not installed; the soft replacement for the retired require-convention-skill
     hard gate.
-- `setup-plugin/` - the claude-stack plugin: three guided skills, `/claude-stack:setup` (fresh install from scratch), `/claude-stack:update` (no-questions refresh + prune of upstream-removed artifacts, computed from the stamp compare) and `/claude-stack:configure` (adjust an existing install - add or drop), plus the `/claude-stack` router command.
+- `setup-plugin/` - the claude-stack plugin: three guided COMMANDS, `/claude-stack:setup` (fresh install from scratch), `/claude-stack:update` (no-questions refresh + prune of upstream-removed artifacts, computed from the stamp compare) and `/claude-stack:configure` (adjust an existing install - add or drop), their shared `references/` at the plugin root, plus the `/claude-stack` router SKILL (answers with the right command). The split is display-driven, empirically proven: plugin commands list namespaced-only (`/claude-stack:setup`, like claude-hud's), plugin skills list bare - so workers-as-commands kills the generic bare `/setup`-`/update`-`/configure` entries, and router-as-skill (named exactly like the plugin) lists as bare `/claude-stack` instead of the `/claude-stack:claude-stack` stutter a router command produces. Do not convert either back.
 - `scripts/lint-skills.js` - the parity lint (below). `scripts/analyze-usage.js` - offline
   token/tool consumption report over a session's transcript JSONL (+ its `subagents/`), the token
   side of the flow instrumentation (`instrument-tool-usage.js` is the identity side - hooks never
@@ -235,7 +235,7 @@ documented there.
   against the new snapshot's commit (the GitHub compare API - an archive has no local history) to
   report what an update would bring. A run whose source never resolved writes NO stamp - a wrong
   stamp is worse than none.
-- Authoring or editing a house skill in skills/? The superpowers writing-skills method is a useful
+- Authoring or editing a house skill in stack/skills/? The superpowers writing-skills method is a useful
   reference - subordinate it to the parity lint, the HTML + skill-count sync, and the house
   voice; take its skill-testing discipline, not its own formatting or its push-to-fork deploy step.
 - Skills are shared with Cursor: a skill body must stay platform-neutral (execution-mode

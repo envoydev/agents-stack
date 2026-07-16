@@ -1,6 +1,5 @@
 ---
-name: configure
-description: "ADJUST an existing claude-stack install - inventory what is actually installed, report what an update would bring (the stamp compare), then walk the installed selection in the same four dependency-ordered layers as setup (rules -> agents -> skills -> MCPs + plugins), no recommended phase: each layer is a straight modify of what exists - drop what is no longer wanted, add from the catalog. An item another kept item requires is locked, always with the reason shown; a drop cascades forward - what it alone pulled in is offered for removal at its own layer, never removed silently. Prerequisite check, the installer's update action, explicit removals, and an OFFERED (never forced) CLAUDE.md reconcile close the run. Trigger by invoking /claude-stack:configure or 'add X to / drop Y from the claude stack'. NOT for a first install - that is the sibling setup skill; for a plain refresh (+ prune of upstream removals) the sibling update skill is the shorter path."
+description: "ADJUST an existing claude-stack install - inventory what is actually installed, report what an update would bring (the stamp compare), then walk the installed selection in the same four dependency-ordered layers as setup (rules -> agents -> skills -> MCPs + plugins), no recommended phase: each layer is a straight modify of what exists - drop what is no longer wanted, add from the catalog. An item another kept item requires is locked, always with the reason shown; a drop cascades forward - what it alone pulled in is offered for removal at its own layer, never removed silently. Prerequisite check, the installer's update action, explicit removals, and an OFFERED (never forced) CLAUDE.md reconcile close the run. NOT for a first install - that is the sibling setup command; for a plain refresh (+ prune of upstream removals) the sibling update command is the shorter path."
 disable-model-invocation: true
 ---
 
@@ -12,16 +11,16 @@ before running, never run past an unmet blocker. `stack-select.js` does the dete
 you orchestrate. Two differences from `setup`: the baseline selection is what is INSTALLED, not
 the recommendations - every layer is a straight modify, no accept-recommended phase - and the
 action is `update`, not `install`. (For a no-questions refresh that also prunes what upstream
-removed, the sibling `update` skill is the shorter path - this skill is for CHOOSING what
+removed, the sibling `update` command is the shorter path - this command is for CHOOSING what
 changes.)
 
-**ONE release archive is the entire download** - the shared contract lives in the sibling `setup`
-skill's `references/source-protocol.md`; read it first and hold the whole run to it: download +
-extract the `latest` release archive once into `$TMP/repo` (the reference owns the fallback), use
-every tool from that snapshot, hand it back with `--source` in step 7, and remove `$TMP` per the
-'Clean up' section on every exit path. This skill's extra stake in the snapshot: its
-`RELEASE-SOURCE` commit is what step 1 compares the stamp against to report what an update would
-bring.
+**ONE release archive is the entire download** - the shared contract lives at
+`${CLAUDE_PLUGIN_ROOT}/references/source-protocol.md`; read it first and hold the whole run to
+it: download + extract the `latest` release archive once into `$TMP/repo` (the reference owns the
+fallback), use every tool from that snapshot, hand it back with `--source` in step 7, and remove
+`$TMP` per the 'Clean up' section on every exit path. This command's extra stake in the snapshot:
+its `RELEASE-SOURCE` commit is what step 1 compares the stamp against to report what an update
+would bring.
 
 ## The ladder - announce every step
 
@@ -40,8 +39,8 @@ what is being decided, and what comes next:
 - **Find the install.** Project mode: cwd is a project root with a populated `.claude/`
   (skills/agents/rules dirs, or `.mcp.json`). Global mode: no project here, but the account
   (`~/.claude`, or `~/.claude-<space>`) carries installed skills. Nothing installed in either
-  place -> stop and route to the sibling `setup` skill; there is nothing to configure yet. OS: on
-  `darwin`/`linux` use the sh installer; on Windows the ps1 (via `pwsh`).
+  place -> stop and route to the sibling `/claude-stack:setup` command; there is nothing to
+  configure yet. OS: on `darwin`/`linux` use the sh installer; on Windows the ps1 (via `pwsh`).
 - **Inventory the installed set** from disk - never from memory or assumption: skills = the
   directory names under `.claude/skills/` (or the account's `skills/`); agents =
   `.claude/agents/*.md`; rules = `.claude/rules/*.md` (exclude the GENERATED
@@ -57,7 +56,7 @@ what is being decided, and what comes next:
 SHA=$(sed -n 's/^sha: //p' .claude/claude-stack.stamp)
 NEW=$(sed -n 's/^sha: //p' "$TMP/repo/RELEASE-SOURCE")   # the snapshot's commit (an archive has no git history to diff locally)
 curl -fsSL "https://api.github.com/repos/envoydev/claude-stack/compare/$SHA...$NEW" |
-  node -e 'let d="";process.stdin.on("data",c=>d+=c).on("end",()=>{const F=(JSON.parse(d).files||[]);if(F.length>=300)console.log("TRUNCATED - the compare API caps at 300 files; this list may be incomplete");const P=/^(skills|agents|rules|hooks|templates)\//;for(const f of F)if(P.test(f.filename)||(f.previous_filename&&P.test(f.previous_filename)))console.log(f.status+"\t"+f.filename+(f.previous_filename?"\t<- "+f.previous_filename:""))})'
+  node -e 'let d="";process.stdin.on("data",c=>d+=c).on("end",()=>{const F=(JSON.parse(d).files||[]);if(F.length>=300)console.log("TRUNCATED - the compare API caps at 300 files; this list may be incomplete");const P=/^(stack|skills|agents|rules|hooks|templates)\//;for(const f of F)if(P.test(f.filename)||(f.previous_filename&&P.test(f.previous_filename)))console.log(f.status+"\t"+f.filename+(f.previous_filename?"\t<- "+f.previous_filename:""))})'
 ```
 
 Each line is `status<TAB>path` (`modified`/`added`/`removed`, and `renamed` with `<- old-path`).
@@ -81,7 +80,7 @@ A `TRUNCATED` first line means the preview may be missing files - say so alongsi
 
 Close the step with one question: **walk the layers** (steps 2-5, adjust the selection), or
 **refresh as-is** (nothing to change - skip straight to step 6; when upstream changed nothing
-either, offer to stop rather than running a no-op, and note the sibling `update` skill is the
+either, offer to stop rather than running a no-op, and note the sibling `update` command is the
 no-questions path for plain refreshes).
 
 ## The walk - steps 2-5, one layer at a time
@@ -111,7 +110,7 @@ Per layer:
 - Fold the answers into `raw.json` + `dropped.json` and move on. An `unknown:` line marks an
   installed name this release no longer ships (retired or renamed upstream) - it is excluded
   from the emitted selection automatically; surface it: adopt the replacement here if step 1
-  showed a rename, or let the sibling `update` skill prune the leftover artifact.
+  showed a rename, or let the sibling `update` command prune the leftover artifact.
 
 A layer step looks like:
 
@@ -157,8 +156,8 @@ run - an existing install often carries deliberate pin edits).
 Run the installer **from the snapshot**, passing it back with `--source` so the run lands the
 same revision step 1 previewed:
 
-- Unix: `bash "$TMP/repo/scripts/claude-stack.sh" update --source "$TMP/repo" --scope <scope> --selection selection.txt [--space <name>] [--keep-pins]`
-- Windows: `pwsh -File "$TMP/repo/scripts/claude-stack.ps1" update -Source "$TMP/repo" -Scope <scope> -Selection selection.txt [-Space <name>] [-KeepPins]`
+- Unix: `bash "$TMP/repo/scripts/os/claude-stack.sh" update --source "$TMP/repo" --scope <scope> --selection selection.txt [--space <name>] [--keep-pins]`
+- Windows: `pwsh -File "$TMP/repo/scripts/os/claude-stack.ps1" update -Source "$TMP/repo" -Scope <scope> -Selection selection.txt [-Space <name>] [-KeepPins]`
 - Scope/space mirror how the install was laid down (project install -> `project`; account
   install -> `global`, with the space that owns it) - ask only when it is genuinely ambiguous.
 
@@ -171,7 +170,7 @@ installed) so the generated awareness rule reflects the new inventory.
 ## 8. CLAUDE.md - the user's call (project mode)
 
 Not required - ask first, and a 'no' ends the run cleanly. On a yes: reconcile the project's
-CLAUDE.md against the fetched `templates/CLAUDE.template.md` - add the sections the template
+CLAUDE.md against the fetched `stack/CLAUDE.template.md` - add the sections the template
 gained since the install, update the selection-tied parts (the rules table and any capability
 mentions) for what this run added or dropped, and complete any still-unwritten authoring-outline
 sections from what the inventory established. Reconcile ADDITIVELY: never overwrite the project's
@@ -187,14 +186,14 @@ the next configure diffs from here.
 
 ## Clean up the temp dir - ALWAYS
 
-Remove `$TMP` per the `setup` skill's `references/source-protocol.md`, on EVERY exit path of THIS
-skill: after a successful update, after an abort, after a blocker, and after the step-1 'nothing
-changed, stop here' case. Then confirm the project tree holds only installed artifacts.
+Remove `$TMP` per `${CLAUDE_PLUGIN_ROOT}/references/source-protocol.md`, on EVERY exit path of
+THIS command: after a successful update, after an abort, after a blocker, and after the step-1
+'nothing changed, stop here' case. Then confirm the project tree holds only installed artifacts.
 
 ## Do not
 
 - Do not fall back to a full re-install - this is the update path; a from-scratch install is the
-  sibling `setup` skill. Never present a layer question without its
+  sibling `setup` command. Never present a layer question without its
   `[step n/8 - <name>] ... · next: <name>` banner.
 - Never drop a locked item on the user's behalf, never remove an orphan silently, and never
   re-offer an orphan the user chose to keep - the reason line is the answer, the dependent's
