@@ -40,8 +40,8 @@
   local pin edit always wins over an upstream pin change.
 
 .PARAMETER Selection
-  Install ONLY the skills/plugins/mcps/agents/rules named in <file> (one 'category name' per line);
-  hooks always install.
+  Install ONLY the skills/plugins/mcps/agents/rules/hooks named in <file> (one 'category name' per
+  line); a selection with no 'hook' lines installs all hooks.
 
 .PARAMETER PrintPlan
   With -Selection, print the resolved per-category install set and exit (dry run).
@@ -314,7 +314,7 @@ $Skills = @(
   'envoydev/claude-stack|project-code-style-analyzer'    # deliberate code-style capture - fans out code-style-analyzer per language, merges docs/PROJECT-CODE-STYLE.md, generates + wires the inject-code-style hook; manual /-only
   'envoydev/claude-stack|project-architecture-analyzer'  # deliberate architecture capture - dispatches code-analyzer per module, reasons in the main session, writes docs/architecture/ARCHITECTURE.md + ASSESSMENT.md + the generated awareness rule baseline-project-architecture.md; manual /-only
   'envoydev/claude-stack|project-version-upgrade'        # deliberate BREAKING version-event flow (framework/runtime/package major) - plan in-session via context7 + code-analyzer digests, approval gate (auto mode only on explicit user ask), staged execution via implementers + resolvers; manual /-only
-  'envoydev/claude-stack|project-capabilities'           # deliberate capabilities capture - inventories installed skills/agents/MCPs/plugins, generates the awareness rule baseline-project-capabilities.md; manual /-only
+  'envoydev/claude-stack|project-agent-capabilities'           # deliberate capabilities capture - inventories installed skills/agents/MCPs/plugins, generates the awareness rule baseline-project-agent-capabilities.md; manual /-only
   'envoydev/claude-stack|project-related-context'        # deliberate related-projects capture - args paths/URLs, fans out related-project-analyzer per sibling, writes the awareness rule baseline-project-related-context.md + docs/PROJECT-RELATED-CONTEXT.md; manual /-only
   'envoydev/claude-stack|project-build-from-scratch' # greenfield scaffolding + design->scaffold->slice-by-slice build orchestration over the pipeline
   'envoydev/claude-stack|project-task-flow'    # entry-point router: classify -> smallest execution mode -> cross-domain contract freeze + integration gate; home of the shared subagent policies
@@ -556,8 +556,8 @@ $Agents = @(
 # (6) Path-scoped rules (claude-code): fetched into .claude/rules/ on BOTH actions - lazy-load on
 # matching file reads; conventions stay with the convention-gate hook, rules carry only glob-scoped routing.
 # NOTE: baseline-project-related-context.md, baseline-project-architecture.md and
-# baseline-project-capabilities.md are GENERATED per-project (by /project-related-context,
-# /project-architecture-analyzer and /project-capabilities) - NEVER add those names to this
+# baseline-project-agent-capabilities.md are GENERATED per-project (by /project-related-context,
+# /project-architecture-analyzer and /project-agent-capabilities) - NEVER add those names to this
 # manifest (the copy would overwrite the generated copies); nothing prunes the rules dir, so
 # they survive update.
 $ClaudeRules = @(
@@ -601,6 +601,11 @@ if ($Selection) {
   $Mcps        = @($Mcps        | Where-Object { & $SelHas 'mcp'    (($_ -split '\|', 2)[0]) })
   $Agents      = @($Agents      | Where-Object { & $SelHas 'agent'  ((($_ -split '::', 2)[0]) -replace '\.md$', '') })
   $ClaudeRules = @($ClaudeRules | Where-Object { & $SelHas 'rule'   ((($_ -split '::', 2)[0]) -replace '\.md$', '') })
+  # Hooks joined the selection with the guided walk's hooks layer. A selection with no
+  # 'hook' lines predates that layer - keep its install-every-hook behavior unchanged.
+  if (@($sel.Keys | Where-Object { $_.StartsWith('hook ') }).Count -gt 0) {
+    $Hooks     = @($Hooks       | Where-Object { & $SelHas 'hook'   ((($_ -split '::', 2)[0]) -replace '\.js$', '') })
+  }
 }
 
 if ($PrintPlan) {
@@ -609,6 +614,7 @@ if ($PrintPlan) {
   'plan mcps:'    + (($Mcps        | ForEach-Object { ' ' + ($_ -split '\|', 2)[0] }) -join '')
   'plan agents:'  + (($Agents      | ForEach-Object { ' ' + ((($_ -split '::', 2)[0]) -replace '\.md$', '') }) -join '')
   'plan rules:'   + (($ClaudeRules | ForEach-Object { ' ' + ((($_ -split '::', 2)[0]) -replace '\.md$', '') }) -join '')
+  'plan hooks:'   + (($Hooks       | ForEach-Object { ' ' + ((($_ -split '::', 2)[0]) -replace '\.js$', '') }) -join '')
   exit 0
 }
 
@@ -1268,7 +1274,7 @@ if ($script:FailCount -gt 0) { Log "  !! $($script:FailCount) item(s) failed abo
 Log 'next steps:'
 Log "  - write your project's CLAUDE.md top from the template's authoring-outline comment (framework, stack, conventions, secret/config globs) - install seeds a starter from the template when the project has none; the claude-md-management plugin can help audit it"
 Log "  - if this repo has sibling projects (a backend/frontend pair, a consumed package), run /project-related-context with their paths/URLs - it generates the awareness rule (baseline-project-related-context.md) + docs/PROJECT-RELATED-CONTEXT.md"
-Log "  - run /project-capabilities once - it inventories the installed skills/agents/MCPs and generates baseline-project-capabilities.md (re-run after update or a manifest trim)"
+Log "  - run /project-agent-capabilities once - it inventories the installed skills/agents/MCPs and generates baseline-project-agent-capabilities.md (re-run after update or a manifest trim)"
 Log "  - once oriented, run the other two captures the CLAUDE.md rules table names: /project-architecture-analyzer (architecture map + assessment + awareness rule) and /project-code-style-analyzer (docs/PROJECT-CODE-STYLE.md + the inject-code-style hook)"
 Log '  - restart Claude Code (or reopen the project) to load the new MCPs, hooks, and settings'
 if ($script:PrereqMissing) { Log '  - install the missing prerequisites flagged above, then re-run' }

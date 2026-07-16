@@ -164,7 +164,7 @@ same revision step 1 previewed:
 `update --selection` refreshes the selected set - it does NOT uninstall what was dropped. Remove
 dropped items (incl. accepted orphans) explicitly, show each command before running it: delete
 the skill directory / agent file / rule file; `claude mcp remove <name>` for an MCP;
-`claude plugin uninstall <name>` for a plugin. Then re-run `/project-capabilities` (when
+`claude plugin uninstall <name>` for a plugin. Then re-run `/project-agent-capabilities` (when
 installed) so the generated awareness rule reflects the new inventory.
 
 ## 8. CLAUDE.md - the user's call (project mode)

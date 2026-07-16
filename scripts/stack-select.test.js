@@ -21,12 +21,22 @@ test('a rule pulls its skills', () => {
     assert.match(c.reasons['csharp'], /csharp-conventions/);
 });
 
-test('a kept skill makes its mcps required', () => {
-    const c = computeClosure(graph, { skills: ['project-capabilities'] });
-    for (const m of ['serena', 'context7', 'sentry', 'memory', 'playwright', 'angular-cli', 'chrome-devtools', 'appium-mcp'])
-    {
-        assert.ok(c.mcps.includes(m), `expected mcp ${m} required by project-capabilities`);
-    }
+test('a kept rule makes its mcp required; the capabilities skill locks none', () => {
+    const c = computeClosure(graph, { rules: ['baseline-navigation'] });
+    assert.ok(c.mcps.includes('serena'), 'baseline-navigation genuinely depends on serena');
+    // The routing-map mentions in project-agent-capabilities are subject matter, not needs -
+    // picking it must never lock the whole MCP baseline into an install.
+    const cap = computeClosure(graph, { skills: ['project-agent-capabilities'] });
+    assert.deepStrictEqual(cap.mcps, [], 'the capabilities skill pulls no MCPs');
+});
+
+test('hooks are leaf picks: kept as-is, emitted, and checked against the catalog', () => {
+    const c = computeClosure(graph, { hooks: ['guard-catastrophic-rm'] });
+    assert.deepStrictEqual(c.hooks, ['guard-catastrophic-rm'], 'a picked hook survives the closure untouched');
+    const { emitSelectionFile, findUnknownNames } = require('./stack-select.js');
+    assert.ok(emitSelectionFile(c).includes('hook guard-catastrophic-rm'), 'the hook reaches the emitted selection');
+    const unknown = findUnknownNames(graph, { hooks: ['guard-catastrophic-rm', 'no-such-hook'] });
+    assert.deepStrictEqual(unknown, [{ category: 'hook', name: 'no-such-hook' }], 'an unknown hook is flagged');
 });
 
 test('raw.mcps are direct picks the closure keeps and emits', () => {
@@ -45,7 +55,7 @@ test('user-chosen items carry no reason; only closure-added ones do', () => {
 
 test('empty selection yields empty closure', () => {
     const c = computeClosure(graph, {});
-    assert.deepStrictEqual(c, { skills: [], agents: [], rules: [], mcps: [], plugins: [], reasons: {} });
+    assert.deepStrictEqual(c, { skills: [], agents: [], rules: [], mcps: [], plugins: [], hooks: [], reasons: {} });
 });
 
 test('a non-array raw field does not char-split into bogus items', () => {

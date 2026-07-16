@@ -81,7 +81,7 @@ const NON_SKILL_TOKENS = new Set([
     // project-task-flow's in-session scoping step.
     'baseline-project-architecture',
     'baseline-project-related-context',
-    // MCP server names stamped by project-capabilities' routing map - servers, not skills.
+    // MCP server names stamped by project-agent-capabilities' routing map - servers, not skills.
     'angular-cli',
     'chrome-devtools',
     'appium-mcp',

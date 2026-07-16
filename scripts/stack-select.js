@@ -9,11 +9,12 @@ const fs = require('fs');
 const path = require('path');
 const { execFileSync } = require('child_process');
 
-// Expand raw = { skills?, agents?, rules?, mcps?, plugins? } into the
+// Expand raw = { skills?, agents?, rules?, mcps?, plugins?, hooks? } into the
 // dependency-complete set. Edges (skills never pull skills): rule -> skill/agent,
 // agent -> skill/agent (to fixpoint), then every kept skill/agent/rule -> its
 // mcps/plugins. raw.mcps/raw.plugins are direct picks kept as-is - that is how a
-// user-added MCP or plugin beyond the closure survives a re-run.
+// user-added MCP or plugin beyond the closure survives a re-run. raw.hooks are
+// pure leaf picks: nothing pulls a hook and a hook pulls nothing.
 function computeClosure(graph, raw)
 {
     const skills = new Set(Array.isArray(raw.skills) ? raw.skills : []);
@@ -42,6 +43,7 @@ function computeClosure(graph, raw)
 
     const mcps = new Set(Array.isArray(raw.mcps) ? raw.mcps : []);
     const plugins = new Set(Array.isArray(raw.plugins) ? raw.plugins : []);
+    const hooks = new Set(Array.isArray(raw.hooks) ? raw.hooks : []);
     const pull = (node, why) =>
     {
         if (!node) return;
@@ -53,7 +55,7 @@ function computeClosure(graph, raw)
     for (const r of rules) pull(graph.rules[r], `required by rule ${r}`);
 
     const sort = set => [...set].sort();
-    return { skills: sort(skills), agents: sort(agents), rules: sort(rules), mcps: sort(mcps), plugins: sort(plugins), reasons };
+    return { skills: sort(skills), agents: sort(agents), rules: sort(rules), mcps: sort(mcps), plugins: sort(plugins), hooks: sort(hooks), reasons };
 }
 
 // Phase 1 - always required, a miss is a hard blocker.
@@ -159,15 +161,16 @@ function findUnknownNames(graph, raw)
     check(raw.rules, new Set(Object.keys(graph.rules)), 'rule');
     check(raw.mcps, new Set(graph.catalog.mcps), 'mcp');
     check(raw.plugins, new Set(graph.catalog.plugins), 'plugin');
+    check(raw.hooks, new Set(graph.catalog.hooks || []), 'hook');
     return unknown;
 }
 
 function dropUnknownNames(raw, unknown)
 {
-    const byCat = { skill: new Set(), agent: new Set(), rule: new Set(), mcp: new Set(), plugin: new Set() };
+    const byCat = { skill: new Set(), agent: new Set(), rule: new Set(), mcp: new Set(), plugin: new Set(), hook: new Set() };
     for (const u of unknown) byCat[u.category].add(u.name);
     const drop = (list, cat) => (Array.isArray(list) ? list.filter(n => !byCat[cat].has(n)) : list);
-    return { ...raw, skills: drop(raw.skills, 'skill'), agents: drop(raw.agents, 'agent'), rules: drop(raw.rules, 'rule'), mcps: drop(raw.mcps, 'mcp'), plugins: drop(raw.plugins, 'plugin') };
+    return { ...raw, skills: drop(raw.skills, 'skill'), agents: drop(raw.agents, 'agent'), rules: drop(raw.rules, 'rule'), mcps: drop(raw.mcps, 'mcp'), plugins: drop(raw.plugins, 'plugin'), hooks: drop(raw.hooks, 'hook') };
 }
 
 // Which category a closed-selection name belongs to - for tagging output lines.
@@ -178,6 +181,7 @@ function categoryOf(closure, name)
     if ((closure.rules || []).includes(name)) return 'rule';
     if ((closure.mcps || []).includes(name)) return 'mcp';
     if ((closure.plugins || []).includes(name)) return 'plugin';
+    if ((closure.hooks || []).includes(name)) return 'hook';
     return 'item';
 }
 
@@ -189,7 +193,7 @@ function categoryOf(closure, name)
 // taken out of its direct picks) re-adds exactly what is still required.
 function findOrphans(graph, remaining, dropped)
 {
-    const cats = ['skills', 'agents', 'rules', 'mcps', 'plugins'];
+    const cats = ['skills', 'agents', 'rules', 'mcps', 'plugins', 'hooks'];
     const asSet = (obj, cat) => new Set(Array.isArray(obj[cat]) ? obj[cat] : []);
     const dropClosure = computeClosure(graph, dropped);
 
@@ -226,6 +230,7 @@ function emitSelectionFile(closure)
     for (const m of closure.mcps || []) lines.push(`mcp ${m}`);
     for (const p of closure.plugins || []) lines.push(`plugin ${p}`);
     for (const r of closure.rules || []) lines.push(`rule ${r}`);
+    for (const h of closure.hooks || []) lines.push(`hook ${h}`);
     return lines.join('\n') + '\n';
 }
 

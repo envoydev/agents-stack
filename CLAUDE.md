@@ -68,7 +68,7 @@ change made only inside a consuming project is throwaway (see Invariants).
     (code quality + definition of done), security, git + pre-commit, navigation - loaded every session and
     subagent like `CLAUDE.md` but refreshed on `update`, individually excludable via the manifest;
     the skill/agent usage policy + per-project MCP routing live in the GENERATED
-    baseline-project-capabilities.md, written by the `project-capabilities` skill).
+    baseline-project-agent-capabilities.md, written by the `project-agent-capabilities` skill).
     The other ten
     are path-scoped, lazy-loaded on a matching file touch: `markdown-docs.md`, the two repair-loop
     routers (`dotnet-repair-agents.md` / `angular-repair-agents.md`), and the seven convention rules

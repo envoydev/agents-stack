@@ -52,7 +52,7 @@ Named flags (any order, each optional with a default):
   --github-cli             install the GitHub CLI (gh) if missing
   --keep-pins              keep local model/effort frontmatter edits on installed agents/skills across
                            the refresh (an update resets them to upstream otherwise)
-  --selection <file>       install ONLY the skills/plugins/mcps/agents/rules named in <file> (one 'category name' per line); hooks always install
+  --selection <file>       install ONLY the skills/plugins/mcps/agents/rules/hooks named in <file> (one 'category name' per line); a selection with no 'hook' lines installs all hooks
   --print-plan             with --selection, print the resolved per-category install set and exit (dry run)
   --skills-only            run only the skill install/update step, then exit (testability; skips
                            prerequisites/plugins/mcps/hooks/agents/rules)
@@ -283,7 +283,7 @@ SKILLS=(
   "envoydev/claude-stack|project-code-style-analyzer"    # deliberate code-style capture - fans out code-style-analyzer per language, merges docs/PROJECT-CODE-STYLE.md, generates + wires the inject-code-style hook; manual /-only
   "envoydev/claude-stack|project-architecture-analyzer"  # deliberate architecture capture - dispatches code-analyzer per module, reasons in the main session, writes docs/architecture/ARCHITECTURE.md + ASSESSMENT.md + the generated awareness rule baseline-project-architecture.md; manual /-only
   "envoydev/claude-stack|project-version-upgrade"        # deliberate BREAKING version-event flow (framework/runtime/package major) - plan in-session via context7 + code-analyzer digests, approval gate (auto mode only on explicit user ask), staged execution via implementers + resolvers; manual /-only
-  "envoydev/claude-stack|project-capabilities"           # deliberate capabilities capture - inventories installed skills/agents/MCPs/plugins, generates the awareness rule baseline-project-capabilities.md; manual /-only
+  "envoydev/claude-stack|project-agent-capabilities"           # deliberate capabilities capture - inventories installed skills/agents/MCPs/plugins, generates the awareness rule baseline-project-agent-capabilities.md; manual /-only
   "envoydev/claude-stack|project-related-context"        # deliberate related-projects capture - args paths/URLs, fans out related-project-analyzer per sibling, writes the awareness rule baseline-project-related-context.md + docs/PROJECT-RELATED-CONTEXT.md; manual /-only
   "envoydev/claude-stack|project-build-from-scratch" # greenfield scaffolding + design->scaffold->slice-by-slice build orchestration over the pipeline
   "envoydev/claude-stack|project-task-flow"    # entry-point router: classify -> smallest execution mode -> cross-domain contract freeze + integration gate; home of the shared subagent policies
@@ -516,8 +516,8 @@ AGENTS=(
 # on BOTH actions - lazy-load on matching file reads; conventions stay with the convention-gate hook,
 # rules carry only glob-scoped routing.
 # NOTE: baseline-project-related-context.md, baseline-project-architecture.md and
-# baseline-project-capabilities.md are GENERATED per-project (by /project-related-context,
-# /project-architecture-analyzer and /project-capabilities) - NEVER add those names to this
+# baseline-project-agent-capabilities.md are GENERATED per-project (by /project-related-context,
+# /project-architecture-analyzer and /project-agent-capabilities) - NEVER add those names to this
 # manifest (the copy would overwrite the generated copies); nothing prunes the rules dir, so
 # they survive update.
 CLAUDE_RULES=(
@@ -557,6 +557,11 @@ if [ -n "$SELECTION" ]; then
   _f=(); for e in ${MCPS[@]+"${MCPS[@]}"};                 do _sel_has mcp    "${e%%|*}"                                   && _f+=("$e"); done; MCPS=(${_f[@]+"${_f[@]}"})
   _f=(); for e in ${AGENTS[@]+"${AGENTS[@]}"};             do n="${e%%::*}"; _sel_has agent "${n%.md}"                     && _f+=("$e"); done; AGENTS=(${_f[@]+"${_f[@]}"})
   _f=(); for e in ${CLAUDE_RULES[@]+"${CLAUDE_RULES[@]}"}; do n="${e%%::*}"; _sel_has rule  "${n%.md}"                     && _f+=("$e"); done; CLAUDE_RULES=(${_f[@]+"${_f[@]}"})
+  # Hooks joined the selection with the guided walk's hooks layer. A selection with no
+  # 'hook' lines predates that layer - keep its install-every-hook behavior unchanged.
+  if grep -q '^hook ' "$SELECTION"; then
+    _f=(); for e in ${HOOKS[@]+"${HOOKS[@]}"};             do n="${e%%::*}"; _sel_has hook  "${n%.js}"                     && _f+=("$e"); done; HOOKS=(${_f[@]+"${_f[@]}"})
+  fi
 fi
 
 if [ "$PRINT_PLAN" = true ]; then
@@ -565,6 +570,7 @@ if [ "$PRINT_PLAN" = true ]; then
   printf 'plan mcps:';    for e in ${MCPS[@]+"${MCPS[@]}"};                 do printf ' %s' "${e%%|*}";                done; printf '\n'
   printf 'plan agents:';  for e in ${AGENTS[@]+"${AGENTS[@]}"};             do n="${e%%::*}"; printf ' %s' "${n%.md}"; done; printf '\n'
   printf 'plan rules:';   for e in ${CLAUDE_RULES[@]+"${CLAUDE_RULES[@]}"}; do n="${e%%::*}"; printf ' %s' "${n%.md}"; done; printf '\n'
+  printf 'plan hooks:';   for e in ${HOOKS[@]+"${HOOKS[@]}"};               do n="${e%%::*}"; printf ' %s' "${n%.js}"; done; printf '\n'
   exit 0
 fi
 
@@ -1101,7 +1107,7 @@ fi
 log "next steps:"
 log "  - write your project's CLAUDE.md top from the template's authoring-outline comment (framework, stack, conventions, secret/config globs) - install seeds a starter from the template when the project has none; the claude-md-management plugin can help audit it"
 log "  - if this repo has sibling projects (a backend/frontend pair, a consumed package), run /project-related-context with their paths/URLs - it generates the awareness rule (baseline-project-related-context.md) + docs/PROJECT-RELATED-CONTEXT.md"
-log "  - run /project-capabilities once - it inventories the installed skills/agents/MCPs and generates baseline-project-capabilities.md (re-run after update or a manifest trim)"
+log "  - run /project-agent-capabilities once - it inventories the installed skills/agents/MCPs and generates baseline-project-agent-capabilities.md (re-run after update or a manifest trim)"
 log "  - once oriented, run the other two captures the CLAUDE.md rules table names: /project-architecture-analyzer (architecture map + assessment + awareness rule) and /project-code-style-analyzer (docs/PROJECT-CODE-STYLE.md + the inject-code-style hook)"
 log "  - restart Claude Code (or reopen the project) to load the new MCPs, hooks, and settings"
 [ "$PREREQ_MISSING" = true ] && log "  - install the missing prerequisites flagged above, then re-run"

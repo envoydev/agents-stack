@@ -80,7 +80,7 @@ refresh must not flatten deliberate local model/effort pin edits.
 ## 7. Prune
 Delete each item on the confirmed list, showing every command before running it. A deleted hook
 also loses its `.claude/settings.json` wiring in the same pass - show that edit too. Then re-run
-`/project-capabilities` (when installed) so the generated awareness rule reflects the new
+`/project-agent-capabilities` (when installed) so the generated awareness rule reflects the new
 inventory.
 
 ## 8. Reconcile the project's CLAUDE.md (project mode)
