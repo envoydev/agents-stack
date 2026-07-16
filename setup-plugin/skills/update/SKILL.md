@@ -1,6 +1,6 @@
 ---
 name: update
-description: "FAST refresh of an existing claude-stack install - no selection questions: bring everything currently installed to the newest release AND prune what the stack itself deleted or renamed upstream since the stamped install. The prune list is computed, never guessed: files whose status is 'removed' in the GitHub compare between the stamp and the new snapshot - user-authored artifacts and the generated baseline-project-*.md rules never appear in that diff, so they can never be touched. One confirmation before anything is deleted. Trigger by invoking /claude-stack:update or 'just update the stack here'. NOT for choosing items to add or drop - that is the sibling configure skill; not a first install - that is setup."
+description: "FAST refresh of an existing claude-stack install - no selection questions: bring everything currently installed to the newest release AND prune what the stack itself deleted or renamed upstream since the stamped install. The prune list is computed, never guessed: files the GitHub compare between the stamp and the new snapshot marks removed (plus the old half of every rename, whose new name is carried over) - user-authored artifacts and the generated baseline-project-*.md rules never appear in that diff, so they can never be touched. One confirmation before anything is deleted. Trigger by invoking /claude-stack:update or 'just update the stack here'. NOT for choosing items to add or drop - that is the sibling configure skill; not a first install - that is setup."
 disable-model-invocation: true
 ---
 
@@ -29,8 +29,8 @@ mcps from `<repo>/.mcp.json`, plugins fail-soft - never from memory or assumptio
 
 ## 3. Compute the delta since the stamp
 Read the stamp (`.claude/claude-stack.stamp`, or the account's) and the snapshot's
-`RELEASE-SOURCE`; lead with the version delta (`0.1.0 -> 0.2.0`). Then the same compare the
-`configure` skill's step 3 runs, but split by status:
+`RELEASE-SOURCE`; lead with the version delta (`0.1.0 -> 0.2.0`). Then the same status-emitting
+compare the `configure` skill's step 3 runs, and split by status:
 
 - **modified / added files under an installed item** -> covered by the refresh; count them.
 - **removed** -> the prune list, mapped to installed artifacts: `skills/<name>/...` gone entirely
@@ -38,10 +38,17 @@ Read the stamp (`.claude/claude-stack.stamp`, or the account's) and the snapshot
   `rules/<f>.md` -> `.claude/rules/<f>.md`; `hooks/<f>` -> `.claude/hooks/<f>` plus its
   `.claude/settings.json` wiring. A path still present in the snapshot is a move WITHIN the item,
   not a removal - the refresh handles it; prune only what the snapshot no longer has.
+- **renamed** (`new-path <- old-path`) of an INSTALLED item -> BOTH halves, automatically: the old
+  path joins the prune list AND the selection carries over to the new name in step 5 - a rename
+  is the same item continuing under a new name, never an adoption choice. Say what was followed
+  (`web-conventions -> typescript-conventions`).
 - **added items not installed** -> an FYI list for the report; never auto-install - route the user
   to `configure` to adopt them.
 - **No stamp, or the compare unreachable** -> refresh-only mode: say pruning needs a stamped,
   reachable baseline, and continue WITHOUT deletions - never guess a prune list.
+- **The compare says `TRUNCATED`** (the API caps at 300 files) -> the removal list cannot be
+  trusted complete: refresh-only mode, and route the reconcile to `configure` - never prune from
+  a possibly-partial diff.
 
 ## 4. Confirm once
 Show the version delta, the refresh counts by category, and the NAMED prune list. Ask one
@@ -49,12 +56,13 @@ question: proceed with refresh + prune, or refresh only. Nothing is ever deleted
 means refresh-only.
 
 ## 5. Selection and gates
-Selection = installed minus the confirmed prune list; write `raw.json`, run `stack-select.js
---selection raw.json --graph stack-graph.json --emit selection.txt --check`. A `required:` line
-(a dependency the new release introduced) is auto-kept and reported. An installed name the new
-graph no longer knows is an upstream retirement - drop it from the selection and treat it like a
-prune (for an MCP, the removal command is `claude mcp remove <name>`, shown like any other).
-Blockers stop the run with their fixes - never update past one; warnings are listed and passed.
+Selection = installed, minus the confirmed prune list, plus the new names of step-3 renames;
+write `raw.json`, run `stack-select.js --selection raw.json --graph stack-graph.json --emit
+selection.txt --check`. A `required:` line (a dependency the new release introduced) is auto-kept
+and reported. An `unknown:` line is an upstream retirement the compare missed - stack-select has
+already excluded it from the emitted selection; add the artifact to the prune list (an MCP simply
+drops out of the regenerated `.mcp.json`; name it in the report). Blockers stop the run with
+their fixes - never update past one; warnings are listed and passed.
 
 ## 6. Run the update
 From the snapshot, handing it back so the run lands the revision step 3 previewed:

@@ -48,8 +48,10 @@ actually bring, BEFORE they choose:
 SHA=$(sed -n 's/^sha: //p' .claude/claude-stack.stamp)
 NEW=$(sed -n 's/^sha: //p' "$TMP/repo/RELEASE-SOURCE")   # the snapshot's commit (an archive has no git history to diff locally)
 curl -fsSL "https://api.github.com/repos/envoydev/claude-stack/compare/$SHA...$NEW" |
-  node -e 'let d="";process.stdin.on("data",c=>d+=c).on("end",()=>{for(const f of (JSON.parse(d).files||[]))if(/^(skills|agents|rules|hooks|templates)\//.test(f.filename))console.log(f.filename)})'
+  node -e 'let d="";process.stdin.on("data",c=>d+=c).on("end",()=>{const F=(JSON.parse(d).files||[]);if(F.length>=300)console.log("TRUNCATED - the compare API caps at 300 files; this list may be incomplete");const P=/^(skills|agents|rules|hooks|templates)\//;for(const f of F)if(P.test(f.filename)||(f.previous_filename&&P.test(f.previous_filename)))console.log(f.status+"\t"+f.filename+(f.previous_filename?"\t<- "+f.previous_filename:""))})'
 ```
+
+Each line is `status<TAB>path` (`modified`/`added`/`removed`, and `renamed` with `<- old-path`).
 
 (When the fallback cloned instead of downloading, `RELEASE-SOURCE` does not exist - use
 `git -C "$TMP/repo" rev-parse HEAD` for `NEW`; the compare API works the same.)
@@ -67,6 +69,8 @@ error:
 - **The compare fails** - the commit is gone (history rewritten, or a fork/`STACK_SKILLS_REPO`
   source that never had it), or the API is unreachable. Report that the baseline is unreachable
   and move on; never guess a diff, and never treat this as a reason to skip the update.
+
+A `TRUNCATED` first line means the preview may be missing files - say so alongside the summary.
 
 Nothing changed since the stamp and no adds/drops wanted? Say so plainly and offer to stop rather
 than running a no-op update.
@@ -88,6 +92,10 @@ never a raw re-fetch.
 - Run: `node stack-select.js --selection raw.json --graph stack-graph.json --emit selection.txt --check`
 - A drop that something kept still depends on comes back as a `required:` line - show the reason
   and let the user keep it or also drop the dependents.
+- An `unknown:` line marks an installed name this release no longer ships (retired or renamed
+  upstream) - it is excluded from the emitted selection automatically; surface it to the user:
+  adopt the replacement here if step 3 showed a rename, or let the sibling `update` skill prune
+  the leftover artifact.
 
 ## 7. Review, prerequisite gate
 Same contract as `setup`: show the closed selection grouped by category, closure adds marked with

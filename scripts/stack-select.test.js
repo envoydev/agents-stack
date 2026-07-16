@@ -46,6 +46,46 @@ test('a non-array raw field does not char-split into bogus items', () => {
     assert.ok(!c.skills.includes('c') && !c.skills.includes('s'), 'no single-character bogus skills');
 });
 
+// An installed name a new release no longer ships (retired or renamed upstream) must be
+// reported and excluded, not silently passed through to per-file installer failures -
+// the update/configure skills key their retirement handling on the `unknown:` lines.
+const { findUnknownNames, dropUnknownNames } = require('./stack-select.js');
+
+test('unknown selection names are detected per category and dropped', () => {
+    const raw = { skills: ['csharp', 'totally-retired-skill'], agents: ['no-such-agent'], rules: [], plugins: [] };
+    const unknown = findUnknownNames(graph, raw);
+    assert.deepStrictEqual(unknown, [
+        { category: 'skill', name: 'totally-retired-skill' },
+        { category: 'agent', name: 'no-such-agent' },
+    ]);
+    const filtered = dropUnknownNames(raw, unknown);
+    assert.deepStrictEqual(filtered.skills, ['csharp']);
+    assert.deepStrictEqual(filtered.agents, []);
+    assert.ok(!computeClosure(graph, filtered).skills.includes('totally-retired-skill'));
+});
+
+test('CLI: an unknown name prints an unknown: line and never reaches the emitted selection', () => {
+    const fs = require('node:fs');
+    const os = require('node:os');
+    const { execFileSync } = require('node:child_process');
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'stacksel-'));
+    const rawFile = path.join(dir, 'raw.json');
+    const emitFile = path.join(dir, 'sel.txt');
+    fs.writeFileSync(rawFile, JSON.stringify({ skills: ['csharp', 'totally-retired-skill'], agents: [], rules: [], plugins: [] }));
+    try
+    {
+        const out = execFileSync('node', [path.join(__dirname, 'stack-select.js'), '--selection', rawFile, '--graph', path.join(__dirname, 'stack-graph.json'), '--emit', emitFile], { encoding: 'utf8' });
+        assert.match(out, /unknown: skill 'totally-retired-skill'/, 'the retirement is named on stdout');
+        const emitted = fs.readFileSync(emitFile, 'utf8');
+        assert.ok(emitted.includes('skill csharp'), 'known names still emit');
+        assert.ok(!emitted.includes('totally-retired-skill'), 'the unknown name is excluded from the emitted selection');
+    }
+    finally
+    {
+        fs.rmSync(dir, { recursive: true, force: true });
+    }
+});
+
 const { evaluatePrereqs } = require('./stack-select.js');
 
 const fullEnv = { bins: { node: true, npx: true, git: true, claude: true, uvx: true, dotnet: true, 'csharp-ls': true }, envs: { SENTRY_ACCESS_TOKEN: true, CONTEXT7_API_KEY: true } };

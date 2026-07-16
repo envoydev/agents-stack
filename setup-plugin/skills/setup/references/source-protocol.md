@@ -39,6 +39,17 @@ Expand-Archive -LiteralPath "$TMP/claude-stack.zip" -DestinationPath "$TMP/repo"
   If both fail, say so and stop; never assemble a source from raw URLs.
 - Never write the archive, the extracted repo, or your working files into the project tree.
 
+## Check the plugin itself is current
+
+The tooling always comes fresh from the snapshot, but YOUR numbered steps ship with the
+installed plugin - so compare versions right after the download: the snapshot's is the
+`version:` line in `$TMP/repo/RELEASE-SOURCE`; the running plugin's is in
+`${CLAUDE_PLUGIN_ROOT}/.claude-plugin/plugin.json` (no `CLAUDE_PLUGIN_ROOT` in the environment ->
+skip this check silently). When they differ, the plugin is behind the release: say so, recommend
+`claude plugin marketplace update claude-stack` then `claude plugin update claude-stack`, and
+offer to continue anyway - the snapshot tooling is current either way; the risk is only that
+these instructions lag it.
+
 ## Use the tools from the snapshot
 
 Everything comes out of `$TMP/repo`:

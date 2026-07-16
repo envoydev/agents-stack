@@ -138,6 +138,35 @@ function detectEnvironment()
     return { bins, envs };
 }
 
+// Selection names the graph does not know: an item this release retired or renamed
+// upstream (or a typo). Reported and EXCLUDED before the closure - an unknown name can
+// never install, so passing it through only trades one clear `unknown:` line for a
+// per-file failure storm in the installer.
+function findUnknownNames(graph, raw)
+{
+    const unknown = [];
+    const check = (names, known, category) =>
+    {
+        for (const n of Array.isArray(names) ? names : [])
+        {
+            if (!known.has(n)) unknown.push({ category, name: n });
+        }
+    };
+    check(raw.skills, new Set(Object.keys(graph.skills)), 'skill');
+    check(raw.agents, new Set(Object.keys(graph.agents)), 'agent');
+    check(raw.rules, new Set(Object.keys(graph.rules)), 'rule');
+    check(raw.plugins, new Set(graph.catalog.plugins), 'plugin');
+    return unknown;
+}
+
+function dropUnknownNames(raw, unknown)
+{
+    const byCat = { skill: new Set(), agent: new Set(), rule: new Set(), plugin: new Set() };
+    for (const u of unknown) byCat[u.category].add(u.name);
+    const drop = (list, cat) => (Array.isArray(list) ? list.filter(n => !byCat[cat].has(n)) : list);
+    return { ...raw, skills: drop(raw.skills, 'skill'), agents: drop(raw.agents, 'agent'), rules: drop(raw.rules, 'rule'), plugins: drop(raw.plugins, 'plugin') };
+}
+
 function emitSelectionFile(closure)
 {
     const lines = [];
@@ -161,7 +190,9 @@ function main(argv)
     catch (e) { console.error(`stack-select: cannot read graph ${graphPath}: ${e.code || e.message}`); process.exit(1); }
     try { raw = JSON.parse(fs.readFileSync(rawFile, 'utf8')); }
     catch (e) { console.error(`stack-select: cannot read selection ${rawFile}: ${e.code || e.message}`); process.exit(1); }
-    const closure = computeClosure(graph, raw);
+    const unknown = findUnknownNames(graph, raw);
+    for (const u of unknown) console.log(`unknown: ${u.category} '${u.name}' - not in this release (retired upstream, renamed, or a typo); excluded from the selection`);
+    const closure = computeClosure(graph, unknown.length ? dropUnknownNames(raw, unknown) : raw);
 
     const emit = arg('--emit');
     if (emit) fs.writeFileSync(emit, emitSelectionFile(closure));
@@ -177,6 +208,6 @@ function main(argv)
     }
 }
 
-module.exports = { computeClosure, evaluatePrereqs, detectEnvironment, emitSelectionFile, HARD_PREREQS, SCOPED_PREREQS };
+module.exports = { computeClosure, evaluatePrereqs, detectEnvironment, emitSelectionFile, findUnknownNames, dropUnknownNames, HARD_PREREQS, SCOPED_PREREQS };
 
 if (require.main === module) main(process.argv.slice(2));
