@@ -10,7 +10,7 @@ A plan built perfectly is still wrong if the plan was wrong - the design carries
 
 ## When to use / not
 
-- Use it the moment a plan exists and before implementation starts - especially for anything with a boundary, state, auth, migration, or concurrency surface.
+- Use it the moment a plan exists and before implementation starts - especially for anything with a boundary, state, auth, migration, or concurrency surface. The plan file is the whole input: a fresh session (or a different model) audits it as well as the chat that designed it - and independent eyes on the page are the point.
 - Not code review - that is `/code-review`, after the build.
 - Not plan *creation* - that is `superpowers:writing-plans` / `superpowers:brainstorming`. This audits a plan that already exists.
 

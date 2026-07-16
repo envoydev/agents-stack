@@ -8,6 +8,8 @@ disable-model-invocation: true
 
 This is the build step of the single-session vertical: `project-solution-design` produced the plan, `project-verify-plan` audited it, this executes it - one task at a time, in the plan's dependency order, in your context so every diff is inspectable as it lands. It carries the implementer seat's *execution protocol* only; the coding conventions themselves need no restating - the path-scoped rules auto-attach the house skill per file type, the generated code-style hook injects the project's actual style on the first edit, and the plan's task cards name the stack traps.
 
+The plan FILE is the whole input - not the chat that produced it. Run this in a fresh session (or `/clear` between tasks) and the context stays at plan size instead of dragging the design run forward with every call - in a long build that carried conversation, not the tools, is the dominant token cost; the per-task ticks below make any task boundary a safe resume point.
+
 ## The protocol - per task, in plan order
 
 1. **Take exactly one task.** Its card is the contract: the files it owns, the traps it names, the `file:symbol` anchors, and its acceptance criterion. When the plan lives in a file (it should - `project-solution-design` writes it under the docs root's `superpowers/plans/`), mark the task `IN_PROGRESS` there before touching code. Jump to the anchors - the designer already located them; do not re-navigate the repo.

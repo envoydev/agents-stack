@@ -19,8 +19,8 @@ const path = input.file_path || '';
 if (!/\.(ts|tsx|js|jsx|mjs|cjs|cs|go|razor|cshtml|xaml|html)$/.test(path)) {
   process.exit(0);
 }
-// A targeted read (the model already located the range) is allowed.
-if (input.offset != null || input.limit != null) {
+// A read starting mid-file is targeted (the model already located the range).
+if ((input.offset ?? 0) > 1) {
   process.exit(0);
 }
 // Small files are cheap to read whole.
@@ -34,9 +34,15 @@ const THRESHOLD = 100;
 if (lineCount <= THRESHOLD) {
   process.exit(0);
 }
+// A head window genuinely smaller than the file is targeted; a limit that spans
+// the whole file (limit: 2000 from the top) is a whole-file Read wearing a range.
+if (input.limit != null && input.limit < lineCount) {
+  process.exit(0);
+}
 process.stderr.write(
   `Blocked: whole-file Read of ${path} (${lineCount} lines).\n` +
     `Per CLAUDE.md, Read is for code you've ALREADY located - never to find a symbol.\n` +
+    `A limit that covers the whole file is still a whole-file Read.\n` +
     `Locate first with serena: get_symbols_overview('${path}') then find_symbol(...),\n` +
     `then Read with offset+limit on the returned range (or find_symbol with include_body=true).\n` +
     `If you genuinely need the whole file, Read it in explicit ranges.`,

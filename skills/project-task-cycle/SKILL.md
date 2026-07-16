@@ -29,7 +29,11 @@ step whose stamp says it already passed.
 
 At each stop: report one line of result, the artifact path, and what the next step will be - then
 END THE TURN and wait. The stop is the user's window to switch model or effort, paste context, or
-edit the plan file directly. Proceed only on their explicit word; silence is not a go.
+edit the plan file directly - and the cheap point to run the next step in a fresh session
+(`/clear`): resume needs only the plan file + cycle note, so the step starts at a few k of
+context instead of re-sending the finished steps' whole conversation with every call - in a long
+cycle that carried-forward context is the single biggest token cost. Proceed only on their
+explicit word; silence is not a go.
 
 ## The steps
 
