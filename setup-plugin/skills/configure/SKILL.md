@@ -1,10 +1,10 @@
 ---
 name: configure
-description: "UPDATE an existing claude-stack install - inventory what is actually installed, let the user adjust the selection (refresh as-is, add stacks/items, or drop items), close it against the dependency graph with a prerequisite check, and run the installer's update action against that subset. Same selection machinery as the sibling setup skill, applied to an install that already exists. Trigger by invoking /claude-stack:configure or 'update the claude stack here'. NOT for a first install - that is the sibling setup skill (install from scratch); routes there when nothing is installed yet."
+description: "ADJUST an existing claude-stack install - inventory what is actually installed, let the user change the selection (add stacks/items, drop items, or refresh as-is), close it against the dependency graph with a prerequisite check, and run the installer's update action against that subset. Same selection machinery as the sibling setup skill, applied to an install that already exists. Trigger by invoking /claude-stack:configure or 'add X to / drop Y from the claude stack'. NOT for a first install - that is the sibling setup skill; for a plain refresh (+ prune of upstream removals) the sibling update skill is the shorter path."
 disable-model-invocation: true
 ---
 
-# Configure the Claude stack - update an existing install
+# Configure the Claude stack - adjust an existing install
 
 You are refreshing or adjusting a claude-stack install that already exists. Same discipline as
 `setup`: drive it interactively, always show the resolved selection and the prerequisite report
@@ -16,11 +16,10 @@ skill is for CHOOSING what changes.)
 
 **ONE release archive is the entire download** - the shared contract lives in the sibling `setup`
 skill's `references/source-protocol.md`; read it first and hold the whole run to it: download +
-extract the `latest` release archive once into `$TMP/repo` (falling back to one shallow clone
-only when the download fails; never a raw URL), use every tool from that snapshot, hand it back
-with `--source` in step 8, and remove `$TMP` on every exit path in step 12. This skill's extra
-stake in the snapshot: its `RELEASE-SOURCE` commit is what step 3 compares the stamp against to
-report what an update would bring.
+extract the `latest` release archive once into `$TMP/repo` (the reference owns the fallback), use
+every tool from that snapshot, hand it back with `--source` in step 8, and remove `$TMP` on every
+exit path in step 12. This skill's extra stake in the snapshot: its `RELEASE-SOURCE` commit is
+what step 3 compares the stamp against to report what an update would bring.
 
 ## 1. Preconditions - find the install
 - Project mode: cwd is a project root with a populated `.claude/` (skills/agents/rules dirs, or
@@ -51,7 +50,15 @@ curl -fsSL "https://api.github.com/repos/envoydev/claude-stack/compare/$SHA...$N
   node -e 'let d="";process.stdin.on("data",c=>d+=c).on("end",()=>{const F=(JSON.parse(d).files||[]);if(F.length>=300)console.log("TRUNCATED - the compare API caps at 300 files; this list may be incomplete");const P=/^(skills|agents|rules|hooks|templates)\//;for(const f of F)if(P.test(f.filename)||(f.previous_filename&&P.test(f.previous_filename)))console.log(f.status+"\t"+f.filename+(f.previous_filename?"\t<- "+f.previous_filename:""))})'
 ```
 
-Each line is `status<TAB>path` (`modified`/`added`/`removed`, and `renamed` with `<- old-path`).
+Each line is `status<TAB>path` (`modified`/`added`/`removed`, and `renamed` with `<- old-path`),
+summarised to the user like:
+
+```
+0.1.0 -> 0.2.0 - 2 skills, 1 rule changed since the install:
+modified  skills/csharp/SKILL.md
+modified  skills/typescript/references/typescript-style.md
+renamed   rules/typescript-conventions.md <- rules/web-conventions.md
+```
 
 (When the fallback cloned instead of downloading, `RELEASE-SOURCE` does not exist - use
 `git -C "$TMP/repo" rev-parse HEAD` for `NEW`; the compare API works the same.)
@@ -83,9 +90,8 @@ to remove). Also ask: keep local model/effort pins? (`--keep-pins`, default yes 
 run - an existing install often carries deliberate pin edits).
 
 ## 5. Use the tools from the snapshot
-Per the `setup` skill's `references/source-protocol.md`: the installer, `stack-select.js`,
-`stack-graph.json`, and `templates/CLAUDE.template.md` (for step 10) all come out of `$TMP/repo` -
-never a raw re-fetch.
+Per the `setup` skill's `references/source-protocol.md`'s 'Use the tools from the snapshot'
+section: every tool a later step runs comes out of `$TMP/repo` - never a raw re-fetch.
 
 ## 6. Build the selection and close it
 - Selection = installed set, plus the adds, minus the drops; write it to `raw.json`.

@@ -37,8 +37,7 @@ syntax, factual questions, and casual conversation are exempt: just answer.
 
 ## Planning and execution
 
-- Non-trivial code (new feature, refactor, 3+ files): plan and write tests first. Routine requests: apply-then-summarize.
-- Mid-size mechanical change (rename touching 10+ files): confirm the scope list, skip the full plan.
-- Skip planning for typos, one-line fixes, formatting, dep bumps, single-file rename.
+- Non-trivial code (new feature, refactor, 3+ files): plan and write tests first (the methods are `superpowers:writing-plans` and `superpowers:test-driven-development`). Routine requests: apply-then-summarize.
+- Mid-size mechanical change (rename touching 10+ files): confirm the scope list, skip the full plan; skip planning entirely for typos, one-line fixes, formatting, dep bumps, single-file rename.
 - Code fails: read the full error and quote the relevant part before fixing (the full method is `superpowers:systematic-debugging`).
 - Inherited code: codebase conventions win over these rules unless broken or unsafe.

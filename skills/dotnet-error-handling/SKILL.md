@@ -13,7 +13,7 @@ An API has exactly two ways to report that something went wrong, and they must n
 The language-level call - when to throw versus when to return - is `csharp`. This skill is only about how a failure reaches the wire. Floor is .NET 8 / C# 12.
 
 ## Model expected failures as return values
-- An application or domain operation that can fail in a foreseeable way returns its outcome instead of throwing. Two shapes both work; pick one per codebase and stay with it:
+- An application or domain operation that can fail in a foreseeable way returns its outcome instead of throwing. Two shapes both work - `csharp` owns the shape call (it prefers a domain-specific result when the failure modes are known); pick one per codebase and stay with it:
   - a `Result<T>` holding either a value or one-or-more errors (`IsSuccess`, `Value`, `Errors`);
   - a closed union - `abstract record Error(string Code, string Message);` with `sealed record NotFound(...) : Error` and friends - resolved by a `switch` expression.
 - Throwing to signal an ordinary outcome (not found, invalid input, conflict) is the thing to avoid: it is slower on the failure path, it hides the failure from the method signature, and it pushes a `try`/`catch` to every call site.

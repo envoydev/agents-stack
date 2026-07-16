@@ -1,6 +1,6 @@
 ---
 name: project-version-upgrade
-description: "The deliberate version-upgrade flow for any BREAKING version event - a framework or runtime major, an EOL, a load-bearing package's breaking major, a forced security major: plan in-session (breaking-change surface from context7, crossed against located usage via code-analyzer digests - applicable changes only), present the staged plan at an approval gate, then on approval drive the execution stage by stage (implementers edit, resolvers clear reds, a gate after every stage). Auto mode - skipping the approval gate - runs ONLY when the user explicitly asked for it in the invocation. Routine non-breaking bumps need no skill: just bump. Triggers on 'upgrade to .NET 10', 'ng update to v20', 'this package's new major breaks us', 'plan the framework upgrade'. NOT for a feature that merely needs a newer package (the feature's own flow), or a red CI pipeline (ci-failure-diagnoser)."
+description: "The deliberate version-upgrade flow for any BREAKING version event - a framework or runtime major, an EOL, a load-bearing package's breaking major: plan in-session (the breaking-change surface from context7 crossed against located usage - applicable changes only), present the staged plan at an approval gate, then drive the execution stage by stage with a green gate after every stage. Auto mode - skipping the approval gate - runs ONLY when the user explicitly asked for it. Routine non-breaking bumps need no skill: just bump. Triggers on 'upgrade to .NET 10', 'ng update to v20', 'this package's new major breaks us', 'plan the framework upgrade'. NOT for a feature that merely needs a newer package (the feature's own flow), or a red CI pipeline (ci-failure-diagnoser)."
 disable-model-invocation: true
 model: opus
 effort: xhigh
@@ -39,7 +39,15 @@ Present the staged plan + any user-level questions. Approve -> execute; 'just th
 Per stage, in the plan's order: dispatch the domain **implementer (sonnet/medium)** with the stage as a scoped brief (trivial manifest bumps: edit inline); run the stage's verification (build + tests); a red routes to the matching **resolver (sonnet/high)** - dotnet-build-error-resolver / dotnet-test-failure-resolver / ng-build-error-resolver / angular-test-resolver; gate green before the next stage. Hard stops, auto mode included: a resolver returning BLOCKED_CONTRACT_CHANGE, a stage that stays red after its resolver pass, or reality contradicting the plan - stop and re-plan, never push through or skip a stage gate.
 
 ### 6. VERIFY + REPORT
-Full suite green at the end; on a large upgrade, optionally the domain **verifier (sonnet/xhigh)** over the assembled result. Report: current -> target, stages landed and what each changed, runtime-break checks done, anything deferred or user-declined, the rollback points. If the run stopped early: which stage, why, and the state it left.
+Full suite green at the end; on a large upgrade, optionally the domain **verifier (sonnet/xhigh)** over the assembled result. Report: current -> target, stages landed and what each changed, runtime-break checks done, anything deferred or user-declined, the rollback points. If the run stopped early: which stage, why, and the state it left. Shaped like:
+
+```
+.NET 8 -> 10: 4 stages landed, full suite green (412 passed)
+  1 SDK pin + global.json (rollback a1b2c3d)   2 TFM + framework packages in lockstep
+  3 engine-applied edits (Upgrade Assistant)   4 hand edits - TimeProvider swap, 3 call sites
+runtime-break checks: serializer defaults reviewed, zero [Obsolete] warnings left
+deferred: FluentAssertions major (user-declined)
+```
 
 ## Don't game it
 Enumerate the real breaking changes from the framework's own docs, not recall - recall catches the compile break and ships the runtime break. Keep the plan to located usage. Never wave a deprecation off as 'probably fine' - unclear impact is marked to verify. Never weaken a test, suppress a warning, or skip a stage gate to make a stage look green - that is a new break, not progress. Auto mode is the user's word only - proceeding past the gate without it is a protocol violation, not initiative.

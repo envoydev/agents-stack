@@ -2,6 +2,9 @@
 paths: ["**/*.cs", "**/*.csproj", "**/*.sln", "**/*.slnx", "**/*.xaml", "**/Directory.Build.props", "**/Directory.Packages.props", "**/*.targets", "**/nuget.config"]
 ---
 
+<!-- Fires on every .NET file touch by design: build state has no glob, and this soft router
+     replaced the retired require-convention-skill hard gate. The rent is these few lines. -->
+
 A broken .NET build or red test suite - default to delegating rather than looping in-session:
 fix-the-build goes to **`dotnet-build-error-resolver`** (MC#### errors = WPF XAML markup
 compile are its scope too), make-the-tests-pass goes to **`dotnet-test-failure-resolver`**

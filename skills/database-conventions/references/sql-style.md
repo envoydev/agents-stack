@@ -304,9 +304,7 @@ Current timestamp: PostgreSQL `now()` / `CURRENT_TIMESTAMP`; SQL Server `GETDATE
 
 ### 12. Security conventions
 - **Always parameterize user-supplied values; never build SQL by string concatenation of untrusted input.** This is the single most important defense against SQL injection. Use bound parameters/prepared statements (`$1`, `?`, `@param` depending on driver/engine) rather than interpolating values into the SQL text.
-- This is **primarily an application-layer concern** - hand-written SQL in migrations/DDL is usually static - but it applies whenever SQL is assembled dynamically (dynamic SQL in stored procedures, `EXEC`/`sp_executesql` in T-SQL, `EXECUTE ... USING` in PL/pgSQL). In dynamic SQL, use `sp_executesql` with typed parameters (SQL Server) or `format()` with `%L` (literal) / `%I` (identifier) plus `USING` (PostgreSQL) rather than concatenation.
-- Grant least privilege; use `SECURITY DEFINER` functions carefully and set a safe explicit `search_path` (PostgreSQL) to prevent schema-shadowing attacks.
-- Quote dynamic identifiers via the engine's proper identifier-quoting API (`quote_ident`/`format('%I')` in PostgreSQL, `QUOTENAME()` in SQL Server) when object names must be built at runtime.
+- The full sink-by-sink treatment - dynamic SQL (`sp_executesql`, `format()` with `%L`/`%I` + `USING`), identifier allowlisting, least-privilege grants, `SECURITY DEFINER` + `search_path` hardening - is the `data-security` skill's; this file keeps only the style-level rule above.
 
 ## Recommendations
 

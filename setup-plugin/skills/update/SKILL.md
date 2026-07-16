@@ -1,6 +1,6 @@
 ---
 name: update
-description: "FAST refresh of an existing claude-stack install - no selection questions: bring everything currently installed to the newest release AND prune what the stack itself deleted or renamed upstream since the stamped install. The prune list is computed, never guessed: files the GitHub compare between the stamp and the new snapshot marks removed (plus the old half of every rename, whose new name is carried over) - user-authored artifacts and the generated baseline-project-*.md rules never appear in that diff, so they can never be touched. One confirmation before anything is deleted. Trigger by invoking /claude-stack:update or 'just update the stack here'. NOT for choosing items to add or drop - that is the sibling configure skill; not a first install - that is setup."
+description: "FAST refresh of an existing claude-stack install - no selection questions: bring everything currently installed to the newest release AND prune what the stack itself deleted or renamed upstream since the stamped install. The prune list is computed from the GitHub compare between the stamp and the new snapshot, never guessed - user-authored artifacts and the generated baseline-project-*.md rules never appear in that diff, so they can never be touched. One confirmation before anything is deleted. Trigger by invoking /claude-stack:update or 'just update the stack here'. NOT for choosing items to add or drop - that is the sibling configure skill; not a first install - that is setup."
 disable-model-invocation: true
 ---
 
@@ -53,7 +53,13 @@ compare the `configure` skill's step 3 runs, and split by status:
 ## 4. Confirm once
 Show the version delta, the refresh counts by category, and the NAMED prune list. Ask one
 question: proceed with refresh + prune, or refresh only. Nothing is ever deleted silently; a 'no'
-means refresh-only.
+means refresh-only. For example:
+
+```
+claude-stack 0.1.0 -> 0.2.0 - refresh: 12 skills, 9 agents, 6 rules, 3 hooks
+prune: .claude/rules/web-conventions.md (renamed upstream; typescript-conventions.md carried over)
+Proceed with refresh + prune, or refresh only?
+```
 
 ## 5. Selection and gates
 Selection = installed, minus the confirmed prune list, plus the new names of step-3 renames;

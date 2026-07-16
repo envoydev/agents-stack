@@ -1,6 +1,6 @@
 ---
 name: dotnet-realtime
-description: ".NET real-time conventions for ASP.NET Core SignalR - server-to-client push over a persistent connection, connection-scoped, not durable. Covers strongly-typed Hub<TClient>, sending from outside a hub via IHubContext, group/user targeting, the reconnection model (group membership is NOT restored - rejoin explicitly), JWT-over-query-string auth plus per-message validation, additive client contracts, MessagePack, and scale-out via a Redis backplane or Azure SignalR Service. Floors at .NET 8 / C# 12. Load when building chat, notifications, live dashboards, or any real-time server push, or when the user names SignalR, hub, server-side WebSocket push, or live updates. Companions: dotnet-messaging (the durable leg), dotnet-authentication, dotnet-hosted-services, dotnet-web-backend. Do NOT load for broker-backed durable messaging (dotnet-messaging), request/response HTTP (dotnet-minimal-api), in-process reactive streams (Rx / System.Reactive), or an outbound ClientWebSocket to an external gateway (dotnet-hosted-services)."
+description: ".NET real-time conventions for ASP.NET Core SignalR - server-to-client push over a persistent connection, connection-scoped, not durable. Covers strongly-typed Hub<TClient>, sending via IHubContext, group/user targeting, reconnection, JWT-over-query-string auth, additive client contracts, MessagePack, and scale-out (Redis backplane / Azure SignalR Service). Floors at .NET 8 / C# 12. Load for chat, notifications, live dashboards, or any real-time server push - or when the user names SignalR, hub, server-side WebSocket push, or live updates. Companions: dotnet-messaging, dotnet-authentication, dotnet-hosted-services, dotnet-web-backend. Do NOT load for broker-backed durable messaging (dotnet-messaging), request/response HTTP (dotnet-minimal-api), in-process reactive streams (Rx / System.Reactive), or an outbound ClientWebSocket (dotnet-hosted-services)."
 ---
 
 # .NET real-time - ASP.NET Core SignalR
@@ -77,22 +77,7 @@ Reconnection only spans a brief window; past it the connection closes and the cl
 ## Auth: at connect, over the query string, and re-validated per message
 
 - SignalR authenticates **once, at connection time**, then the connection is trusted for its lifetime. So authorize the hub (`[Authorize]` on the hub or method, policies as for any endpoint) *and* validate the inputs of every hub method - a connection authenticated as a low-privilege user must not be able to call a method it shouldn't.
-- The browser WebSocket API cannot set an `Authorization` header, so the JWT travels in the **query string** and the bearer handler must be taught to read it for hub paths only:
-
-```csharp
-options.Events = new JwtBearerEvents
-{
-    OnMessageReceived = ctx =>
-    {
-        var token = ctx.Request.Query["access_token"];
-        if (!string.IsNullOrEmpty(token) && ctx.HttpContext.Request.Path.StartsWithSegments("/hubs"))
-            ctx.Token = token;
-        return Task.CompletedTask;
-    }
-};
-```
-
-The full JWT/policy setup is `dotnet-authentication`; this is only the hub-specific wiring.
+- The browser WebSocket API cannot set an `Authorization` header, so the JWT travels in the **query string** - the bearer-handler wiring that reads it for hub paths only is in `references/scale-out-and-hardening.md`.
 
 ## Contracts evolve additively
 
@@ -102,23 +87,12 @@ The client interface is a published contract - clients on old versions stay conn
 
 - **SignalR carries notifications, not bulk data.** Push the fact that something changed plus an id; let the client pull the heavy payload over REST/gRPC. Large frames create memory pressure and head-of-line stalls.
 - **Throttle high-frequency events** (typing indicators, cursor positions, telemetry) on the client - debounce or sample before sending.
-- Prefer the **MessagePack** protocol (`AddMessagePackProtocol`) over JSON when message size and serialization cost matter; it is binary and compact.
+- When message size and serialization cost matter, the **MessagePack** protocol setup is in `references/scale-out-and-hardening.md`.
 - Set `MaximumReceiveMessageSize`, `KeepAliveInterval`, and `ClientTimeoutInterval` deliberately rather than leaving defaults under load, and use `EnableDetailedErrors` only in development - it leaks exception text to clients.
 
-## Scale-out: a backplane, and what it does not give you
+## Scale-out
 
-One server keeps every connection's state in its own memory, so the moment you run more than one instance a message sent from server A never reaches a client connected to server B. Two fixes:
-
-- **Self-hosted: a Redis backplane** (`AddStackExchangeRedis`). Every server publishes outgoing messages to Redis pub/sub and subscribes to the same channel, so a broadcast reaches all connections. You still need **sticky sessions** (the negotiate response and the connection must hit the same server).
-- **On Azure: the Azure SignalR Service.** It holds the connections itself, which removes the sticky-session requirement and the backplane wiring.
-
-```csharp
-builder.Services.AddSignalR()
-    .AddMessagePackProtocol()
-    .AddStackExchangeRedis(builder.Configuration.GetConnectionString("redis")!);
-```
-
-Crucially, a backplane is a **fan-out layer, not a store** - it does not persist messages or deliver to absent clients; the durability rule from the top stands here too. Connection strings come from configuration via the options pattern, never a literal - same rule as every other transport.
+Running more than one server instance? A message sent from server A never reaches a client connected to server B without a backplane - the Redis / Azure SignalR Service setup, sticky sessions, and the fan-out-not-a-store caveat are in `references/scale-out-and-hardening.md`.
 
 ## Anti-patterns
 

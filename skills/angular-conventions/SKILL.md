@@ -1,6 +1,6 @@
 ---
 name: angular-conventions
-description: "Angular conventions from v17 up - standalone everything, signals as the default state primitive, OnPush and zoneless, block control flow, signal inputs and outputs, deferred loading, RxJS only where streams earn it, forms, routing, SSR and hydration, accessibility, harness testing, banned patterns, and the reward-hacking shortcuts to reject. Load before writing or editing any Angular file so the agent commits to current idioms, not recalled ones. Companions: typescript, angular-material, angular-styling, angular-security, frontend, mobile. Do NOT load for React, Vue, Svelte, Solid, plain DOM, or any non-Angular TypeScript."
+description: "Angular conventions from v17 up - standalone everything, signals as the default state primitive, OnPush and zoneless, block control flow, signal inputs and outputs, deferred loading, RxJS only where streams earn it, forms, routing, SSR and hydration, accessibility, harness testing, banned patterns, reward-hacking shortcuts to reject. Load when creating or editing a component, service, directive, or template; refactoring to signals; or reviewing Angular code. Companions: typescript, angular-material, angular-styling, angular-security, frontend, mobile. Not for React, Vue, Svelte, Solid, plain DOM, or non-Angular TypeScript."
 ---
 
 # Angular conventions
@@ -53,7 +53,7 @@ Data that lives on the server (a fetched list, a record by id) is a cache of som
 - Cache a shared stream with `shareReplay({ bufferSize: 1, refCount: true })` so late subscribers get the last value and the source unsubscribes when the audience empties.
 
 ## Change detection is always OnPush
-- `ChangeDetectionStrategy.OnPush` on every component in new code; the default strategy is treated as a bug. The one sanctioned carve-out is a component shape a UI framework's own docs exempt - that framework's skill names the exact hosts and carries the reason.
+- `ChangeDetectionStrategy.OnPush` on every component in new code; the default strategy is treated as a bug. The one sanctioned carve-out is a component a library's own docs require to stay on Default change detection - keep it Default and cite that requirement in an inline comment.
 - Feed components immutable data through signal inputs - `input()` and `input.required<T>()` - emit with `output()`, and bind two-way state with `model()` (v17.2+). The decorator `@Input` and `@Output` survive only in code predating 17.1; never mix the two styles in one component.
 - Drive the view with signals or observables, not a hand-placed `markForCheck`. If you are reaching for `ChangeDetectorRef`, the state shape is wrong.
 - Finish the move off decorators for queries and host bindings too: `viewChild()` and `contentChild()` (add `.required` when the target is guaranteed present) replace `@ViewChild` and `@ContentChild`, and the `host` metadata object replaces `@HostBinding` and `@HostListener`.
@@ -116,9 +116,11 @@ Validation is a layer, not a pile of one-off checks: declare it on the model, ke
 - E2E: select by role, label, or test-id, never a CSS class, and never a fixed `waitForTimeout` - lean on auto-waiting web-first assertions and `waitForResponse`. Set trace retain-on-failure, retries only in CI, and keep Page Objects assertion-free with locators as lazy getters.
 
 ## Banned patterns
-- No `setTimeout` poked in to coax change detection into noticing a change. Fix the signal or input flow instead.
-- No direct DOM mutation outside a directive; go through `Renderer2`.
-- No method calls or `null` field defaults in template-bound forms; no decorator queries or host bindings in new code.
+- No `setTimeout` poked in to coax change detection into noticing a change - it only 'works' because zone.js patches timers to trigger a render, so it papers over a broken signal/input flow and silently stops working under zoneless. Fix the flow instead.
+- No direct DOM mutation outside a directive - the server has no browser DOM and a hand-mutated node is the classic hydration-mismatch error, and a raw `innerHTML` write skips Angular's sanitizer; go through `Renderer2`.
+- No method calls in template expressions - they re-run on every change-detection pass; bind a `computed` instead.
+- No `null` field defaults in forms - a `null` default widens the typed control to `T | null` and leaks null checks into every consumer.
+- No decorator queries or host bindings in new code - `viewChild()`/`contentChild()` return signals that compose with `computed` and `effect`, and the `host` object replaces `@HostBinding`/`@HostListener`, which Angular keeps only for backwards compatibility.
 
 ## Reward-hacking shortcuts to reject
 The recurring ways a change fakes a green build or suite instead of earning it - reject each in review, whoever wrote it. This is the one consolidated list to check a diff against before claiming done; the language-level bans (`any`, `@ts-ignore`, non-null `!`) live in `typescript`.

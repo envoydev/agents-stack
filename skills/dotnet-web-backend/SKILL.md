@@ -65,7 +65,7 @@ One caution: do not stack a per-attempt resilience timeout on top of a client re
 
 Three signals, one destination. Wire all of it to OTLP and let the collector or backend fan it out per environment - that keeps the app code identical from laptop to production.
 
-- **Logging:** structured throughout, via Serilog or `Microsoft.Extensions.Logging` with a structured sink. Log with message templates and named properties, never interpolated strings - a structured sink can query `{OrderId}` but cannot query a baked-in number.
+- **Logging:** structured throughout, via Serilog or `Microsoft.Extensions.Logging` with a structured sink; the template-not-interpolation convention is `csharp`'s - this file owns where the logs go.
 - **Tracing and metrics:** OpenTelemetry on any service that runs in production, exporting to OTLP. The standard wiring is one builder chain:
 
 ```csharp
@@ -95,7 +95,7 @@ That covers the wiring this skill owns - registering the providers, the auto-ins
 
 If the service runs under Aspire, ServiceDefaults is the composition point that registers exactly this OpenTelemetry, health-check, and resilience setup in one call - this skill decides *what* goes in, `dotnet-aspire` owns *where* it is assembled.
 
-- **Mask secrets before they reach a sink:** log `apiKey[..4] + "***"`, a user id rather than an email, and never a raw token, password, connection string, or key. A structured sink is queryable and long-retained, so a secret logged once is leaked for as long as the logs live.
+- **Mask secrets before they reach a sink:** the no-secrets-in-logs convention is `csharp`'s; this file only adds the sink stake - a structured sink is queryable and long-retained, so a secret logged once is leaked for as long as the logs live.
 
 ## Caching
 
