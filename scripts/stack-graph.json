@@ -258,6 +258,12 @@
         "superpowers"
       ]
     },
+    "project-task-cycle": {
+      "mcps": [],
+      "plugins": [
+        "superpowers"
+      ]
+    },
     "project-task-flow": {
       "mcps": [],
       "plugins": [

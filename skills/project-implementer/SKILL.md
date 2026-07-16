@@ -10,10 +10,10 @@ This is the build step of the single-session vertical: `project-solution-design`
 
 ## The protocol - per task, in plan order
 
-1. **Take exactly one task.** Its card is the contract: the files it owns, the traps it names, the `file:symbol` anchors, and its acceptance criterion. Jump to the anchors - the designer already located them; do not re-navigate the repo.
+1. **Take exactly one task.** Its card is the contract: the files it owns, the traps it names, the `file:symbol` anchors, and its acceptance criterion. When the plan lives in a file (it should - `project-solution-design` writes it under the docs root's `superpowers/plans/`), mark the task `IN_PROGRESS` there before touching code. Jump to the anchors - the designer already located them; do not re-navigate the repo.
 2. **Build the slice + its tests together.** The acceptance criterion is what the tests prove; a task without its test is not built, it is drafted. Stay inside the task's boundary - a needed change outside it is a flag, not a detour (see below).
 3. **Gate the task green.** Build + the relevant tests after each task, not at the end of the plan. Resolve every red INLINE in this session - keep the fix loop here, quoting each build/test run so every attempt stays inspectable; this skill never dispatches an agent. Load the stack's convention skills for the trap list when the red points at one. (To offload a large, noisy fix loop to a specialist resolver seat instead, that is the dispatched multi-agent `project-task-flow`; this single-chat skill stays inline.)
-4. **Close the task honestly** - the `superpowers:verification-before-completion` gate per task: run it, quote the output, then the next task. Partial is stated as partial.
+4. **Close the task honestly** - the `superpowers:verification-before-completion` gate per task: run it, quote the output, then tick the task `DONE` with its evidence line in the plan file and refresh the plan's one-line resume note (next task + any mid-task state). The file, not the chat, is what a compacted or fresh session resumes from - it must never be more than one task stale. Then the next task. Partial is stated as partial.
 
 ## When the plan meets reality
 
@@ -23,7 +23,7 @@ This is the build step of the single-session vertical: `project-solution-design`
 
 ## Finish - the in-session verifier
 
-All tasks green: run the full suite once, then `/code-review` over the assembled diff (the single-chat form of the verifier seat) and apply its findings; then the done-gate on the whole feature. Report against the plan, one line per task - `task | status (DONE / deferred / revised) | evidence (the green command and what it proved)` - then the suite + `/code-review` result, and anything deferred or revised with its reason. The vertical is complete: design (`project-solution-design`) -> audit (`project-verify-plan`) -> build (this) -> review (`/code-review`) - one session, every step inspectable.
+All tasks green: run the full suite once, then `/code-review` over the assembled diff (the single-chat form of the verifier seat) - point it at the plan file so it reviews against the plan, not in isolation - and apply its findings; then the done-gate on the whole feature. Report against the plan, one line per task - `task | status (DONE / deferred / revised) | evidence (the green command and what it proved)` - then the suite + `/code-review` result, and anything deferred or revised with its reason. The vertical is complete: design (`project-solution-design`) -> audit (`project-verify-plan`) -> build (this) -> review (`/code-review`) - one session, every step inspectable.
 
 ## Example
 

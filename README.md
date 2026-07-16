@@ -78,7 +78,7 @@ everything below applies to both unless a row is marked otherwise.
 
 | Component | Count | Notes |
 | --------- | ----- | ----- |
-| **Skills**  | 65 | conventions + utilities (ticket writers, C#/.NET, Angular/TS, SQL, `project-task-flow` orchestration + routing (single-stack trios + cross-domain), `project-quality-loop` + `project-architecture-quality-loop` review loops) - git-clone + copy from `envoydev/claude-stack` (`claude-stack.sh install --skills-only`, or the claude-stack plugin) |
+| **Skills**  | 66 | conventions + utilities (ticket writers, C#/.NET, Angular/TS, SQL, `project-task-flow` orchestration + routing (single-stack trios + cross-domain), `project-quality-loop` + `project-architecture-quality-loop` review loops) - git-clone + copy from `envoydev/claude-stack` (`claude-stack.sh install --skills-only`, or the claude-stack plugin) |
 | **Plugins** | 7  | `superpowers`, `claude-md-management`, `csharp-lsp`, `typescript-lsp`, `security-guidance`, `claude-hud`, `ponytail` - `claude plugin install` (needs the `claude` CLI) |
 | **MCP servers** | 8 | `angular-cli`, `serena`, `playwright`, `memory`, `context7`, plus `chrome-devtools` + `appium-mcp` (heavy - active; comment out where not needed) and `sentry` (error monitoring - hosted remote MCP, needs `SENTRY_ACCESS_TOKEN` in settings `env`; comment out without Sentry). `memory` is cross-project recall (the subagent handoff runs on serena) - comment it out in a standalone project → `<repo>/.mcp.json` |
 | **Hooks** | 4 | `guard-protected-force-push` (blocks force-push to main/master/develop) + `guard-catastrophic-rm` (blocks recursive rm of /, ~, $HOME, or a bare *) + `guard-read-whole-file` (PreToolUse Read - blocks a whole-file Read of a >100-line source file, locate via serena first) → `.claude/hooks/` + wired into `.claude/settings.json`; plus `instrument-tool-usage` installed UNWIRED (opt-in per-run stats - see the instrumentation section) |
@@ -561,6 +561,11 @@ The path is resolved at install time, so the choice is baked into the registrati
   chat: read the committed architecture, judge where the change belongs (extend a seam, refactor
   first, or isolate a new boundary), load the stack skill for its traps, and decompose into an
   ordered, minimal plan. The in-context twin of the designer agent; feeds `project-verify-plan`.
+- **project-task-cycle** - Run one task/feature/bug through the whole single-chat vertical with a hard
+  user gate between every step: design (plan written to the docs root) -> plan audit -> approval +
+  build-mode choice (in-session default, domain implementer agents on ask) -> resume-proof build ->
+  skippable plan-conformance verify -> `/code-review` + the done-gate. Plan-file stamps plus a serena
+  cycle note survive compaction and a fresh session.
 - **project-failure-signatures** - Match a runtime crash to its signature and isolate the real cause: a
   lookup of the common local-runtime signatures (null-reference, DI resolution, async deadlock,
   disposed-lifecycle, config drift, boundary, database contention, HTTP-status) each mapped to where the cause lives -
