@@ -731,10 +731,12 @@ function Get-StackSrc {
   Remove-Item -LiteralPath $tmp -Recurse -Force -ErrorAction SilentlyContinue
 
   # Fallback: a shallow clone - a fork without releases, a blocked release CDN, a local test path.
+  # Pinned to main: the release branch is what installs deliver, never the default branch
+  # (development lands on develop).
   if (-not $hasGit) { Add-Failure 'release archive unreachable and git not found - stack source unavailable'; return $false }
   $tmp = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString())
   New-Item -ItemType Directory -Path $tmp -Force | Out-Null
-  & git clone --depth 1 $StackRepoUrl $tmp *> $null
+  & git clone --depth 1 -b main $StackRepoUrl $tmp *> $null
   if ($LASTEXITCODE -ne 0) {
     Add-Failure "release archive and clone of $StackRepoUrl both failed - stack source unavailable (nothing refreshed; existing copies kept)"
     Remove-Item -LiteralPath $tmp -Recurse -Force -ErrorAction SilentlyContinue

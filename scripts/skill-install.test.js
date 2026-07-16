@@ -66,8 +66,9 @@ test('install stamps the exact source revision it installed from', () => {
     {
         const stamp = readStamp(work);
         assert.ok(stamp, 'a stamp is written');
-        const head = execFileSync('git', ['-C', ROOT, 'rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
-        assert.strictEqual(stamp.sha, head, 'stamped sha is the source HEAD, not an approximation');
+        // The fallback clone is pinned to main (the release branch) - never the checked-out branch.
+        const mainTip = execFileSync('git', ['-C', ROOT, 'rev-parse', 'main'], { encoding: 'utf8' }).trim();
+        assert.strictEqual(stamp.sha, mainTip, 'stamped sha is the release branch tip, not an approximation');
         assert.strictEqual(stamp.action, 'install');
         assert.strictEqual(stamp.scope, 'project');
         assert.ok(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/.test(stamp.installed), `installed is a UTC timestamp: ${stamp.installed}`);
@@ -211,8 +212,8 @@ test('ps1: install stamps the source revision it installed from (pwsh required)'
             env: { ...process.env, STACK_SKILLS_REPO: `file://${ROOT}`, HOME: work },
         });
         assert.ok(fs.existsSync(path.join(work, '.claude', 'skills', 'csharp', 'SKILL.md')), 'ps1 copied the selected skill');
-        const head = execFileSync('git', ['-C', ROOT, 'rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
-        assert.strictEqual(readStamp(work).sha, head, 'ps1 stamps the same sha the sh would');
+        const mainTip = execFileSync('git', ['-C', ROOT, 'rev-parse', 'main'], { encoding: 'utf8' }).trim();
+        assert.strictEqual(readStamp(work).sha, mainTip, 'ps1 stamps the same release-branch sha the sh would');
     }
     finally
     {

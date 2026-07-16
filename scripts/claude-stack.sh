@@ -658,9 +658,11 @@ stack_src() {
   rm -rf "$tmp"
 
   # Fallback: a shallow clone - a fork without releases, a blocked release CDN, a local test path.
+  # Pinned to main: the release branch is what installs deliver, never the default branch
+  # (development lands on develop).
   command -v git >/dev/null 2>&1 || { note_failure "release archive unreachable and git not found - stack source unavailable"; return 1; }
   tmp="$(mktemp -d)"
-  if ! git clone --depth 1 "$STACK_REPO_URL" "$tmp" >/dev/null 2>&1; then
+  if ! git clone --depth 1 -b main "$STACK_REPO_URL" "$tmp" >/dev/null 2>&1; then
     note_failure "release archive and clone of $STACK_REPO_URL both failed - stack source unavailable (nothing refreshed; existing copies kept)"
     rm -rf "$tmp"; return 1
   fi

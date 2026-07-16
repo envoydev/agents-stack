@@ -23,14 +23,17 @@ Expand-Archive -LiteralPath "$TMP/claude-stack.zip" -DestinationPath "$TMP/repo"
 ```
 
 - The archive is the rolling `latest` release the repo's release workflow republishes on every
-  push to `main` - one self-consistent snapshot, whose `RELEASE-SOURCE` file names the exact
-  commit it was built from. The `raw.githubusercontent.com` URLs are per-file and sit behind a
-  CDN that serves a cached copy for ~5 min after a push, so raw can hand back a stale installer
-  or a skewed mix of versions. Never fetch anything from a raw URL - not even as a fallback.
+  release merge to `main` - `main` is the RELEASE branch (development lands on `develop`, so an
+  install never picks up unreleased work) - one self-consistent snapshot, whose `RELEASE-SOURCE`
+  file names the exact commit it was built from. The `raw.githubusercontent.com` URLs are
+  per-file and sit behind a CDN that serves a cached copy for ~5 min after a push, so raw can
+  hand back a stale installer or a skewed mix of versions. Never fetch anything from a raw URL -
+  not even as a fallback.
 - **Fallback when the download fails** (no release reachable, a proxy, the moment the workflow
-  is recreating the release): `git clone --depth 1 https://github.com/envoydev/claude-stack
-  "$TMP/repo"` - the same one-snapshot contract, just fetched with git. If both fail, say so and
-  stop; never assemble a source from raw URLs.
+  is recreating the release): `git clone --depth 1 -b main https://github.com/envoydev/claude-stack
+  "$TMP/repo"` - the same one-snapshot contract, just fetched with git. Keep the `-b main` pin:
+  the fallback must deliver the release branch, never whatever the default branch happens to be.
+  If both fail, say so and stop; never assemble a source from raw URLs.
 - Never write the archive, the extracted repo, or your working files into the project tree.
 
 ## Use the tools from the snapshot
