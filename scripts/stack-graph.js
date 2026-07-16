@@ -66,8 +66,31 @@ function catalogs()
     const pluginBlock = lint.parseFlatBlock(CLAUDE_SH, '"', 'PLUGINS=(', '@');
     const mcps = new Set([...mcpBlock.active, ...mcpBlock.commented]);
     const plugins = new Set([...pluginBlock.active, ...pluginBlock.commented]);
-    return { skills, agents, mcps, plugins };
+    return { skills, agents, mcps, plugins, hooks: hookCatalog() };
 }
+
+// The hook catalog: the HOOKS=( ... ) block in the sh installer - entries are
+// "filename.js::matcher::args" - as basenames sans .js. Hooks are leaf picks in
+// the selection (nothing pulls them, they pull nothing), so they only need to
+// exist in the catalog for the guided walk's hooks layer and the unknown check.
+function hookCatalog()
+{
+    const m = fs.readFileSync(CLAUDE_SH, 'utf8').match(/^HOOKS=\(\n([\s\S]*?)^\)/m);
+    const hooks = [];
+    for (const line of (m ? m[1] : '').split('\n'))
+    {
+        const e = line.match(/^\s*"([^:"]+)\.js::/);
+        if (e) hooks.push(e[1]);
+    }
+
+    return hooks.sort();
+}
+
+// Skills whose backticked MCP/plugin mentions are SUBJECT MATTER, not dependencies.
+// project-agent-capabilities documents the house routing map for every server so the
+// generated rule can be stamped from it - selecting it must never lock the whole MCP
+// baseline into an install (the skill inventories what IS installed; it calls nothing).
+const DOC_MENTION_SKILLS = new Set(['project-agent-capabilities']);
 
 function categorize(tokens, cat)
 {
@@ -102,7 +125,7 @@ function buildStackGraph()
         skills: {},
         agents: {},
         rules: {},
-        catalog: { mcps: [...cat.mcps].sort(), plugins: [...cat.plugins].sort() },
+        catalog: { mcps: [...cat.mcps].sort(), plugins: [...cat.plugins].sort(), hooks: cat.hooks },
     };
 
     for (const name of [...cat.skills].sort())
@@ -114,7 +137,7 @@ function buildStackGraph()
         }
 
         const c = categorize(tokens, cat);
-        graph.skills[name] = { mcps: c.mcps, plugins: c.plugins };
+        graph.skills[name] = DOC_MENTION_SKILLS.has(name) ? { mcps: [], plugins: [] } : { mcps: c.mcps, plugins: c.plugins };
     }
 
     for (const name of [...cat.agents].sort())

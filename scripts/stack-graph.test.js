@@ -50,13 +50,20 @@ test('the committed stack-graph.json is in sync with a fresh build', () => {
         'run `node scripts/stack-graph.js --write` and commit the result');
 });
 
-test('project-capabilities mcps edge includes all 8 backticked MCPs (fenced code block must not desync the tokenizer)', () => {
-    const s = graph.skills['project-capabilities'];
-    assert.ok(s, 'project-capabilities must be in the graph');
-    for (const m of ['serena', 'context7', 'memory', 'playwright', 'angular-cli', 'sentry', 'chrome-devtools', 'appium-mcp'])
-    {
-        assert.ok(s.mcps.includes(m), `expected skill->mcp edge to ${m}`);
-    }
+test('project-agent-capabilities documents every MCP without pulling a single edge (doc-mention exception)', () => {
+    // Its body backticks all 8 servers as the routing map it stamps into the generated
+    // rule - treating those as dependencies used to lock the whole MCP baseline into any
+    // install that picked it. The graph builder strips the edges for doc-mention skills.
+    const s = graph.skills['project-agent-capabilities'];
+    assert.ok(s, 'project-agent-capabilities must be in the graph');
+    assert.deepStrictEqual(s.mcps, [], 'no skill->mcp edges - the mentions are subject matter, not needs');
+    assert.deepStrictEqual(s.plugins, [], 'no skill->plugin edges either');
+});
+
+test('the hook catalog carries the installer HOOKS block basenames', () => {
+    assert.deepStrictEqual(graph.catalog.hooks,
+        ['guard-catastrophic-rm', 'guard-protected-force-push', 'guard-read-whole-file', 'instrument-tool-usage'],
+        'catalog.hooks mirrors HOOKS=( ... ) sans .js, sorted');
 });
 
 test('ci-failure-diagnoser plugins edge resolves from a namespaced plugin:skill frontmatter entry', () => {

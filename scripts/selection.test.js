@@ -6,8 +6,8 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 
-const SH = path.join(__dirname, 'claude-stack.sh');
-const PS1 = path.join(__dirname, 'claude-stack.ps1');
+const SH = path.join(__dirname, 'os', 'claude-stack.sh');
+const PS1 = path.join(__dirname, 'os', 'claude-stack.ps1');
 
 function writeSelection(lines) {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sel-'));
@@ -59,6 +59,15 @@ test('sh: a category with no lines installs nothing for it', () => {
     assert.deepStrictEqual(planLine(out, 'agents'), []);
     assert.deepStrictEqual(planLine(out, 'plugins'), []);
     assert.deepStrictEqual(planLine(out, 'rules'), []);
+});
+
+test('sh: hook lines filter hooks; a selection without them keeps the install-all legacy behavior', () => {
+    const filtered = runShPlan(['skill csharp', 'hook guard-catastrophic-rm']);
+    assert.deepStrictEqual(planLine(filtered, 'hooks'), ['guard-catastrophic-rm'], 'only the selected hook survives');
+    const legacy = runShPlan(['skill csharp']);
+    assert.deepStrictEqual(planLine(legacy, 'hooks'),
+        ['guard-protected-force-push', 'guard-catastrophic-rm', 'guard-read-whole-file', 'instrument-tool-usage'],
+        'a pre-hooks-layer selection still installs every hook');
 });
 
 test('sh: script parses with no syntax errors', () => {

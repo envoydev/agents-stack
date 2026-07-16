@@ -52,7 +52,7 @@ Named flags (any order, each optional with a default):
   --github-cli             install the GitHub CLI (gh) if missing
   --keep-pins              keep local model/effort frontmatter edits on installed agents/skills across
                            the refresh (an update resets them to upstream otherwise)
-  --selection <file>       install ONLY the skills/plugins/mcps/agents/rules named in <file> (one 'category name' per line); hooks always install
+  --selection <file>       install ONLY the skills/plugins/mcps/agents/rules/hooks named in <file> (one 'category name' per line); a selection with no 'hook' lines installs all hooks
   --print-plan             with --selection, print the resolved per-category install set and exit (dry run)
   --skills-only            run only the skill install/update step, then exit (testability; skips
                            prerequisites/plugins/mcps/hooks/agents/rules)
@@ -283,7 +283,7 @@ SKILLS=(
   "envoydev/claude-stack|project-code-style-analyzer"    # deliberate code-style capture - fans out code-style-analyzer per language, merges docs/PROJECT-CODE-STYLE.md, generates + wires the inject-code-style hook; manual /-only
   "envoydev/claude-stack|project-architecture-analyzer"  # deliberate architecture capture - dispatches code-analyzer per module, reasons in the main session, writes docs/architecture/ARCHITECTURE.md + ASSESSMENT.md + the generated awareness rule baseline-project-architecture.md; manual /-only
   "envoydev/claude-stack|project-version-upgrade"        # deliberate BREAKING version-event flow (framework/runtime/package major) - plan in-session via context7 + code-analyzer digests, approval gate (auto mode only on explicit user ask), staged execution via implementers + resolvers; manual /-only
-  "envoydev/claude-stack|project-capabilities"           # deliberate capabilities capture - inventories installed skills/agents/MCPs/plugins, generates the awareness rule baseline-project-capabilities.md; manual /-only
+  "envoydev/claude-stack|project-agent-capabilities"           # deliberate capabilities capture - inventories installed skills/agents/MCPs/plugins, generates the awareness rule baseline-project-agent-capabilities.md; manual /-only
   "envoydev/claude-stack|project-related-context"        # deliberate related-projects capture - args paths/URLs, fans out related-project-analyzer per sibling, writes the awareness rule baseline-project-related-context.md + docs/PROJECT-RELATED-CONTEXT.md; manual /-only
   "envoydev/claude-stack|project-build-from-scratch" # greenfield scaffolding + design->scaffold->slice-by-slice build orchestration over the pipeline
   "envoydev/claude-stack|project-task-flow"    # entry-point router: classify -> smallest execution mode -> cross-domain contract freeze + integration gate; home of the shared subagent policies
@@ -516,8 +516,8 @@ AGENTS=(
 # on BOTH actions - lazy-load on matching file reads; conventions stay with the convention-gate hook,
 # rules carry only glob-scoped routing.
 # NOTE: baseline-project-related-context.md, baseline-project-architecture.md and
-# baseline-project-capabilities.md are GENERATED per-project (by /project-related-context,
-# /project-architecture-analyzer and /project-capabilities) - NEVER add those names to this
+# baseline-project-agent-capabilities.md are GENERATED per-project (by /project-related-context,
+# /project-architecture-analyzer and /project-agent-capabilities) - NEVER add those names to this
 # manifest (the copy would overwrite the generated copies); nothing prunes the rules dir, so
 # they survive update.
 CLAUDE_RULES=(
@@ -557,6 +557,11 @@ if [ -n "$SELECTION" ]; then
   _f=(); for e in ${MCPS[@]+"${MCPS[@]}"};                 do _sel_has mcp    "${e%%|*}"                                   && _f+=("$e"); done; MCPS=(${_f[@]+"${_f[@]}"})
   _f=(); for e in ${AGENTS[@]+"${AGENTS[@]}"};             do n="${e%%::*}"; _sel_has agent "${n%.md}"                     && _f+=("$e"); done; AGENTS=(${_f[@]+"${_f[@]}"})
   _f=(); for e in ${CLAUDE_RULES[@]+"${CLAUDE_RULES[@]}"}; do n="${e%%::*}"; _sel_has rule  "${n%.md}"                     && _f+=("$e"); done; CLAUDE_RULES=(${_f[@]+"${_f[@]}"})
+  # Hooks joined the selection with the guided walk's hooks layer. A selection with no
+  # 'hook' lines predates that layer - keep its install-every-hook behavior unchanged.
+  if grep -q '^hook ' "$SELECTION"; then
+    _f=(); for e in ${HOOKS[@]+"${HOOKS[@]}"};             do n="${e%%::*}"; _sel_has hook  "${n%.js}"                     && _f+=("$e"); done; HOOKS=(${_f[@]+"${_f[@]}"})
+  fi
 fi
 
 if [ "$PRINT_PLAN" = true ]; then
@@ -565,6 +570,7 @@ if [ "$PRINT_PLAN" = true ]; then
   printf 'plan mcps:';    for e in ${MCPS[@]+"${MCPS[@]}"};                 do printf ' %s' "${e%%|*}";                done; printf '\n'
   printf 'plan agents:';  for e in ${AGENTS[@]+"${AGENTS[@]}"};             do n="${e%%::*}"; printf ' %s' "${n%.md}"; done; printf '\n'
   printf 'plan rules:';   for e in ${CLAUDE_RULES[@]+"${CLAUDE_RULES[@]}"}; do n="${e%%::*}"; printf ' %s' "${n%.md}"; done; printf '\n'
+  printf 'plan hooks:';   for e in ${HOOKS[@]+"${HOOKS[@]}"};               do n="${e%%::*}"; printf ' %s' "${n%.js}"; done; printf '\n'
   exit 0
 fi
 
@@ -620,8 +626,8 @@ stack_src() {
     # Borrowed source. Sanity-check it IS the stack (a wrong --source would otherwise 'install'
     # nothing and report 117 per-file failures), then read its revision: a git checkout carries
     # it in HEAD, an extracted release archive in its RELEASE-SOURCE file.
-    if [ ! -d "$SOURCE_DIR/skills" ] || [ ! -d "$SOURCE_DIR/agents" ]; then
-      note_failure "--source '$SOURCE_DIR' is not a claude-stack checkout (no skills/ + agents/) - stack source unavailable"
+    if [ ! -d "$SOURCE_DIR/stack/skills" ] || [ ! -d "$SOURCE_DIR/stack/agents" ]; then
+      note_failure "--source '$SOURCE_DIR' is not a claude-stack checkout (no stack/skills + stack/agents) - stack source unavailable"
       return 1
     fi
     STACK_SRC="$SOURCE_DIR"; STACK_SRC_OWNED=false
@@ -649,7 +655,7 @@ stack_src() {
      curl -fsSL "$url" -o "$tmp/claude-stack.tar.gz" 2>/dev/null &&
      mkdir -p "$tmp/repo" &&
      tar -xzf "$tmp/claude-stack.tar.gz" -C "$tmp/repo" 2>/dev/null &&
-     [ -d "$tmp/repo/skills" ] && [ -d "$tmp/repo/agents" ]; then
+     [ -d "$tmp/repo/stack/skills" ] && [ -d "$tmp/repo/stack/agents" ]; then
     STACK_SRC="$tmp/repo"; STACK_SRC_ROOT="$tmp"; STACK_SRC_OWNED=true
     STACK_SHA="$(sed -n 's/^sha: //p' "$tmp/repo/RELEASE-SOURCE" 2>/dev/null | head -1)"
     STACK_REF="$(sed -n 's/^ref: //p' "$tmp/repo/RELEASE-SOURCE" 2>/dev/null | head -1)"
@@ -687,8 +693,8 @@ install_skills() {
   mkdir -p "$dest"
   for entry in ${SKILLS[@]+"${SKILLS[@]}"}; do
     name="${entry#*|}"
-    if [ -d "$STACK_SRC/skills/$name" ]; then
-      rm -rf "$dest/$name"; cp -R "$STACK_SRC/skills/$name" "$dest/$name"
+    if [ -d "$STACK_SRC/stack/skills/$name" ]; then
+      rm -rf "$dest/$name"; cp -R "$STACK_SRC/stack/skills/$name" "$dest/$name"
       log "skill [$CLAUDE_SCOPE]: $name -> $dest/$name"
     else
       note_failure "skill '$name' not found in $STACK_REPO_URL"
@@ -760,19 +766,19 @@ download_hooks() {  # copy each hook file into the repo; per-hook fail-soft (kee
   local root entry file; local -a files=()
   root="$(git rev-parse --show-toplevel 2>/dev/null)" || { log "  !! not in a git repo - skipping hooks"; return 0; }
   for entry in "${HOOKS[@]}"; do file="${entry%%::*}"; files+=("$file"); done
-  _install_from_src hooks hook "$root/.claude/hooks" exec ${files[@]+"${files[@]}"}
+  _install_from_src stack/hooks hook "$root/.claude/hooks" exec ${files[@]+"${files[@]}"}
 }
 
 download_agents() {  # copy each subagent .md into .claude/agents/; per-agent fail-soft (keeps repo copy)
   local root
   root="$(git rev-parse --show-toplevel 2>/dev/null)" || { log "  !! not in a git repo - skipping agents"; return 0; }
-  _install_from_src agents agent "$root/.claude/agents" no ${AGENTS[@]+"${AGENTS[@]}"}
+  _install_from_src stack/agents agent "$root/.claude/agents" no ${AGENTS[@]+"${AGENTS[@]}"}
 }
 
 download_rules() {  # copy each rule .md into .claude/rules/; per-rule fail-soft (keeps repo copy)
   local root
   root="$(git rev-parse --show-toplevel 2>/dev/null)" || { log "  !! not in a git repo - skipping rules"; return 0; }
-  _install_from_src rules rule "$root/.claude/rules" no ${CLAUDE_RULES[@]+"${CLAUDE_RULES[@]}"}
+  _install_from_src stack/rules rule "$root/.claude/rules" no ${CLAUDE_RULES[@]+"${CLAUDE_RULES[@]}"}
 }
 
 seed_claude_md() {  # INSTALL: lay down a starter .claude/CLAUDE.md from the template when the project has none (never clobber a filled one)
@@ -781,7 +787,7 @@ seed_claude_md() {  # INSTALL: lay down a starter .claude/CLAUDE.md from the tem
   # Auto-loaded from either ./CLAUDE.md or ./.claude/CLAUDE.md - skip if EITHER exists so we never leave two copies.
   if [ -f "$root/CLAUDE.md" ] || [ -f "$root/.claude/CLAUDE.md" ]; then log "  CLAUDE.md: already present - left as-is (finish its authoring outline if not done)"; return 0; fi
   stack_src || { log "  !! stack source unavailable - create .claude/CLAUDE.md by hand from CLAUDE.template.md"; return 0; }
-  src="$STACK_SRC/templates/CLAUDE.template.md"
+  src="$STACK_SRC/stack/CLAUDE.template.md"
   [ -f "$src" ] || { note_failure "CLAUDE.template.md not found in $STACK_REPO_URL"; return 0; }
   dest="$root/.claude/CLAUDE.md"; mkdir -p "$root/.claude"
   cp "$src" "$dest"; log "  CLAUDE.md: seeded to .claude/CLAUDE.md - write the project top from its authoring-outline comment, and keep the '.claude/*' + '!.claude/CLAUDE.md' gitignore lines so it stays committed"
@@ -1101,7 +1107,7 @@ fi
 log "next steps:"
 log "  - write your project's CLAUDE.md top from the template's authoring-outline comment (framework, stack, conventions, secret/config globs) - install seeds a starter from the template when the project has none; the claude-md-management plugin can help audit it"
 log "  - if this repo has sibling projects (a backend/frontend pair, a consumed package), run /project-related-context with their paths/URLs - it generates the awareness rule (baseline-project-related-context.md) + docs/PROJECT-RELATED-CONTEXT.md"
-log "  - run /project-capabilities once - it inventories the installed skills/agents/MCPs and generates baseline-project-capabilities.md (re-run after update or a manifest trim)"
+log "  - run /project-agent-capabilities once - it inventories the installed skills/agents/MCPs and generates baseline-project-agent-capabilities.md (re-run after update or a manifest trim)"
 log "  - once oriented, run the other two captures the CLAUDE.md rules table names: /project-architecture-analyzer (architecture map + assessment + awareness rule) and /project-code-style-analyzer (docs/PROJECT-CODE-STYLE.md + the inject-code-style hook)"
 log "  - restart Claude Code (or reopen the project) to load the new MCPs, hooks, and settings"
 [ "$PREREQ_MISSING" = true ] && log "  - install the missing prerequisites flagged above, then re-run"

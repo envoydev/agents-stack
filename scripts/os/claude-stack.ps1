@@ -40,8 +40,8 @@
   local pin edit always wins over an upstream pin change.
 
 .PARAMETER Selection
-  Install ONLY the skills/plugins/mcps/agents/rules named in <file> (one 'category name' per line);
-  hooks always install.
+  Install ONLY the skills/plugins/mcps/agents/rules/hooks named in <file> (one 'category name' per
+  line); a selection with no 'hook' lines installs all hooks.
 
 .PARAMETER PrintPlan
   With -Selection, print the resolved per-category install set and exit (dry run).
@@ -314,7 +314,7 @@ $Skills = @(
   'envoydev/claude-stack|project-code-style-analyzer'    # deliberate code-style capture - fans out code-style-analyzer per language, merges docs/PROJECT-CODE-STYLE.md, generates + wires the inject-code-style hook; manual /-only
   'envoydev/claude-stack|project-architecture-analyzer'  # deliberate architecture capture - dispatches code-analyzer per module, reasons in the main session, writes docs/architecture/ARCHITECTURE.md + ASSESSMENT.md + the generated awareness rule baseline-project-architecture.md; manual /-only
   'envoydev/claude-stack|project-version-upgrade'        # deliberate BREAKING version-event flow (framework/runtime/package major) - plan in-session via context7 + code-analyzer digests, approval gate (auto mode only on explicit user ask), staged execution via implementers + resolvers; manual /-only
-  'envoydev/claude-stack|project-capabilities'           # deliberate capabilities capture - inventories installed skills/agents/MCPs/plugins, generates the awareness rule baseline-project-capabilities.md; manual /-only
+  'envoydev/claude-stack|project-agent-capabilities'           # deliberate capabilities capture - inventories installed skills/agents/MCPs/plugins, generates the awareness rule baseline-project-agent-capabilities.md; manual /-only
   'envoydev/claude-stack|project-related-context'        # deliberate related-projects capture - args paths/URLs, fans out related-project-analyzer per sibling, writes the awareness rule baseline-project-related-context.md + docs/PROJECT-RELATED-CONTEXT.md; manual /-only
   'envoydev/claude-stack|project-build-from-scratch' # greenfield scaffolding + design->scaffold->slice-by-slice build orchestration over the pipeline
   'envoydev/claude-stack|project-task-flow'    # entry-point router: classify -> smallest execution mode -> cross-domain contract freeze + integration gate; home of the shared subagent policies
@@ -556,8 +556,8 @@ $Agents = @(
 # (6) Path-scoped rules (claude-code): fetched into .claude/rules/ on BOTH actions - lazy-load on
 # matching file reads; conventions stay with the convention-gate hook, rules carry only glob-scoped routing.
 # NOTE: baseline-project-related-context.md, baseline-project-architecture.md and
-# baseline-project-capabilities.md are GENERATED per-project (by /project-related-context,
-# /project-architecture-analyzer and /project-capabilities) - NEVER add those names to this
+# baseline-project-agent-capabilities.md are GENERATED per-project (by /project-related-context,
+# /project-architecture-analyzer and /project-agent-capabilities) - NEVER add those names to this
 # manifest (the copy would overwrite the generated copies); nothing prunes the rules dir, so
 # they survive update.
 $ClaudeRules = @(
@@ -601,6 +601,11 @@ if ($Selection) {
   $Mcps        = @($Mcps        | Where-Object { & $SelHas 'mcp'    (($_ -split '\|', 2)[0]) })
   $Agents      = @($Agents      | Where-Object { & $SelHas 'agent'  ((($_ -split '::', 2)[0]) -replace '\.md$', '') })
   $ClaudeRules = @($ClaudeRules | Where-Object { & $SelHas 'rule'   ((($_ -split '::', 2)[0]) -replace '\.md$', '') })
+  # Hooks joined the selection with the guided walk's hooks layer. A selection with no
+  # 'hook' lines predates that layer - keep its install-every-hook behavior unchanged.
+  if (@($sel.Keys | Where-Object { $_.StartsWith('hook ') }).Count -gt 0) {
+    $Hooks     = @($Hooks       | Where-Object { & $SelHas 'hook'   ((($_ -split '::', 2)[0]) -replace '\.js$', '') })
+  }
 }
 
 if ($PrintPlan) {
@@ -609,6 +614,7 @@ if ($PrintPlan) {
   'plan mcps:'    + (($Mcps        | ForEach-Object { ' ' + ($_ -split '\|', 2)[0] }) -join '')
   'plan agents:'  + (($Agents      | ForEach-Object { ' ' + ((($_ -split '::', 2)[0]) -replace '\.md$', '') }) -join '')
   'plan rules:'   + (($ClaudeRules | ForEach-Object { ' ' + ((($_ -split '::', 2)[0]) -replace '\.md$', '') }) -join '')
+  'plan hooks:'   + (($Hooks       | ForEach-Object { ' ' + ((($_ -split '::', 2)[0]) -replace '\.js$', '') }) -join '')
   exit 0
 }
 
@@ -684,8 +690,8 @@ function Get-StackSrc {
     # Borrowed source. Sanity-check it IS the stack (a wrong -Source would otherwise 'install'
     # nothing and report 117 per-file failures), then read its revision: a git checkout carries
     # it in HEAD, an extracted release archive in its RELEASE-SOURCE file.
-    if (-not ((Test-Path -LiteralPath (Join-Path $Source 'skills') -PathType Container) -and
-              (Test-Path -LiteralPath (Join-Path $Source 'agents') -PathType Container))) {
+    if (-not ((Test-Path -LiteralPath (Join-Path $Source 'stack/skills') -PathType Container) -and
+              (Test-Path -LiteralPath (Join-Path $Source 'stack/agents') -PathType Container))) {
       Add-Failure "-Source '$Source' is not a claude-stack checkout (no skills/ + agents/) - stack source unavailable"
       return $false
     }
@@ -718,8 +724,8 @@ function Get-StackSrc {
     Invoke-WebRequest -Uri $url -OutFile (Join-Path $tmp 'claude-stack.zip') -UseBasicParsing -ErrorAction Stop
     Expand-Archive -LiteralPath (Join-Path $tmp 'claude-stack.zip') -DestinationPath $repo -Force
   } catch { <# fall through to the clone below #> }
-  if ((Test-Path -LiteralPath (Join-Path $repo 'skills') -PathType Container) -and
-      (Test-Path -LiteralPath (Join-Path $repo 'agents') -PathType Container)) {
+  if ((Test-Path -LiteralPath (Join-Path $repo 'stack/skills') -PathType Container) -and
+      (Test-Path -LiteralPath (Join-Path $repo 'stack/agents') -PathType Container)) {
     $script:StackSrc = $repo
     $script:StackSrcRoot = $tmp
     $script:StackSrcOwned = $true
@@ -792,7 +798,7 @@ function Install-Skills {
   New-Item -ItemType Directory -Path $dest -Force | Out-Null
   foreach ($entry in $Skills) {
     $name = $entry.Split('|', 2)[1]
-    $src = Join-Path $script:StackSrc (Join-Path 'skills' $name)
+    $src = Join-Path $script:StackSrc (Join-Path 'stack/skills' $name)
     if (Test-Path -LiteralPath $src -PathType Container) {
       $target = Join-Path $dest $name
       if (Test-Path -LiteralPath $target) { Remove-Item -LiteralPath $target -Recurse -Force }
@@ -856,21 +862,21 @@ function Get-Hooks {
   $root = Get-RepoRoot
   if (-not $root) { Log '  !! not in a git repo - skipping hooks'; return }
   $files = @(foreach ($entry in $Hooks) { ($entry -split '::', 2)[0] })
-  Copy-FromStackSrc -SubDir 'hooks' -Label 'hook' -DestDir (Join-Path $root '.claude/hooks') -Files $files
+  Copy-FromStackSrc -SubDir 'stack/hooks' -Label 'hook' -DestDir (Join-Path $root '.claude/hooks') -Files $files
 }
 
 function Get-Agents {
   # Copy each subagent .md into the repo from the run's clone; per-agent fail-soft (keeps repo copy).
   $root = Get-RepoRoot
   if (-not $root) { Log '  !! not in a git repo - skipping agents'; return }
-  Copy-FromStackSrc -SubDir 'agents' -Label 'agent' -DestDir (Join-Path $root '.claude/agents') -Files $Agents
+  Copy-FromStackSrc -SubDir 'stack/agents' -Label 'agent' -DestDir (Join-Path $root '.claude/agents') -Files $Agents
 }
 
 function Get-Rules {
   # Copy each rule .md into the repo from the run's clone; per-rule fail-soft (keeps repo copy).
   $root = Get-RepoRoot
   if (-not $root) { Log '  !! not in a git repo - skipping rules'; return }
-  Copy-FromStackSrc -SubDir 'rules' -Label 'rule' -DestDir (Join-Path $root '.claude/rules') -Files $ClaudeRules
+  Copy-FromStackSrc -SubDir 'stack/rules' -Label 'rule' -DestDir (Join-Path $root '.claude/rules') -Files $ClaudeRules
 }
 
 function New-ClaudeMd {
@@ -880,7 +886,7 @@ function New-ClaudeMd {
   # Auto-loaded from either ./CLAUDE.md or ./.claude/CLAUDE.md - skip if EITHER exists so we never leave two copies.
   if ((Test-Path -LiteralPath (Join-Path $root 'CLAUDE.md')) -or (Test-Path -LiteralPath (Join-Path $root '.claude/CLAUDE.md'))) { Log '  CLAUDE.md: already present - left as-is (finish its authoring outline if not done)'; return }
   if (-not (Get-StackSrc)) { Log '  !! stack source unavailable - create .claude/CLAUDE.md by hand from CLAUDE.template.md'; return }
-  $src = Join-Path $script:StackSrc (Join-Path 'templates' 'CLAUDE.template.md')
+  $src = Join-Path $script:StackSrc (Join-Path 'stack' 'CLAUDE.template.md')
   if (-not (Test-Path -LiteralPath $src -PathType Leaf)) { Add-Failure "CLAUDE.template.md not found in $StackRepoUrl"; return }
   $dest = Join-Path $root '.claude/CLAUDE.md'
   New-Item -ItemType Directory -Force -Path (Join-Path $root '.claude') | Out-Null
@@ -1203,7 +1209,7 @@ function Repair-SerenaTsLspWindows {
   # so the only lever is patching _create_launch_command in the cached package. Two steps:
   #   1) pre-warm: `claude mcp add` only registers serena - the package isn't materialized in the uv
   #      cache until serena first launches, so force a uvx run now or there is nothing to patch yet.
-  #   2) delegate the idempotent patch to scripts/fix-serena-ts-windows.ps1 (single source of truth),
+  #   2) delegate the idempotent patch to scripts/os/fix-serena-ts-windows.ps1 (single source of truth),
   #      fetched from the repo like the hooks. Fail-soft throughout. No-op on the .sh twin (Unix runs
   #      the shim directly via its shebang). REMOVE this whole block once #311 ships upstream.
   if (-not $OnWindows) { return }
@@ -1220,7 +1226,7 @@ function Repair-SerenaTsLspWindows {
   # From the run's source clone, like every other repo-owned file - so this patch is the same
   # revision as the rest of the install rather than whatever the raw CDN happens to be serving.
   if (-not (Get-StackSrc)) { Write-Warning '  serena TS-LSP fix skipped - stack source unavailable'; return }
-  $fixSrc = Join-Path $script:StackSrc (Join-Path 'scripts' 'fix-serena-ts-windows.ps1')
+  $fixSrc = Join-Path $script:StackSrc (Join-Path 'scripts/os' 'fix-serena-ts-windows.ps1')
   if (-not (Test-Path -LiteralPath $fixSrc -PathType Leaf)) { Write-Warning '  serena TS-LSP fix skipped - fix-serena-ts-windows.ps1 not found in the source'; return }
   try {
     & powershell -NoProfile -ExecutionPolicy Bypass -File $fixSrc   # child process: its `exit` won't kill this installer
@@ -1268,7 +1274,7 @@ if ($script:FailCount -gt 0) { Log "  !! $($script:FailCount) item(s) failed abo
 Log 'next steps:'
 Log "  - write your project's CLAUDE.md top from the template's authoring-outline comment (framework, stack, conventions, secret/config globs) - install seeds a starter from the template when the project has none; the claude-md-management plugin can help audit it"
 Log "  - if this repo has sibling projects (a backend/frontend pair, a consumed package), run /project-related-context with their paths/URLs - it generates the awareness rule (baseline-project-related-context.md) + docs/PROJECT-RELATED-CONTEXT.md"
-Log "  - run /project-capabilities once - it inventories the installed skills/agents/MCPs and generates baseline-project-capabilities.md (re-run after update or a manifest trim)"
+Log "  - run /project-agent-capabilities once - it inventories the installed skills/agents/MCPs and generates baseline-project-agent-capabilities.md (re-run after update or a manifest trim)"
 Log "  - once oriented, run the other two captures the CLAUDE.md rules table names: /project-architecture-analyzer (architecture map + assessment + awareness rule) and /project-code-style-analyzer (docs/PROJECT-CODE-STYLE.md + the inject-code-style hook)"
 Log '  - restart Claude Code (or reopen the project) to load the new MCPs, hooks, and settings'
 if ($script:PrereqMissing) { Log '  - install the missing prerequisites flagged above, then re-run' }

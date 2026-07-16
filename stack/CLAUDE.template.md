@@ -7,7 +7,7 @@
 1. Write the project top from the authoring outline in the comment below - replace the H1 title
    with the project's own name, put the intro above ## Rules - then delete that comment.
 2. Trim the ## Rules table to what the installer actually laid down.
-3. Run the four captures that write the rows marked GENERATED: /project-capabilities,
+3. Run the four captures that write the rows marked GENERATED: /project-agent-capabilities,
    /project-architecture-analyzer, /project-code-style-analyzer, /project-related-context.
 If the repo's canonical agent instructions already live in an AGENTS.md (for other agent
 tooling), keep this file thin and import it with @AGENTS.md instead of filling the same
@@ -32,7 +32,7 @@ rules in the same directory attach on a matching file touch - their own `paths:`
 | `.claude/rules/baseline-security.md` | /security-review routing, PII/secret handling, the permissions.deny caveat |
 | `.claude/rules/baseline-git.md` | commits, branches, PRs, push discipline, the pre-commit checkpoint |
 | `.claude/rules/baseline-navigation.md` | symbol-lookup and code-reading discipline |
-| `.claude/rules/baseline-project-capabilities.md` (GENERATED - run /project-capabilities after install or a trim) | the usage policy plus this project's real skill / seat / MCP inventory |
+| `.claude/rules/baseline-project-agent-capabilities.md` (GENERATED - run /project-agent-capabilities after install or a trim) | the usage policy plus this project's real skill / seat / MCP inventory |
 | `.claude/rules/baseline-project-architecture.md` (GENERATED - run /project-architecture-analyzer) | architecture awareness - the micro-summary plus the read-the-map trigger into docs/architecture/ |
 | `.claude/rules/baseline-project-related-context.md` (GENERATED - run /project-related-context with the sibling paths/URLs) | sibling-repo awareness - name / location / relation / seam per sibling |
 | inject-code-style hook (GENERATED - run /project-code-style-analyzer; a hook + doc, not a rule) | the project's actual code style - docs/PROJECT-CODE-STYLE.md surfaced at edit time, filtered to the observed file types |
@@ -75,7 +75,7 @@ Stack - what it is built with:
 
 6. Stack - languages, frameworks, key libraries, test stack + coverage gate, the LSP plugin
    for the primary language(s). MCP routing is NOT hand-filled here - it lives in the generated
-   .claude/rules/baseline-project-capabilities.md (run /project-capabilities).
+   .claude/rules/baseline-project-agent-capabilities.md (run /project-agent-capabilities).
 7. Commands - copy-pasteable build / test / run / migrate / publish, with any environment quirks.
 8. Secrets + config - where this project's secrets / env config live (the globs); mirror them into
    permissions.deny in .claude/settings.json - the installer seeds only the generic .env* / key /
