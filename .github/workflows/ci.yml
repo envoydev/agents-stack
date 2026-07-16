@@ -16,7 +16,13 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
+      # Full fetch + a local main ref: the installer tests exercise the fallback clone,
+      # which is pinned to -b main (the release branch), against THIS checkout - so
+      # refs/heads/main must exist locally even when the run is for a develop push/PR.
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - run: git show-ref --verify --quiet refs/heads/main || git branch main origin/main
       - uses: actions/setup-node@v4
         with:
           node-version: 22
