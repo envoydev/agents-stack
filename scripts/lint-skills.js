@@ -6,8 +6,8 @@
 // this repo for skills); that cross-repo parity is held by discipline (a baseline
 // change is a two-repo commit), each repo linting its own twins.
 // Catches the failure modes that actually happen:
-//   1. a skill directory exists but is missing from a manifest or the README
-//      index (it would silently never install);
+//   1. a skill directory exists but is missing from a manifest or the HTML
+//      inventory (it would silently never install);
 //   2. a SKILL.md references a skill name that does not exist anywhere (typo or
 //      rename rot, e.g. `vertical-slice` vs `vertical-slice-architecture`);
 //   3. a SKILL.md frontmatter block that a strict YAML parser (js-yaml here)
@@ -326,10 +326,6 @@ function main()
     };
     const primary = skills['claude-stack.sh'];   // canonical SKILLS view (both are identical)
 
-    const readme = fs.readFileSync(README, 'utf8');
-    const readmeSection = readme.split(/^## Available skills$/m)[1]?.split(/^## /m)[0] ?? '';
-    const readmeNames = new Set([...readmeSection.matchAll(/^- \*\*([a-z0-9-]+)\*\*/gm)].map(m => m[1]));
-
     // 1. Every skill dir has a SKILL.md whose YAML frontmatter loads cleanly,
     //    names the skill after its directory, and carries a non-empty description.
     //    Also collects the manual-only set (disable-model-invocation) for check 19.
@@ -383,27 +379,14 @@ function main()
         }
     }
 
-    // 2. Every local skill is registered (uncommented) in the manifests and the README.
+    // 2. Every local skill is registered (uncommented) in the manifests. (The README no
+    //    longer carries a skills list - the HTML inventory is the browsable catalog and
+    //    its own checks below keep it in sync; the README keeps only the headline counts.)
     for (const dir of dirs)
     {
         if (!primary.active.has(dir))
         {
             flag(`skills/${dir} is not registered in the installer SKILLS block`);
-        }
-
-        if (!readmeNames.has(dir))
-        {
-            flag(`skills/${dir} is missing from README.md 'Available skills'`);
-        }
-    }
-
-    // 2b. ...and the reverse: every README 'Available skills' bullet backs a real local
-    //     skill dir (a phantom/renamed bullet with no skills/<name>/ would otherwise pass).
-    for (const name of readmeNames)
-    {
-        if (!dirs.includes(name))
-        {
-            flag(`README.md 'Available skills' lists '${name}' but skills/${name}/ does not exist`);
         }
     }
 

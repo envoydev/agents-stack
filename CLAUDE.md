@@ -53,8 +53,8 @@ change made only inside a consuming project is throwaway (see Invariants).
     `baseline-project-architecture.md`; never in a build flow); the per-change fit
     verdict moved to the domain solution-designers. The `project-task-flow` skill is the single
     entry-point orchestrator - it picks the execution mode, runs a single stack's vertical per its
-    `references/domain-trio-protocol.md` (main-stack-agents-flow was folded into that reference
-    2026-07-14), and for cross-domain work freezes the shared contract and drives the parallel
+    `references/domain-trio-protocol.md` (main-stack-agents-flow was folded into that reference),
+    and for cross-domain work freezes the shared contract and drives the parallel
     per-stack runs through the `integration-reviewer` final gate. All 33 carry
     frontmatter model/effort pins (resolvers `sonnet`/`high`, designers `opus`/`xhigh`, verifiers
     `sonnet`/`xhigh`, implementers `sonnet`/`medium`, the four support seats `sonnet`). Copied from
@@ -81,7 +81,7 @@ change made only inside a consuming project is throwaway (see Invariants).
 - `scripts/lint-skills.js` - the parity lint (below). `scripts/analyze-usage.js` - offline
   token/tool consumption report over a session's transcript JSONL (+ its `subagents/`), the token
   side of the flow instrumentation (`instrument-tool-usage.js` is the identity side - hooks never
-  see tokens). `README.md` - repo overview + the full stack installer docs (single README since the repo flatten).
+  see tokens). `README.md` - deliberately compact: what the repo is, technologies, the two install routes (plugin / script), headline counts (lint-checked), and the usage-analysis pointer - no per-surface inventories (those live in `docs/claude-stack.html`) and no deep operational docs (env vars, troubleshooting - the guided plugin flow covers prerequisites interactively; history has the old text).
 
 The **Cursor** delivery - installers, the 33 agent twins, `.mdc` rules, hooks,
 `AGENTS.template.md` - lives in the `cursor-stack` repo (its own CLAUDE.md documents the
