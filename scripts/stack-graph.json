@@ -599,11 +599,16 @@
       "plugins": []
     },
     "integration-reviewer": {
-      "skills": [
+      "skills": [],
+      "suggests": [
+        "database-conventions",
+        "dotnet-code-quality",
+        "dotnet-migrate",
+        "dotnet-testing",
+        "dotnet-web-backend",
         "project-task-flow"
       ],
-      "suggests": [],
-      "skillsSource": "frontmatter",
+      "skillsSource": "body",
       "agents": [],
       "mcps": [],
       "plugins": []

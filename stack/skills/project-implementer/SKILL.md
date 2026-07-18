@@ -1,7 +1,6 @@
 ---
 name: project-implementer
 description: "Use when you have a task plan in hand - from project-solution-design, ideally gated by project-verify-plan - and want to BUILD it in the current chat, task by task: the single-chat form of the implementer seat's execution protocol. Honors each task's contract, builds code + tests per task, gates each task green before the next, resolves every red INLINE (builds in this chat by default, dispatching nothing), and hands to the build review (`project-verify-code` inline or the `<stack>-verifier` seat) + the done-gate. Trigger on execute the plan, build the plan, implement the tasks, build task 2, continue the plan. On an explicit agents request it hands each task to its `<stack>-implementer` seat instead (up to 3 at once, each on its frontmatter model unless you name one); the full multi-agent flow with its own designer and verifier is project-task-flow. Not a plan-less ad-hoc edit - just make that."
-disable-model-invocation: true
 ---
 
 # Project Implement - execute a verified plan, task by task, in one chat
