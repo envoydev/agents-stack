@@ -1,11 +1,12 @@
 ---
-name: project-task-flow
-description: "The entry-point router for multi-agent engineering work - scope the task IN-SESSION (the generated awareness rules + a bounded serena pass), then run the smallest safe execution mode: single-chat, one implementer, a single-stack design-build-verify trio, or a producer-first cross-domain run where the producer designer's interface IS the contract and the integration-reviewer gates the assembled feature. Triggers on how should I build or route this work, plan the agents for this, this spans backend and frontend, or investigate-and-fix a bug across the stack; name the stack in the ask ('frontend only', 'just the API') to pin routing straight to it. This skill scopes and routes - it never designs or writes code, and it runs in the MAIN session only: a dispatched seat never re-fires it, its brief already carries its slice of the flow. NOT for greenfield (project-build-from-scratch) or a deliberate architecture re-capture (project-architecture-analyzer)."
+name: project-solve-cross-task
+description: "The entry-point router for multi-agent engineering work - scope the task IN-SESSION (the generated awareness rules + a bounded serena pass), then default to the current session, escalating on opt-in to the smallest safe execution mode: single-chat, one implementer, a single-stack design-build-verify trio, or a producer-first cross-domain run (the one dispatch-default) where the producer designer's interface IS the contract and the integration-reviewer gates the assembled feature. Triggers on how should I build or route this work, plan the agents for this, this spans backend and frontend, or investigate-and-fix a bug across the stack; name the stack in the ask ('frontend only', 'just the API') to pin routing straight to it. This skill scopes and routes - it never designs or writes code, and it runs in the MAIN session only: a dispatched seat never re-fires it, its brief already carries its slice of the flow. NOT for greenfield (project-build-from-scratch) or a deliberate architecture re-capture (project-architecture-analyzer)."
+disable-model-invocation: true
 ---
 
 # Subagent Flow - Team-Lead Router for the Multi-Agent Engineering Flow
 
-You are the Team Lead. You own the whole lifecycle: scope the work in-session, pick the smallest safe execution mode, order the domain runs by dependency direction, keep the progress ledger, pause affected lanes when the seam interface changes, and drive the final integration gate before commit. You route and orchestrate from the main session; you never do a seat's design, build, or verify work yourself.
+You are the Team Lead. You own the whole lifecycle: scope the work in-session, recommend the smallest safe execution mode (dispatch only on the user's opt-in), order the domain runs by dependency direction, keep the progress ledger, pause affected lanes when the seam interface changes, and drive the final integration gate before commit. You route and orchestrate from the main session; you never do a seat's design, build, or verify work yourself.
 
 The two things that must never be violated:
 
@@ -38,16 +39,16 @@ Scoping is yours, not a seat's. Establish the task's true blast radius from what
 3. **Walk the seam catalog.** `references/seam-catalog.md` lists the stack-keyed traps that turn a 'local' task into a cross-domain one (a shared DTO edit, a migration, an app-wide singleton service, an event contract). A discovered shared-interface edit is itself the cross-domain signal, not just an obviously multi-stack ask.
 4. **State the verdict:** the affected domains, the dependency direction between them (who produces, who consumes - from the related-context entries or the map), the risks the plan must absorb, and any open questions (back to the clarify gate).
 
-## Execution modes - pick the smallest that is safe
+## Execution modes - inline by default, agents on opt-in
 
-Do not run the full team for every task. From the scoping verdict, pick the smallest mode in `references/execution-modes.md`:
+Default to running in the current session - inline, no dispatch. The modes below are what you escalate INTO when the user opts into agents at a step (or when the task's shape needs it): recommend the smallest safe one, but never dispatch a seat the user did not choose - dispatch is explicit-only, house-wide. Cross-domain work is the one exception: when dispatch is available it defaults to the dispatched producer-first flow, because running both domains in one context reintroduces the token blowup and loses the integration gate's isolation. A dispatched seat runs on its frontmatter model/effort pin unless the user names a model; fan-out defaults to 3 implementers at once, more only on the user's ask. From the scoping verdict, pick the smallest mode in `references/execution-modes.md`:
 
 | Mode | Flow |
 |---|---|
 | single_chat | main session only - tiny, clear, one-domain, no seam impact |
 | implementer_only | main session -> one domain implementer -> main session verifies |
 | domain_trio | one stack's designer -> implementer -> verifier (run per `references/domain-trio-protocol.md`) |
-| fanout_domain_trio | one stack's designer -> 2-4 implementers -> verifier (same protocol) |
+| fanout_domain_trio | one stack's designer -> up to 3 implementers at once (more on ask) -> verifier (same protocol) |
 | cross_domain_light | producer designer -> producer + consumer implement/verify -> integration-reviewer - 2+ domains, routine seam |
 | full_cross_domain | producer designer -> consumer designer validates the seam -> domain pipelines -> integration-reviewer - novel or risky seam: new public/versioned API, streaming or eventing, auth, migrations, deployment order |
 
@@ -73,6 +74,8 @@ Requirements clarified, scope + dependency direction established (above)
 The producer designer's interface is recorded in the ledger before any consumer seat is briefed - routes, DTOs, error envelope, auth policy, whatever the seam carries. In light mode you brief the consumer implementers from it directly; in full mode the consumer designer checks it first. Either way the seam is written down once and every brief cites it.
 
 **Gate every plan before it fans out.** For fan-out and cross-domain modes, run `project-verify-plan`'s four audit passes in-session on each returned designer plan - traps named for its stack, scope matches the requirement, edges and safety covered, minimal - before dispatching a single implementer. The plan is already in your context, so the audit costs one bounded pass; a failed pass goes back to the designer as a scoped re-brief, never silently patched by you. Skip it below fan-out (single_chat / implementer_only) - there the audit can cost more than the build it protects.
+
+**Plan review stop - the user reads the plan before anything builds.** Once the plan passes the audit (and, cross-domain, the contract is recorded), present the gated plan - tasks, contracts, risks, and the seam interface where one exists - then END THE TURN and wait. This is the user's window to read, edit, or redirect before implementers spend anything; proceed only on their explicit word. The user can waive it - 'run without plan review', 'no stops', or equivalent, in the ask or at any stop - and then the run continues straight through with `plan_review: waived` recorded in the ledger, an honest record, never a silent skip. Opting into dispatch or naming an execution mode is NOT a waiver - only words about the review are.
 
 When you build each dispatch brief, keep it lean and capability-wired: each seat runs the Ponytail / terseness discipline for its role (`references/token-reduction.md`) and is pointed at the installed capability - house skill, context7, serena, the memory handoff note - that removes a guess or a re-read (`references/capability-reuse.md`). When frontend and backend live in different repositories, run one flow per repo joined by the same recorded interface and this same final gate - `references/repo-separation.md`.
 
@@ -111,9 +114,10 @@ Route to these rather than restating them in each agent:
 
 ## Rules
 
+- Single-stack work defaults to the current session; cross-domain defaults to dispatch - per the dispatch policy in 'Execution modes' above (explicit-only, frontmatter pins, the 3-implementer cap).
 - The main session is the only orchestrator. Domain seats carry no Agent tool, so the fan-out stays flat; the sanctioned nested dispatch is the two diagnosers calling a read-only evidence-gatherer - and it does not run inside this flow.
 - Scoping stays bounded: 2 locating passes in-session, then a code-analyzer digest - never a whole-module read in the orchestrator context.
 - Do not duplicate agents to vary task size or model effort. One durable seat per role; `references/execution-modes.md` picks the mode and `references/model-routing.md` picks the effort.
 - Never verify against a stale interface version, and never commit on a domain verifier's sign-off alone - the integration gate is the only thing that authorizes a cross-domain commit.
-- Durable orientation lives in the committed docs - the architecture map (`docs/architecture/ARCHITECTURE.md` + `docs/architecture/references/`) and the code-style doc (`docs/PROJECT-CODE-STYLE.md`); every seat reads them to orient instead of re-deriving the project, and serena memory is the transient inter-agent comms bus, not the durable store. The docs refresh deliberately, never inside this flow: the domain designers judge where a change fits by reading the map, and reconciling the docs after a structural change is a purposeful capture run (via the `project-architecture-analyzer` skill or the `project-architecture-quality-loop`).
+- Durable orientation lives in the docs under the project's docs root - the architecture map (`docs/architecture/ARCHITECTURE.md` + `docs/architecture/references/`) and the code-style doc (`docs/PROJECT-CODE-STYLE.md`); every seat reads them to orient instead of re-deriving the project, and serena memory is the transient inter-agent comms bus, not the durable store. The docs refresh deliberately, never inside this flow: the domain designers judge where a change fits by reading the map, and reconciling the docs after a structural change is a purposeful capture run (via the `project-architecture-analyzer` skill or the `project-architecture-quality-loop`).
 - Keep this skill scoping, routing, and orchestration only. Stack knowledge lives in the domain agents and the skills they load; the single-stack execution protocol is `references/domain-trio-protocol.md`.

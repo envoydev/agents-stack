@@ -249,16 +249,22 @@
         "superpowers"
       ]
     },
-    "project-task-cycle": {
+    "project-solve-cross-task": {
+      "mcps": [],
+      "plugins": [
+        "ponytail"
+      ]
+    },
+    "project-solve-task": {
       "mcps": [],
       "plugins": [
         "superpowers"
       ]
     },
-    "project-task-flow": {
+    "project-verify-code": {
       "mcps": [],
       "plugins": [
-        "ponytail"
+        "superpowers"
       ]
     },
     "project-verify-plan": {
@@ -288,7 +294,7 @@
         "angular-material",
         "angular-styling",
         "frontend",
-        "project-task-flow",
+        "project-solve-cross-task",
         "typescript"
       ],
       "skillsSource": "body",
@@ -317,7 +323,7 @@
       "suggests": [
         "angular-conventions",
         "ionic",
-        "project-task-flow",
+        "project-solve-cross-task",
         "typescript"
       ],
       "skillsSource": "body",
@@ -352,7 +358,7 @@
         "dotnet-mvc-controllers",
         "dotnet-testing",
         "dotnet-web-backend",
-        "project-task-flow"
+        "project-solve-cross-task"
       ],
       "skillsSource": "body",
       "agents": [],
@@ -378,6 +384,7 @@
       "skills": [
         "csharp",
         "dotnet-code-quality",
+        "dotnet-data-access",
         "dotnet-testing",
         "dotnet-web-backend"
       ],
@@ -434,7 +441,7 @@
         "dotnet-messaging",
         "dotnet-realtime",
         "dotnet-testing",
-        "project-task-flow"
+        "project-solve-cross-task"
       ],
       "skillsSource": "body",
       "agents": [],
@@ -480,7 +487,7 @@
         "dotnet-migrate",
         "dotnet-testing",
         "postgres",
-        "project-task-flow",
+        "project-solve-cross-task",
         "sqlite"
       ],
       "skillsSource": "body",
@@ -558,7 +565,7 @@
         "dotnet-code-quality",
         "dotnet-project-setup",
         "dotnet-wpf",
-        "project-task-flow"
+        "project-solve-cross-task"
       ],
       "skillsSource": "body",
       "agents": [],
@@ -574,7 +581,7 @@
         "dotnet-code-quality",
         "dotnet-testing",
         "dotnet-wpf",
-        "project-task-flow"
+        "project-solve-cross-task"
       ],
       "skillsSource": "body",
       "agents": [],
@@ -592,11 +599,16 @@
       "plugins": []
     },
     "integration-reviewer": {
-      "skills": [
-        "project-task-flow"
+      "skills": [],
+      "suggests": [
+        "database-conventions",
+        "dotnet-code-quality",
+        "dotnet-migrate",
+        "dotnet-testing",
+        "dotnet-web-backend",
+        "project-solve-cross-task"
       ],
-      "suggests": [],
-      "skillsSource": "frontmatter",
+      "skillsSource": "body",
       "agents": [],
       "mcps": [],
       "plugins": []
@@ -658,7 +670,7 @@
       "suggests": [
         "angular-conventions",
         "ionic",
-        "project-task-flow",
+        "project-solve-cross-task",
         "typescript"
       ],
       "skillsSource": "body",
@@ -694,7 +706,7 @@
         "mobile",
         "mobile-security",
         "project-quality-loop",
-        "project-task-flow",
+        "project-solve-cross-task",
         "typescript"
       ],
       "skillsSource": "body",
@@ -712,7 +724,7 @@
         "dotnet-hosted-services",
         "dotnet-testing",
         "dotnet-wpf",
-        "project-task-flow"
+        "project-solve-cross-task"
       ],
       "skillsSource": "body",
       "agents": [],
@@ -779,7 +791,7 @@
     },
     "angular-repair-agents": {
       "skills": [
-        "project-task-flow"
+        "project-solve-cross-task"
       ],
       "agents": [
         "angular-test-resolver",
@@ -897,7 +909,7 @@
     },
     "dotnet-repair-agents": {
       "skills": [
-        "project-task-flow"
+        "project-solve-cross-task"
       ],
       "agents": [
         "dotnet-build-error-resolver",
