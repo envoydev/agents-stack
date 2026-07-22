@@ -237,6 +237,48 @@ function parseFlatBlock(file, quote, blockStart, sep)
     return { active, commented };
 }
 
+// Lint the evidence catalog (setup-plugin/references/evidence.json) against the
+// artifact rosters: a typo'd key silently never matches (the scan just skips it),
+// and a regex signal without a label surfaces as raw regex in the guided commands'
+// consent tables. Pure - main() feeds it the real catalog and rosters; the test
+// file exercises it with synthetic ones.
+function lintEvidenceCatalog(catalog, rosters)
+{
+    const out = [];
+    const layers = { skills: 'skill', mcps: 'mcp', plugins: 'plugin' };
+    for (const key of Object.keys(catalog))
+    {
+        if (key !== '_comment' && !(key in layers))
+        {
+            out.push(`evidence.json has unknown layer '${key}' - the scan reads only skills/mcps/plugins, so its entries would silently never match`);
+        }
+    }
+
+    for (const [layer, singular] of Object.entries(layers))
+    {
+        for (const [name, entry] of Object.entries(catalog[layer] || {}))
+        {
+            if (!rosters[layer].has(name))
+            {
+                out.push(`evidence.json names ${singular} '${name}' which is not in the ${layer} roster - the signal would silently never match`);
+            }
+
+            for (const kind of ['csprojContent', 'content'])
+            {
+                for (const signal of entry[kind] || [])
+                {
+                    if (typeof signal.label !== 'string' || signal.label.trim() === '')
+                    {
+                        out.push(`evidence.json ${singular} '${name}' has a ${kind} signal without a label - consent tables would show the raw regex`);
+                    }
+                }
+            }
+        }
+    }
+
+    return out;
+}
+
 // Extract the stack HTML's view of the inventory: house skill names,
 // third-party repo skill names, plugin names (from plugin-URL skill rows and
 // "/plugin install X@" install cells), and MCP server names.
@@ -1005,6 +1047,33 @@ function main()
         flag(`version drift: setup-plugin plugin.json '${pluginManifest.version}' vs .claude-plugin/marketplace.json metadata '${marketplaceVersion}' - the plugin, the marketplace, and the release must carry ONE version`);
     }
 
+    // 22. The evidence catalog names only real artifacts, and every regex signal
+    //     carries a display label. Rosters: skill dirs; MCPs/plugins from the
+    //     installer blocks (active + commented - a commentable entry is still real).
+    const evidencePath = path.join(ROOT, 'setup-plugin', 'references', 'evidence.json');
+    let evidenceCatalog = null;
+    try
+    {
+        evidenceCatalog = JSON.parse(fs.readFileSync(evidencePath, 'utf8'));
+    }
+    catch (err)
+    {
+        flag(`setup-plugin/references/evidence.json is unreadable: ${err.message}`);
+    }
+
+    if (evidenceCatalog)
+    {
+        const rosters = {
+            skills: new Set(dirs),
+            mcps: new Set([...mcpsPrimary.active, ...mcpsPrimary.commented]),
+            plugins: new Set([...pluginsClaudeSh.active, ...pluginsClaudeSh.commented]),
+        };
+        for (const finding of lintEvidenceCatalog(evidenceCatalog, rosters))
+        {
+            flag(finding);
+        }
+    }
+
     if (warnings.length > 0)
     {
         for (const warning of warnings)
@@ -1037,6 +1106,7 @@ module.exports = {
     parseStringArray,
     parseFlatBlock,
     localSkillDirs,
+    lintEvidenceCatalog,
     NON_SKILL_TOKENS,
 };
 
