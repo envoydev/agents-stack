@@ -8,8 +8,40 @@ test('requiring lint-skills does not run the linter and exposes parsers', () => 
     assert.strictEqual(typeof lint.parseManifest, 'function');
     assert.strictEqual(typeof lint.parseStringArray, 'function');
     assert.strictEqual(typeof lint.localSkillDirs, 'function');
+    assert.strictEqual(typeof lint.lintEvidenceCatalog, 'function');
     assert.ok(lint.NON_SKILL_TOKENS instanceof Set);
     assert.ok(lint.paths && typeof lint.paths.SKILLS_DIR === 'string');
     // localSkillDirs reads the real skills/ dir - proves the paths resolve.
     assert.ok(lint.localSkillDirs().length > 0);
+});
+
+test('lintEvidenceCatalog passes a clean catalog and flags unknown names, unlabeled regex signals, and unknown layers', () => {
+    const { lintEvidenceCatalog } = require('./lint-skills.js');
+    const rosters = {
+        skills: new Set(['dotnet-performance']),
+        mcps: new Set(['sentry']),
+        plugins: new Set(),
+    };
+
+    const clean = {
+        _comment: 'x',
+        skills: { 'dotnet-performance': { packages: ['BenchmarkDotNet'], content: [{ glob: 'Program.cs', regex: 'x', label: 'x wiring' }] } },
+        mcps: { sentry: { packages: ['Sentry.'] } },
+        plugins: {},
+    };
+    assert.deepStrictEqual(lintEvidenceCatalog(clean, rosters), []);
+
+    const bad = {
+        rules: { 'baseline-git': {} },   // the scan reads only skills/mcps/plugins
+        skills: {
+            'dotnet-perf': { packages: ['BenchmarkDotNet'] },   // typo'd name - would silently never match
+            'dotnet-performance': { csprojContent: [{ regex: '<X>' }], content: [{ glob: 'a', regex: 'b', label: '  ' }] },
+        },
+    };
+    const findings = lintEvidenceCatalog(bad, rosters);
+    assert.strictEqual(findings.length, 4);
+    assert.ok(findings.some(f => f.includes("unknown layer 'rules'")));
+    assert.ok(findings.some(f => f.includes("skill 'dotnet-perf'")));
+    assert.ok(findings.some(f => f.includes('csprojContent signal without a label')));
+    assert.ok(findings.some(f => f.includes('content signal without a label')));
 });

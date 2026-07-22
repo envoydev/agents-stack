@@ -28,7 +28,18 @@
       "guard-read-whole-file"
     ],
     "skills": [
-      "project-solve-cross-task"
+      "project-agent-capabilities",
+      "project-architecture-analyzer",
+      "project-architecture-quality-loop",
+      "project-code-style-analyzer",
+      "project-implementer",
+      "project-quality-loop",
+      "project-related-context",
+      "project-solve-cross-task",
+      "project-solve-task",
+      "project-verify-code",
+      "project-verify-plan",
+      "project-version-upgrade"
     ]
   },
   "general": {

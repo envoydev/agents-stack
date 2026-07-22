@@ -1,5 +1,5 @@
 ---
-description: "RECONCILE an existing claude-stack install to THIS project - detect the project's real stacks by artifact (the setup step-2 scan), inventory what is installed, then walk the selection one layer at a time (rules -> agents -> skills -> hooks -> MCPs -> plugins) showing, per layer, what is REDUNDANT (installed but its whole owning stack is absent - remove?) and what is MISSING (the detected stacks' + baseline closure not installed here - add?), each pre-marked with its reason and taken on per-item consent. Shared items, deliberate non-stack extras, and the always-baseline already installed are never touched. Detection evidence for every absent stack is shown BEFORE the walk so a mis-detection is vetoable. After the mechanical walk, a JUDGMENT step corroborates the advisory items' non-use in the code (named greps for the skill's domain, its own do-not-load exclusions, the docs' own citations of it) and reviews the remainder against the project's stated conventions - drops proposed only with gate evidence (a corroboration trail or a verbatim-cited conflict), visibly labeled as judgment, never mixed with the signal tiers. Adds run the installer for the accepted set; removes delete explicitly - the same paths setup/configure use. Project mode only. This is the project-relative two-way audit that setup (fresh), update (refresh), and configure (manual add/drop) do not do."
+description: "RECONCILE an existing claude-stack install to THIS project - detect the project's real stacks by artifact (the setup step-2 scan), inventory what is installed, then walk the selection one layer at a time (rules -> agents -> skills -> hooks -> MCPs -> plugins) showing, per layer, what is REDUNDANT (installed but its whole owning stack is absent - remove?) and what is MISSING (the detected stacks' + baseline closure not installed here - add?), each pre-marked with its reason and taken on per-item consent. Shared items, deliberate non-stack extras, and the always-baseline already installed are never touched. Detection evidence for every absent stack is shown BEFORE the walk so a mis-detection is vetoable. After the mechanical walk, a JUDGMENT step corroborates the advisory items' non-use in the code (named greps for the skill's domain, its own do-not-load exclusions, the docs' own citations of it) reviews the remainder against the project's stated conventions, and mirrors gate 1 for ADDS (an uninstalled skill whose domain the code provably touches though no manifest signal covers it - only from trails the run itself surfaced, never a speculative catalog sweep) - drops and adds proposed only with gate evidence (a corroboration trail or a verbatim-cited conflict), visibly labeled as judgment, never mixed with the signal tiers; plus a plain-text DORMANT advisory naming installed occasion-bound items (their own descriptions mark them release-/upgrade-/audit-time) with each one's honest idle cost and off lever - informational, acted on only by explicit request. Adds run the installer for the accepted set; removes delete explicitly - the same paths setup/configure use. Project mode only. This is the project-relative two-way audit that setup (fresh), update (refresh), and configure (manual add/drop) do not do."
 disable-model-invocation: true
 ---
 
@@ -125,14 +125,15 @@ layer, slice `redundant.out` + `missing.out` to that layer and run the SAME shap
   only if a baseline guard was removed.
 - **MCPs / plugins** - an LSP plugin shows MISSING when its stack is detected but it was dropped.
 
-## 9. Judgment review - corroborated non-use and convention conflicts
+## 9. Judgment review - corroborated non-use, convention conflicts, corroborated need
 
 The mechanical tiers stop at what signals can prove; this step carries the judgment they cannot -
-a skill whose PURPOSE conflicts with the project's stated conventions, or whose domain the code
-provably never touches, is invisible to every scanner. Scope: installed artifacts still untouched
+a skill whose PURPOSE conflicts with the project's stated conventions, whose domain the code
+provably never touches, or whose domain the code provably DOES touch without any catalog signal,
+is invisible to every scanner. Drop scope: installed artifacts still untouched
 this run that nothing kept requires (probe `--dependents` first - a closure-held item is NOT in
 scope; at most note the finding and name the holder, its drop path is the sibling configure).
-Two inputs, two gates:
+Add scope: release-shipped artifacts the walk left unproposed. Three inputs, three gates:
 
 1. **The advisory list FIRST - corroborate non-use in the code.** Every `no-evidence:` item is a
    prime drop candidate the package scan alone cannot judge. For each: derive the skill's domain
@@ -149,23 +150,47 @@ Two inputs, two gates:
    `ASSESSMENT.md`, `PROJECT-CODE-STYLE.md`, where they exist - and propose a drop on a cited
    conflict: quote the conflicting rule verbatim and name its source. No project docs -> this
    path is skipped (say so); path 1 still runs - it reads code, not conventions.
+3. **Corroborated need - the uninstalled mirror of gate 1.** An uninstalled skill whose domain the
+   code provably touches but no manifest signal covers (BCL-only cryptography, a hand-rolled
+   background-job loop) is gate 1's blind spot in reverse. Work ONLY from trails this run already
+   surfaced - a domain the detection or gate-1 greps tripped over, a topic the project's own docs
+   name - never a speculative sweep of the whole catalog. For each candidate: confirm with bounded
+   NAMED greps (quote the positive hits and their files), and check the skill's own do-NOT-load
+   exclusions do not match this project (an exclusion hit kills the proposal). Propose
+   JUDGMENT-ADD with the trail as the citation: the greps run, the quoted hits, the exclusion
+   check. No surfaced trail, no proposal - 'the project might grow into it' passes no gate.
 
 No gate evidence, no proposal: unused-looking, stale-feeling, or 'probably never needed' passes
 neither gate. One table, VISIBLY separate from the signal tiers, then the usual per-item consent
 round:
 
 ```
-[step 9/11 - judgment] corroborated non-use + convention conflicts · next: apply
- # | artifact                  | verdict       | citation
----+---------------------------+---------------+--------------------------------------------------
- 1 | skill dotnet-architecture | JUDGMENT-DROP | CLAUDE.md: 'keep the layered factory pattern; it is NOT Clean Architecture / DDD / VSA'
- 2 | skill dotnet-realtime     | JUDGMENT-DROP | advisory, corroborated: 0 hits for SignalR/hub/web-host across src/ (3 greps); outbound ClientWebSocket is the skill's own do-not-load case
+[step 9/11 - judgment] corroborated non-use + conflicts + corroborated need · next: apply
+ # | artifact                   | verdict       | citation
+---+----------------------------+---------------+--------------------------------------------------
+ 1 | skill dotnet-architecture  | JUDGMENT-DROP | CLAUDE.md: 'keep the layered factory pattern; it is NOT Clean Architecture / DDD / VSA'
+ 2 | skill dotnet-realtime      | JUDGMENT-DROP | advisory, corroborated: 0 hits for SignalR/hub/web-host across src/ (3 greps); outbound ClientWebSocket is the skill's own do-not-load case
+ 3 | skill dotnet-cryptography  | JUDGMENT-ADD  | corroborated: AesGcm in src/Vault/Sealer.cs, Rfc2898DeriveBytes in src/Auth/Hasher.cs (2 greps, hits quoted); no crypto package = no scanner signal; no exclusion match
 ```
 
 This step is model judgment, not a signal: it is non-deterministic and can be confidently wrong,
 which is exactly why every row carries its quotation and nothing here ever auto-applies. A
 decline is final for this run - never re-litigate it. Accepted judgment drops join step 10's
-removal set, reported there under their JUDGMENT label.
+removal set and accepted judgment adds its install set, both reported there under their
+JUDGMENT label.
+
+**The dormant advisory - fine to keep, fires rarely, by requirement.** Under the judgment table,
+as PLAIN TEXT (no row numbers, no consent - like the walk's `no-evidence:` lines), list installed
+items that are legitimately here but occasion-bound: their OWN description marks them
+release-time, upgrade-time, audit-time, or ad-hoc (`capacitor-release`, `project-version-upgrade`,
+`ilspy-decompile`, `security-auditor`...) - the description IS the citation; never claim a
+frequency you cannot observe. Name each item's idle cost and off lever honestly, per layer:
+agents and manual `/`-skills cost nothing installed (explicit dispatch only - say so, so working
+machinery is not pruned for phantom savings); an auto-firing skill costs its description line per
+session (lever: remove, or accept it); an MCP costs its server launch + tools every session
+(lever: `claude mcp remove`, cheap to re-add via configure); a plugin can be switched off in place
+(`claude plugin disable <name>`). Act on a lever only on an explicit user request in this run -
+dormancy alone is never a removal argument.
 
 ## 10. Apply - the same paths setup/configure use
 
@@ -205,9 +230,13 @@ THIS command: after apply, after an abort, after a disputed-detection stop, and 
   item whose owning stack IS present - the tool already excludes these; never second-guess it.
 - Do not act on a `no-evidence:` advisory - it is information, not a removal candidate; package
   absence is weak proof (vendored code, a preinstalled skill for planned work, a scan miss).
-- Do not propose a judgment drop without its gate evidence - the corroboration trail (named greps,
-  zero hits, the skill's own exclusion) or the verbatim-quoted conflicting rule with its source -
-  and never put a JUDGMENT row in a signal-tier table - the two have different reliability and the
-  user must always see which is which.
+- Do not act on a DORMANT advisory without an explicit user request, and never present dormancy
+  as a removal argument - occasion-bound machinery earns its place on the occasion; cite the
+  item's own description, not an invented usage frequency.
+- Do not propose a judgment drop or add without its gate evidence - the corroboration trail
+  (named greps with their zero or quoted-positive hits, the skill's own exclusion check) or the
+  verbatim-quoted conflicting rule with its source - and never put a JUDGMENT row in a signal-tier
+  table - the two have different reliability and the user must always see which is which. A
+  judgment add additionally needs a trail the run itself surfaced - never a speculative catalog sweep.
 - Do not skip the prerequisite gate before an install, and never remove what a kept item still
   needs. Do not paste tool output or leave `$TMP` behind on any exit path. Do not commit anything.

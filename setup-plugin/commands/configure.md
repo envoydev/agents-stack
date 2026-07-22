@@ -1,5 +1,5 @@
 ---
-description: "ADJUST an existing claude-stack install - inventory what is actually installed, report what an update would bring (the stamp compare), pick WHICH areas to adjust, then walk the chosen areas in dependency order: each layer shows ONE numbered table of the whole catalog with what is installed and what is locked (the required-by reason shown), then an ADD round and a DROP round (quick options + typed numbers). Drops cascade BOTH ways, always with consent: what a dropped item alone pulled in is offered for removal at its own layer, and dropping a required item offers the dependent rules/agents that hold it for removal with it - nothing is ever removed silently. Prerequisite check, the installer's update action, explicit removals, and an OFFERED (never forced) CLAUDE.md reconcile close the run. NOT for a first install - that is the sibling setup command; for a plain refresh (+ prune of upstream removals) the sibling update command is the shorter path."
+description: "ADJUST an existing claude-stack install - inventory what is actually installed, report what an update would bring (the stamp compare), pick WHICH areas to adjust, then walk the chosen areas in dependency order: each layer shows ONE numbered table of the whole catalog with what is installed and what is locked (the required-by reason shown), then an ADD round and a DROP round (quick options + typed numbers); an environment area adjusts the two settings.json env values (auto-compact trigger, generated-docs root) on the same consent. Drops cascade BOTH ways, always with consent: what a dropped item alone pulled in is offered for removal at its own layer, and dropping a required item offers the dependent rules/agents that hold it for removal with it - nothing is ever removed silently. Prerequisite check, the installer's update action, explicit removals, and an OFFERED (never forced) CLAUDE.md reconcile close the run. NOT for a first install - that is the sibling setup command; for a plain refresh (+ prune of upstream removals) the sibling update command is the shorter path."
 disable-model-invocation: true
 ---
 
@@ -16,7 +16,7 @@ sibling `update` command is the shorter path - this command is for CHOOSING what
 **ONE release archive is the entire download** - the shared contract lives at
 `${CLAUDE_PLUGIN_ROOT}/references/source-protocol.md`; read it first and hold the whole run to
 it: download + extract once into `$TMP/repo` (the reference owns the fallback), use every tool
-from that snapshot, hand it back with `--source` in step 10, and remove `$TMP` per the 'Clean up'
+from that snapshot, hand it back with `--source` in step 11, and remove `$TMP` per the 'Clean up'
 section on every exit path. The protocol's 'Narrate, don't trace' section governs every tool
 call: one quiet call per recompute, no pasted tool output, one narration line between steps.
 This command's extra stake in the snapshot: its `RELEASE-SOURCE` commit is what step 1 compares
@@ -24,14 +24,14 @@ the stamp against to report what an update would bring.
 
 ## The ladder - announce every step
 
-Eleven user-facing steps; the machinery between them runs silently. Before EVERY question, one
+Twelve user-facing steps; the machinery between them runs silently. Before EVERY question, one
 banner line so the user always knows where they are, what is being decided, and what comes next:
 
 ```
-[step 3/11 - rules] adjust the installed rules · next: agents
+[step 3/12 - rules] adjust the installed rules · next: agents
 ```
 
-1 install status · 2 areas · 3 rules · 4 agents · 5 skills · 6 hooks · 7 MCPs · 8 plugins · 9 prerequisite check · 10 update · 11 CLAUDE.md (optional)
+1 install status · 2 areas · 3 rules · 4 agents · 5 skills · 6 hooks · 7 MCPs · 8 plugins · 9 environment · 10 prerequisite check · 11 update · 12 CLAUDE.md (optional)
 
 ## 1. Install status - find it, inventory it, diff it
 
@@ -83,13 +83,13 @@ cases to handle, neither an error:
 A `TRUNCATED` first line means the preview may be missing files - say so alongside the summary.
 
 Close the step with one question: **adjust the selection** (continue to the area pick at step 2), or
-**refresh as-is** (nothing to change - skip straight to step 9; when upstream changed nothing
+**refresh as-is** (nothing to change - skip straight to step 10; when upstream changed nothing
 either, offer to stop rather than running a no-op, and note the sibling `update` command is the
 no-questions path for plain refreshes).
 
 ## 2. Choose the areas
 
-One multi-pick: which areas to adjust this run - rules, agents, skills, hooks, MCPs, plugins (default: all). Only the chosen areas are walked, in the fixed dependency order rules -> agents -> skills -> hooks -> MCPs -> plugins; every skipped layer keeps its installed set untouched and gets one narration line naming it. Cascades still cross area lines - the closure owns consistency, the picker only decides which tables you page through: a consent-drop's dependents are handled wherever they land, and orphans that fall in a SKIPPED layer are collected and presented in one combined drop round after the last walked layer, never silently kept or removed.
+One multi-pick: which areas to adjust this run - rules, agents, skills, hooks, MCPs, plugins, environment (default: all). Only the chosen areas are walked, in the fixed dependency order rules -> agents -> skills -> hooks -> MCPs -> plugins -> environment; every skipped layer keeps its installed set untouched and gets one narration line naming it. Cascades still cross area lines - the closure owns consistency, the picker only decides which tables you page through: a consent-drop's dependents are handled wherever they land, and orphans that fall in a SKIPPED layer are collected and presented in one combined drop round after the last walked layer, never silently kept or removed.
 
 ## The walk - steps 3-8, one layer at a time
 
@@ -119,13 +119,16 @@ Per layer, the SAME three-beat shape as setup:
    you it uses what the install lacks - an informed add candidate, never an auto-add) - then paste `table.txt` verbatim
    inside a fenced code block: the one sanctioned paste, pre-padded by the tool so it stays
    aligned at any length; a hand-written markdown table shears when the renderer flushes it in
-   segments. Rows are labeled `yes` / `orphaned` (with the cascade origin) / `-`, the lock
+   segments. The table ends in a `total: N <layer>` footer line - it is part of the paste and the
+   user's truncation check: a display whose visible rows fall short of the footer's count (or that
+   lacks the footer) was cut down and must be re-pasted in full; never summarize rows into prose,
+   the user decides from the whole catalog, not from your shortlist. Rows are labeled `yes` / `orphaned` (with the cascade origin) / `-`, the lock
    reason rides the last column, and row numbers are stable across rounds. Columns: number, name, `installed` (`yes`, `orphaned` for the cascade
    offers, or `-`), `required by` (the lock reason for kept items something else kept needs, or
    `-`):
 
 ```
-[step 5/11 - skills] adjust the installed skills · next: hooks
+[step 5/12 - skills] adjust the installed skills · next: hooks
  # | skill      | installed | required by
 ---+------------+-----------+------------------------------------------
  1 | csharp     | yes       | rule csharp-conventions
@@ -170,7 +173,7 @@ trace back to the rule and agent drops before them.
 
 Leaf picks - nothing requires a hook and a hook requires nothing, so every row is free and the
 cascade never reaches here. Dropping a wired hook removes its `.claude/settings.json` wiring too
-(step 10 shows that edit).
+(step 11 shows that edit).
 
 ## 7. MCPs
 
@@ -185,7 +188,26 @@ Locked = the plugins the kept selection pulls (an LSP plugin rides its stack's c
 `superpowers` and `ponytail` arrive via the skills and agents that cite them); the rest of the
 installed plugins are direct picks. Addable from `catalog.plugins`.
 
-## 9. Prerequisite check
+## 9. Environment - the two stack env values (when picked)
+
+The install carries two project-level environment values in the scope's settings.json
+(`.claude/settings.json`, or the account file for a global install). The installer seeds them
+only when ABSENT, so this step is the one place they are changed deliberately:
+
+- `CLAUDE_AUTOCOMPACT_PCT_OVERRIDE` - the context auto-compact trigger percent (house default
+  40). Alternatives: another percent, or auto-compact off entirely - that is the
+  `autoCompactEnabled: false` settings key, with the pct override deleted rather than left dead.
+- `CLAUDE_DOCS_PATH` - the generated-docs root (house default `.claude/docs`, machine-local). A
+  committed forward-slash path (e.g. `docs`) shares the captured docs with the team.
+
+Show the CURRENT values read from the file - never assume the defaults - then one keep-or-change
+consent covering both. On a docs-root change, say plainly: existing generated docs do NOT move -
+they stay under the old root until moved by hand or re-captured, and the CLAUDE.md docs-root
+section must agree (the step-12 reconcile covers that row; surface it). Apply on consent with a
+merge touching ONLY the chosen keys - everything else in settings.json is preserved. Area
+skipped, or nothing changed: one narration line, nothing written.
+
+## 10. Prerequisite check
 
 Run: `node stack-select.js --selection raw.json --graph stack-graph.json --emit selection.txt --check`,
 output redirected to `$TMP/select.out` like every recompute. Show the closed selection grouped by category - closure adds marked with their reasons, the final
@@ -199,7 +221,7 @@ warning; no project docs, skip silently; a conflict warning never blocks the run
 keep local model/effort pins? (`--keep-pins`, default yes for a configure
 run - an existing install often carries deliberate pin edits).
 
-## 10. Update + removals
+## 11. Update + removals
 
 Run the installer **from the snapshot**, passing it back with `--source` so the run lands the
 same revision step 1 previewed:
@@ -216,7 +238,7 @@ the skill directory / agent file / rule file; a hook loses BOTH its `.claude/hoo
 `claude plugin uninstall <name>` for a plugin. Then re-run `/project-agent-capabilities` (when
 installed) so the generated awareness rule reflects the new inventory.
 
-## 11. CLAUDE.md - the user's call (project mode)
+## 12. CLAUDE.md - the user's call (project mode)
 
 Not required - open with WHERE it lives and WHAT a yes changes, then ask; a 'no' ends the run
 cleanly. The location: the project's own CLAUDE.md - `.claude/CLAUDE.md` where the installer
@@ -246,7 +268,7 @@ THIS command: after a successful update, after an abort, after a blocker, and af
 
 - Do not fall back to a full re-install - this is the update path; a from-scratch install is the
   sibling `setup` command. Never present a layer question without its
-  `[step n/11 - <name>] ... · next: <name>` banner or without the full-catalog table.
+  `[step n/12 - <name>] ... · next: <name>` banner or without the full-catalog table.
 - Never drop a locked row on the user's behalf, never remove an orphan silently, and never
   re-offer an orphan the user chose to keep - the reason column is the answer, the dependent's
   layer is the remedy.

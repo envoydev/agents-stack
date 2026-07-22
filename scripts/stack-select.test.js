@@ -227,7 +227,9 @@ test('emitTable emits a perfectly aligned, fully labeled layer table', () => {
     const table = emitTable(orphanGraph, 'skills', { raw: { rules: ['r2'], skills: ['s2'] } });
     const lines = table.trimEnd().split('\n');
     const pos = l => JSON.stringify([...l].flatMap((c, i) => (c === '|' ? [i] : [])));
-    for (const l of lines.slice(2)) assert.strictEqual(pos(l), pos(lines[0]), `separators shear on: ${l}`);
+    for (const l of lines.slice(2, -2)) assert.strictEqual(pos(l), pos(lines[0]), `separators shear on: ${l}`);
+    // the trailing footer names the row count so a truncated display is self-evident
+    assert.strictEqual(lines[lines.length - 1], `total: ${lines.length - 4} skills - if fewer rows are visible above, the render was truncated: re-paste it verbatim`, 'row-count footer');
     assert.match(lines[0], /# \| skill/, 'header names the layer singular');
     assert.match(table, /1 \| s1 +\| required +\| rule r2/, 's1 is closure-locked with its reason');
     assert.match(table, /2 \| s2 +\| added +\| -/, 's2 is a bare direct pick');

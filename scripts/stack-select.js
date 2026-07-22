@@ -347,7 +347,11 @@ function emitTable(graph, layer, opts)
     const w = [width(0), width(1), width(2), width(3)];
     const line = r => `${r[0].padStart(w[0])} | ${r[1].padEnd(w[1])} | ${r[2].padEnd(w[2])} | ${r[3]}`;
     const rule = `${'-'.repeat(w[0])}-+-${'-'.repeat(w[1])}-+-${'-'.repeat(w[2])}-+-${'-'.repeat(w[3])}`;
-    return [line(header), rule, ...rows.map(line)].join('\n') + '\n';
+    // Trailing row-count footer: a verbatim paste carries it, so a display showing fewer
+    // rows than it names (or missing it) is self-evidently truncated - the user's check,
+    // not a prose guard on the model.
+    const footer = `total: ${rows.length} ${layer} - if fewer rows are visible above, the render was truncated: re-paste it verbatim`;
+    return [line(header), rule, ...rows.map(line), rule, footer].join('\n') + '\n';
 }
 
 function emitSelectionFile(closure)

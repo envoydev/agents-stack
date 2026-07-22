@@ -42,6 +42,12 @@ function buildFixture()
 </Project>`);
     put('web/package.json', JSON.stringify({ dependencies: { '@angular/material': '^17.0.0' }, devDependencies: { '@sentry/angular': '^7.0.0' } }));
     put('nx.json', '{}');
+    // content signal: a regex over a catalog-named code file (not a manifest)
+    put('src/Api/Program.cs', 'app.MapGet("/health", () => "ok");\n');
+    // brownfield view controller - no [ApiController], the base class is the signal
+    put('src/Web/HomeController.cs', 'public class HomeController : Controller\n{\n}\n');
+    // clean-architecture layer naming - a file-existence signal
+    put('src/Shop.Domain/Shop.Domain.csproj', '<Project Sdk="Microsoft.NET.Sdk"></Project>');
     // skip-list: a signal that exists ONLY under node_modules must not be found
     put('node_modules/somepkg/somepkg.csproj', '<PackageReference Include="BenchmarkDotNet" Version="0.13.0" />');
     // depth cap: a manifest buried deeper than the cap must not be found
@@ -67,6 +73,10 @@ test('scanner finds package, central-package, csproj-property, npm, and file sig
         assert.match(found.skills['angular-material'], /@angular\/material in web\/package\.json/, 'npm dependency');
         assert.match(found.mcps['sentry'], /@sentry\/angular in web\/package\.json/, 'scoped npm prefix');
         assert.match(found.skills['nx'], /nx\.json/, 'file-existence signal');
+        assert.match(found.skills['dotnet-minimal-api'], /minimal-API Map\* wiring in Program\.cs in src\/Api\/Program\.cs/, 'content signal over a named code file, labeled');
+        assert.match(found.skills['dotnet-mvc-controllers'], /ApiController\/Controller classes in src\/Web\/HomeController\.cs/, 'a base-class-only view controller fires the signal');
+        assert.match(found.skills['dotnet-architecture'], /Shop\.Domain\.csproj present/, 'clean-architecture layer naming is a file signal');
+        assert.strictEqual(found.skills['dotnet-realtime'], undefined, 'the SignalR server regex does not fire on plain Map* endpoints');
     }
     finally { fs.rmSync(root, { recursive: true, force: true }); }
 });
